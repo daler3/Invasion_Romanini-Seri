@@ -1,0 +1,37 @@
+package classiCondivise;
+
+public class BeanTavolo {
+
+	/**
+	 * Id identificativo del tavolo
+	 */
+	private Integer idTavolo;
+	/**
+	 * Numero di utenti connessi
+	 */
+	private Integer numeroUtenti;
+	public BeanTavolo(Integer idTavolo, Integer numeroUtenti) {
+		super();
+		this.idTavolo = idTavolo;
+		this.numeroUtenti = numeroUtenti;
+	}
+	public Integer getIdTavolo() {
+		return idTavolo;
+	}
+	public void setIdTavolo(Integer idTavolo) {
+		this.idTavolo = idTavolo;
+	}
+	public Integer getNumeroUtenti() {
+		return numeroUtenti;
+	}
+	public void setNumeroUtenti(Integer numeroUtenti) {
+		this.numeroUtenti = numeroUtenti;
+	}
+	@Override
+	public String toString() {
+		String stringa = idTavolo+";"+numeroUtenti;
+		return stringa;
+	}
+
+	
+}

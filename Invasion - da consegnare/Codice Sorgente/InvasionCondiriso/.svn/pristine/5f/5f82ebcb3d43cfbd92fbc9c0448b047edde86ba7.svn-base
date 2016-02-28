@@ -1,0 +1,275 @@
+package mappa;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Iterator;
+
+import classiCondivise.Colori;
+import exceptionCondivise.UnitaAttaccoInsufficientiException;
+import exceptionCondivise.UnitaDifesaInsufficientiException;
+
+
+
+public class Territorio implements Serializable {
+	private static final long serialVersionUID = 1L;
+	private String nome = null;
+	private String continente = null;
+	private Integer unitaPresenti = 0;
+	private Colori colorePossessore = Colori.NEUTRO;
+	private ArrayList<Territorio> territoriConfinanti;
+	//Iterator<Territorio> itTerConf;
+	
+	/**
+	 * Costruttore di un Territorio.
+	 * @param nome	Nome del territorio.
+	 * @param continente	Nome del continente di appartenenza.
+	 */
+	public Territorio(String nome, String continente){
+		territoriConfinanti = new ArrayList<Territorio>();
+		this.nome = nome;
+		this.continente = continente;
+	}
+	
+	/**
+	 * Aggiunge un nuovo territorio alla lista dei territori confinanti.
+	 * Utilizzato solo in fase di creazione del territorio per impostare i confini.
+	 * @param territorioConfinante Il territorio confinante
+	 */
+	public void aggiungiConfine(Territorio territorioConfinante){
+		territoriConfinanti.add(territorioConfinante);
+	}
+	
+	public void aggiungiListaConfini(ArrayList<Territorio> confini){
+		this.territoriConfinanti = confini;
+	}
+	
+	/**
+	 * Ci dice se la stringa passata è il suo nome
+	 * @param nomeTerritorio
+	 * @return true se è il suo nome, false altrimenti
+	 */
+	public boolean siChiama(String nomeTerritorio){
+		return nome.equals(nomeTerritorio);		
+	}
+	
+	/**
+	 * 
+	 * @return - lista dei territori confinanti
+	 */
+	public ArrayList<Territorio> getTerritoriConfinanti (){
+		return territoriConfinanti; 
+	}
+	
+	/**
+	 * Aggiunge unita' al territorio
+	 * @param numeroUnitaDaAggiungere
+	 */
+	public void aggiungiUnita (Integer numeroUnitaDaAggiungere){
+		this.unitaPresenti = this.unitaPresenti + numeroUnitaDaAggiungere; 
+	}
+
+	/**
+	 * Rimuove unita' al territorio
+	 * @param numeroUnitaDaRimuovere
+	 * @throws Exception Rimozione di un numero troppo elevato di armate
+	 */
+	public void rimuoviUnita (Integer numeroUnitaDaRimuovere) throws Exception{
+		if(this.unitaPresenti < numeroUnitaDaRimuovere){
+			throw new Exception("Stai rimuovendo troppe unità");
+		}
+		this.unitaPresenti = this.unitaPresenti - numeroUnitaDaRimuovere; 
+	}
+	
+	/**
+	 * Metodo per stabilire se posso o meno spostare le mie unita' su un altro territorio
+	 * @param territorio di destinazione
+	 * @return -true se posso spostare le mie unita nel territorio passato come parametro -false se non posso
+	 */
+	public boolean possoSpostare (Territorio territorioDestinazione){
+		if(isEnemy(territorioDestinazione)){
+			return false;
+		}
+		ArrayList<Territorio> territoriVisitati = new ArrayList<Territorio>();
+		if(!territorioRaggiungibile(territorioDestinazione, territoriVisitati)){
+			return false;
+		}
+		return true; 
+	}
+	
+	/**
+	 * Metodo per stabilire se un territorio è raggiungibile dal corrente
+	 * @param territorioDestinazione: territorio di destinazione
+	 * @return -true se il territorio di destinazione è raggiungibile dal corrente; -false se il territorio di destinazione non è raggiungibile dal corrente
+	 */
+	public boolean territorioRaggiungibile(Territorio territorioDestinazione, ArrayList<Territorio> territoriVisitati){
+		if(isEnemy(territorioDestinazione)){
+			return false;
+		}
+		if(this.territoriConfinanti.contains(territorioDestinazione)){
+			return true; 
+		}
+		territoriVisitati.add(this);
+		Iterator<Territorio> confinantiCorrente = this.territoriConfinanti.iterator();
+		Territorio territorioTemp;
+		while(confinantiCorrente.hasNext()){
+			territorioTemp = confinantiCorrente.next();
+			if(isEnemy(territorioTemp)){
+				continue;
+			}
+			else {
+				if(territoriVisitati.contains(territorioTemp))
+					continue;
+				else{
+					boolean esito = territorioTemp.territorioRaggiungibile(territorioDestinazione, territoriVisitati);
+					if(esito){
+						return true;
+					} else return false;
+				}
+			}
+		}
+		return false; //non è raggiungibile
+	}
+
+	/**
+	 * Ci dice se il territorio passato come parametro può essere attaccato da questo.
+	 * @param territorioBersaglio	Il territorio che vogliamo attaccare.
+	 * @param numeroUnitaAttaccanti	Il numero di unità con cui vogliamo attaccare
+	 * @return	true -> il territorio può essere attaccato;	false -> il territorio NON può essere attacato.
+	 */
+	public boolean possoAttaccareDaQui (Territorio territorioBersaglio, Integer numeroUnitaAttaccanti){
+		Colori coloreAttacante = this.getColorePossessore();
+		Colori coloreDifensore = territorioBersaglio.getColorePossessore();
+		//Non ti puoi attaccare da solo
+		if(coloreAttacante == coloreDifensore){
+			return false;
+		}
+		//Non confina
+		if(! confina(territorioBersaglio)){
+			return false;
+		}
+		//Il territorio si può solo difendere
+		if(this.unitaPresenti <= 1){
+			return false;
+		}
+		//Devi avere almeno un'unità che possa restare in difesa
+		if(this.unitaPresenti <= numeroUnitaAttaccanti){
+			return false;
+		}
+		else 
+			return true; 
+	}
+	
+	/**
+	 * Metodo per controllare se un altro territorio è nemico, ovvero posseduto da un altro giocatore
+	 * @param altroTerritorio Territorio con cui fare il confronto
+	 * @return -true se l'altro territorio passato come parametro è nemico, -false se non è nemico
+	 */
+	public boolean isEnemy (Territorio altroTerritorio){
+		return isEnemy(altroTerritorio.getColorePossessore());
+	}
+	
+	/**
+	 * Metodo per controllare se il territorio selezionato è nemico
+	 * @param coloreRichiedente	Il colore di chi fa la richiesta
+	 * @return	true se il territorio è nemico, false se si possiede il territorio
+	 */
+	public boolean isEnemy(Colori coloreRichiedente){
+		if(coloreRichiedente != this.colorePossessore)
+			return true;
+		return false;
+	}
+	
+	/**
+	 * Metodo per controllare se un'altro territorio confina col corrente
+	 * @param altroTerritorio
+	 * @return -true se l'altro territorio passato come parametro confina col corrente -false se non confina
+	 */
+	public boolean confina (Territorio altroTerritorio){
+		if(territoriConfinanti.contains(altroTerritorio))
+			return true; 
+		return false; 
+	}
+	
+	/**
+	 * Metodo che sposta le unita dal territorio corrente al territorio di destinazione
+	 * @param numeroArmateDaSpostare Numero di armate che verranno spostate.
+	 * @param territorioDestinazione Dove andranno a finire le armate che voglio spostare.
+	 * @throws MappaClientNonAggiornataException Mappa client non aggiornata - reinviare
+	 */
+	public void spostaUnita (Integer numeroArmateDaSpostare, Territorio territorioDestinazione) throws Exception{
+		if(! possoSpostare(territorioDestinazione)){
+			throw new Exception("Non posso spostare le armate tra questi due stati");
+		}
+		if(this.getUnitaPresenti() < numeroArmateDaSpostare + 1){
+			//throw new Exception("Troppe poche unità presenti per lo spostamento");
+			numeroArmateDaSpostare = maxUnitaSpostabili();
+		}
+		//Se arriviamo fin qui effettuiamo lo spostamento
+		this.rimuoviUnita(numeroArmateDaSpostare);
+		territorioDestinazione.aggiungiUnita(numeroArmateDaSpostare);
+	}
+	
+	
+	public Integer maxUnitaSpostabili(){
+		return (this.getUnitaPresenti())-1;
+	}
+	
+	
+	public Integer maxUnitaDifesa() throws UnitaDifesaInsufficientiException{
+		if( getUnitaPresenti() >=2 )
+			return 2;
+		else if(getUnitaPresenti() == 1)
+			return 1;
+		else throw new UnitaDifesaInsufficientiException();
+	}
+	
+	public Integer maxUnitaAttacco() throws UnitaAttaccoInsufficientiException{
+		if( getUnitaPresenti() > 3 )
+			return 3;
+		if( getUnitaPresenti() ==3 )
+			return 2;
+		else if(getUnitaPresenti() == 2)
+			return 1;
+		else throw new UnitaAttaccoInsufficientiException();
+	}
+	
+	public String getNome() {
+		return nome;
+	}
+	
+	public String getContinente() {
+		return continente;
+	}
+
+	public Integer getUnitaPresenti() {
+		return unitaPresenti;
+	}
+
+	public void setUnitaPresenti(Integer unitaPresenti) {
+		this.unitaPresenti = unitaPresenti;
+	}
+
+	public Colori getColorePossessore() {
+		return colorePossessore;
+	}
+
+	public void setColorePossessore(Colori colorePossessore) {
+		this.colorePossessore = colorePossessore;
+	}
+
+//	@Override
+//	public String toString() {
+//		return "Territorio [nome=" + nome + ", continente=" + continente
+//				+ ", unitaPresenti=" + unitaPresenti + ", colorePossessore="
+//				+ colorePossessore + ", territoriConfinanti="
+//				+ territoriConfinanti + "]";
+//	}
+	
+	@Override
+	public String toString() {
+		return "Territorio [nome=" + nome + ", continente=" + continente
+				+ ", unitaPresenti=" + unitaPresenti + ", colorePossessore="
+				+ colorePossessore +"]";
+	}
+	
+}

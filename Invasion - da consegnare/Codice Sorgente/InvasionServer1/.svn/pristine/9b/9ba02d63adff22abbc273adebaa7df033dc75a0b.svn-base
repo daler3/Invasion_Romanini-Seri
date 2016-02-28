@@ -1,0 +1,39 @@
+package server_daler;
+
+import java.util.ArrayList;
+
+/**
+ * Classe generica di supporto, dove sono implementati metodi generici 
+ *
+ */
+
+public class GenericSupport<E> {
+
+	/**
+	 * Prendendo in ingresso un elemento di una lista, torna l'elemento successivo
+	 * @param var - elemento contenuto in una lista
+	 * @param lista - una lista
+	 * @return - il prossimo elemento nella lista
+	 * \\TODO lanciare eccezione se non è nella lista
+	 */
+	public E prossimo(E var, ArrayList<E> lista){
+		if (!lista.contains(var)){
+			return null; //se non è nella lista \\TODO ECCEZIONE!!
+		}
+		int totaleGiocatori = lista.size();
+		//se come parametro gli passo un oggetto nullo, mi ritorna il primo della lista
+		if(var==null){
+			return lista.get(0);
+		}
+		int posizione = lista.indexOf(var);
+		if(posizione+1 == totaleGiocatori){	//Siamo arrivati alla fine del ciclo
+			return lista.get(0);	//Ci ritorna il primo giocatore
+		}
+		else{
+			return lista.get(posizione+1);
+		}		
+	}
+	
+	
+	
+}

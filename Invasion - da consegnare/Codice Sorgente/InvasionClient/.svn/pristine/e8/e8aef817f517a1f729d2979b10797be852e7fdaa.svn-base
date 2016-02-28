@@ -1,0 +1,148 @@
+package guiClient;
+
+import interfacciaGUI.ControllerPartita;
+
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.Iterator;
+
+import guiClient.immagini.IconLoader;
+
+import javax.swing.JPanel;
+import javax.swing.JLabel;
+import javax.swing.JButton;
+
+import java.awt.Color;
+
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+
+import java.awt.Font;
+
+import javax.swing.UIManager;
+
+import mappa.Mappa;
+import mappa.Territorio;
+
+import java.awt.Container;
+import java.awt.GridBagLayout;
+import java.awt.GridBagConstraints;
+import java.awt.Insets;
+
+public class CopyOfPannelloMappa2 extends JPanel {
+	
+	private ArrayList<JLabel> lblPosizionamento = new ArrayList<JLabel>();
+	private ArrayList<JTextField> txtPosizionamento = new ArrayList<JTextField>();
+	private ArrayList<String> mieiTerritori = new ArrayList<String>();
+	private JLabel lblNomeTerritorio = new JLabel();
+	private JTextField txtNumArmate = new JTextField();
+	
+	private ControllerPartita controller;
+	
+	private int tempoTotale = 0;
+	private int tempoTrascorso = 0;
+	private int numeroArmate = 0;
+	
+	private String tempoRimanente = "Tempo residuo per il posizionamento: ";
+	
+	
+	public CopyOfPannelloMappa2(ControllerPartita controller, Integer numArmate, Integer time, Mappa mappaPartita) {
+		this.tempoTotale = time;
+		this.controller = controller;
+		estraiTerritori(mappaPartita);
+		this.numeroArmate = numArmate;
+		setBounds(0, 0, 402, 686);
+		GridBagLayout gbl_panel = new GridBagLayout();
+		gbl_panel.columnWidths = new int[]{258, 149, 0};
+		gbl_panel.rowHeights = new int[]{35, 15, 38, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 19, 130, 25, 25, 0};
+		gbl_panel.columnWeights = new double[]{0.0, 0.0, Double.MIN_VALUE};
+		gbl_panel.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, Double.MIN_VALUE};
+		setLayout(gbl_panel);
+		
+		JLabel label = new JLabel("Posiziona le tue armate");
+		label.setHorizontalAlignment(SwingConstants.CENTER);
+		label.setForeground(Color.RED);
+		label.setFont(new Font("Century Schoolbook L", Font.BOLD, 16));
+		GridBagConstraints gbc_label = new GridBagConstraints();
+		gbc_label.fill = GridBagConstraints.BOTH;
+		gbc_label.gridwidth = 2;
+		gbc_label.insets = new Insets(0, 0, 5, 0);
+		gbc_label.gridx = 0;
+		gbc_label.gridy = 1;
+		add(label, gbc_label);
+		
+		JLabel label_1 = new JLabel(tempoRimanente+tempoTotale);
+		GridBagConstraints gbc_label_1 = new GridBagConstraints();
+		gbc_label_1.fill = GridBagConstraints.HORIZONTAL;
+		gbc_label_1.anchor = GridBagConstraints.NORTH;
+		gbc_label_1.gridwidth = 2;
+		gbc_label_1.insets = new Insets(0, 0, 5, 0);
+		gbc_label_1.gridx = 0;
+		gbc_label_1.gridy = 2;
+		add(label_1, gbc_label_1);
+		
+		JButton button_1 = new JButton("Conferma Scelta");
+		GridBagConstraints gbc_button_1 = new GridBagConstraints();
+		gbc_button_1.fill = GridBagConstraints.HORIZONTAL;
+		gbc_button_1.anchor = GridBagConstraints.NORTH;
+		gbc_button_1.gridwidth = 2;
+		gbc_button_1.gridx = 0;
+		gbc_button_1.gridy = 22;
+		add(button_1, gbc_button_1);
+		
+		JButton button = new JButton("Posizionamento Automatico");
+		button.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				
+			}
+		});
+		add(button);
+	}
+	
+	private void estraiTerritori(Mappa mappaPartita) {
+		Iterator<Territorio> itTerritori = mappaPartita.getListaTerritori().iterator();
+		Territorio territorio;
+		while(itTerritori.hasNext()){
+			territorio = itTerritori.next();
+			if(territorio.getColorePossessore() == controller.getMioColore()){
+				mieiTerritori.add(territorio.getNome());
+			}
+		}
+	}
+
+	public void mostraPosizionaArmate(Container panel){
+		Iterator<String> itTerritori = mieiTerritori.iterator();
+		String stringa = "";
+		int i = 0;
+		while(itTerritori.hasNext()){
+			stringa = itTerritori.next();
+			JLabel label = new JLabel(stringa);
+			GridBagConstraints gbc_label_1 = new GridBagConstraints();
+			gbc_label_1.fill = GridBagConstraints.HORIZONTAL;
+			gbc_label_1.anchor = GridBagConstraints.NORTH;
+			gbc_label_1.gridwidth = 2;
+			gbc_label_1.insets = new Insets(0, 0, 5, 0);
+			gbc_label_1.gridx = 0;
+			gbc_label_1.gridy = 2+i;
+			add(label, gbc_label_1);
+			
+			JTextField textField = new JTextField(""+0);
+			GridBagConstraints gbc_text = new GridBagConstraints();
+			gbc_text.fill = GridBagConstraints.HORIZONTAL;
+			gbc_text.anchor = GridBagConstraints.NORTH;
+			gbc_text.gridwidth = 2;
+			gbc_text.insets = new Insets(0, 0, 5, 0);
+			gbc_text.gridx = 2;
+			gbc_text.gridy = 2+i;
+			add(label, gbc_label_1);
+			
+			this.lblPosizionamento.add(label);
+			this.txtPosizionamento.add(textField);
+			i++;
+		}
+		
+		
+		
+	}
+}

@@ -1,0 +1,416 @@
+package client;
+
+import interfacciaGUI.ControllerLimbo;
+import interfacciaGUI.ControllerPartita;
+import interfacciaGUI.ViewPartita;
+import java.util.ArrayList;
+import java.util.Iterator;
+import classiCondivise.BeanGiocatore;
+import classiCondivise.Colori;
+import exceptionCondivise.TerritorioNonTrovatoException;
+import exceptionCondivise.UnitaInsufficientiException;
+import mappa.*;
+
+/**
+ * Rappresenta la partita in corso, sono presenti tutti i comandi di gioco qui.
+ * @see ControllerPartita
+ * @see AccountEStatistiche
+ *
+ */
+public class Partita extends AccountEStatistiche implements ControllerPartita {
+	private ArrayList<BeanGiocatore> ordineGiocatori = null;
+	private ArrayList<Colori> ordineColori = null;
+	private Colori mioColore = null;	
+	private Mappa mappaPartita = null;
+	private ViewPartita viewPartita;
+	private ArrayList<Integer> dadiAttacco = new ArrayList<Integer>(); 
+	private ArrayList<Integer> dadiDifesa = new ArrayList<Integer>(); 
+	private ArrayList<String> classificaFinale = new ArrayList<String>();
+	private Integer unitaDifesaSconfitte = 0; 
+	private Integer unitaAttaccoPerse = 0;
+	private boolean territorioAttaccatoConquistato = false; 
+	private boolean difesaInCorso = false; 
+	
+	
+	/**
+	 * Costruttore
+	 */
+	public Partita(){
+		super();
+		Ambasciatore.getInstance().setMiaPartita(this);
+	}
+	
+	/**
+	 * 
+	 * @see ControllerPartita
+	 */
+	@Override
+	public void setVistaPartita(ViewPartita viewPartita) {
+		this.viewPartita = viewPartita;
+	}
+	
+	
+	public void scegliColore (Integer timer, ArrayList<Colori> coloriDisponibili){
+		this.viewPartita.scegliColore(timer, coloriDisponibili);
+	}
+	
+	/**
+	 * Comunica con l'ambasciatore che inoltrerà la scelta al Server.
+	 * @see ControllerPartita
+	 */
+	@Override
+	public void sceltaColoreEffettuata(Colori colore){
+		Ambasciatore.getInstance().sceltaColoreEffettuata(colore);
+	}
+	
+	
+	public void riceviMappa(Mappa mappa){
+		setMappaPartita(mappa);
+		if(! this.difesaInCorso)
+			this.viewPartita.riceviMappa(mappa);
+	}
+	
+	
+	public void riceviOrdinePartita(ArrayList<BeanGiocatore>listaInfoGiocatori, ArrayList<Colori>ordineColori){
+		setOrdineGiocatori(listaInfoGiocatori);
+		setOrdineColori(ordineColori);
+		setMioColore(estraiMioColore(listaInfoGiocatori, ordineColori)); 
+		this.viewPartita.riceviOrdinePartita(listaInfoGiocatori, ordineColori);
+	}
+	
+	/**
+	 * Comunica con l'ambasciatore che inoltrerà la scelta al Server.
+	 * @see ControllerPartita
+	 */
+	@Override
+	public BeanGiocatore getInfoGiocatore(String nome) {
+		Iterator<BeanGiocatore> itGiocatori = this.ordineGiocatori.iterator();
+		BeanGiocatore infoTemp; 
+		BeanGiocatore infoRichieste = null; 
+		while(itGiocatori.hasNext()){
+			infoTemp = itGiocatori.next();
+			if(infoTemp.getNomeUtente().equals(infoTemp)){
+				infoRichieste = infoTemp;
+				break;
+			}
+		}
+		
+		return infoRichieste; //se è null il gicoatore non è stato trovato. //TODO: lancia un'eccezione
+	}
+	
+	/**
+	 * Ricezione del comando della partita aggiornata
+	 * @param numeroArmateDaPosizionare 	il numero di armate da posizionare
+	 * @param mappaPartita					la mappa aggiornata
+	 * @param timer							il tempo a disposizione del giocatore di posizionare le armate
+	 */
+	public void riceviTerritoriPosizionaArmate(Integer numeroArmateDaPosizionare, Integer tempoPosizionaArmate, Mappa mappaPartita){
+		setMappaPartita(mappaPartita); //setto la mappa della partita
+		this.viewPartita.riceviTerritoriPosizionaArmate(numeroArmateDaPosizionare, tempoPosizionaArmate, mappaPartita);
+	}
+	
+	/**
+	 * Estrae il colore del giocatore dall'ordine dei colori ricevuti
+	 * @param listaInfoGiocatori	- lista con le info dei giocatore
+	 * @param ordineColori			- ordine dei colori in ordine di turno
+	 * @return					 	- il colore del giocatore
+	 */
+	private Colori estraiMioColore (ArrayList<BeanGiocatore>listaInfoGiocatori, ArrayList<Colori>ordineColori){
+		Iterator<BeanGiocatore> itGiocatori = listaInfoGiocatori.iterator();
+		Integer mioIndex = 0; 
+		Colori mioColore; 
+		BeanGiocatore infoTemp; 
+		BeanGiocatore mioBean = Ambasciatore.getInstance().ottieniMieInfo();
+		String mioUsername = mioBean.getNomeUtente();
+		while(itGiocatori.hasNext()){
+			infoTemp = itGiocatori.next();
+			if(infoTemp.getNomeUtente().equals(mioUsername)){
+				mioIndex = listaInfoGiocatori.indexOf(infoTemp);
+				break; 
+			}
+		}
+		mioColore = ordineColori.get(mioIndex);
+		return mioColore;
+	}
+	
+	
+	/**
+	 * 
+	 * @see ControllerPartita
+	 */
+	@Override
+	public Colori getMioColore() {
+		return mioColore;
+	}
+
+	/**
+	 * Setta il colore del giocatore corrispondente
+	 * @param mioColore - il colore scelto dal giocatore
+	 */
+	public void setMioColore(Colori mioColore) {
+		this.mioColore = mioColore;
+	}
+	
+	/**
+	 * 
+	 * @return la lista con l'ordine dei giocatori
+	 */
+	public ArrayList<BeanGiocatore> getOrdineGiocatori() {
+		return ordineGiocatori;
+	}
+
+	/**
+	 * Setta l'ordine dei giocatori della partita
+	 * @param ordineGiocatori - lista in ordine con le info dei giocatori della partita
+	 */
+	public void setOrdineGiocatori(ArrayList<BeanGiocatore> ordineGiocatori) {
+		this.ordineGiocatori = ordineGiocatori;
+	}
+
+	public ArrayList<Colori> getOrdineColori() {
+		return ordineColori;
+	}
+
+	/**
+	 * Setta l'ordine dei colori della partita
+	 * @param ordineColori - l'ordine dei colori della partita
+	 */
+	public void setOrdineColori(ArrayList<Colori> ordineColori) {
+		this.ordineColori = ordineColori;
+	}
+	
+	/**
+	 * 
+	 * @return la mappa della partita
+	 */
+	public Mappa getMappaPartita() {
+		return mappaPartita;
+	}
+	
+	/**
+	 * 
+	 * @param mappaPartita
+	 */
+	public void setMappaPartita(Mappa mappaPartita){
+		this.mappaPartita = mappaPartita;
+	}
+	
+	/**
+	 * Comunica con l'ambasciatore che inoltrerà la scelta al Server.
+	 * @see ControllerPartita
+	 * @see Ambasciatore
+	 */
+	@Override
+	public void sceltaArmateInizialeEffettuata(String comandoPosizionamento){
+		Ambasciatore.getInstance().sceltaArmateInizialeEffettuata(comandoPosizionamento);
+	}
+	
+	/**
+	 * Comunica alla view l'inizio del turno di qualcun altro.
+	 * @param colore	Colore del giocatore che deve giocare adesso.
+	 * @param username	Nome del giocatore che deve giocare adesso.
+	 */
+	public void riceviComunicazioneNuovoTurno(Colori colore, String username){
+		System.out.println("È il turno di "+username);
+		this.viewPartita.riceviComunicazioneNuovoTurno(colore, username);
+	}
+
+	/**
+	 * Si occupa d comunicare alla view che è iniziato il suo turno
+	 * @param numeroArmate	Il numero di armate da posizionare per il suo turno
+	 * @param tempo			Il tempo per il posizionamento
+	 */
+	public void riceviArmateInizioTurno(Integer numeroArmate, Integer tempo){
+		System.out.println("È il mio turno");
+		this.viewPartita.riceviArmateInizioTurno(numeroArmate, tempo);
+	}
+
+	/**
+	 * Ricezione della comunicazione dal Server di attesaa di una mossa di partita.
+	 * @param tempo - il tempo che un giocatore ha a disposizione per effettuare una mossa
+	 */
+	public void comunicazioneInAttesaMossa(Integer tempo){
+		this.viewPartita.comunicazioneInAttesaMossa(tempo);
+	}
+	
+	/**
+	 * Comunica con l'ambasciatore che inoltrerà la scelta al Server.
+	 * @see ControllerPartita
+	 * @see Ambasciatore
+	 */
+	@Override
+	public void passaTurno(){
+		Ambasciatore.getInstance().passaTurno();
+	}
+	
+	/**
+	 * Comunica con l'ambasciatore che inoltrerà la scelta al Server.
+	 * @see ControllerPartita
+	 * @see Ambasciatore
+	 */
+	@Override
+	public void comandoSpostaArmate(Integer numeroArmateDaSpostare, String origine, String destinazione) throws TerritorioNonTrovatoException{
+		Ambasciatore.getInstance().comandoSpostaArmate(numeroArmateDaSpostare, origine, destinazione);
+	}
+	
+	/**
+	 * Comunica con l'ambasciatore che inoltrerà la scelta al Server.
+	 * @see ControllerPartita
+	 * @see Ambasciatore
+	 */
+	@Override
+	public void comandoAttacco(Integer numeroUnitaAttaccanti, String tAttaccato, String tAttaccante) throws UnitaInsufficientiException{
+		Ambasciatore.getInstance().comandoAttacco(numeroUnitaAttaccanti, tAttaccato, tAttaccante);
+	}
+	
+	/**
+	 * Ricezione della comunicazione di un attacco. 
+	 * La partita distingue se siamo noi gli attaccati, gli attaccanti, oppure siamo spettatori, e comunica alla GUI in modo differente l'attacco.
+	 * @param tempoDifesa				il tempo che un giocatore ha per difendersi
+	 * @param numeroUnitaAttaccanti		numero delle unità coinvolte nell'attacco
+	 * @param territorioAttaccato		territorio attaccato
+	 * @param territorioAttaccante		territorio attaccante
+	 * @param risultatoDadiAttacco		lista con i risultato dei dadi dell'attacco
+	 * @param risultatoDadiDifesa		lista con i risultati dei dadi della difesa
+	 * @param risultati					in posizione 0 il numero di armate sconfitte, in posizione 1 il numero di armate perse (dal punto di vista dell'attaccante)
+	 * @param conquistato				true se il territorio è stato conquistato, false altrimenti
+	 */
+	public void riceviComunicazioneAttacco(Integer tempoDifesa, Territorio territorioAttaccante, Territorio territorioAttaccato,
+			ArrayList<Integer> risultatoDadiAttacco, ArrayList<Integer> risultatoDadiDifesa, Integer[] risultati, 
+			boolean conquistato){
+			this.unitaDifesaSconfitte = risultati[0];
+			this.unitaAttaccoPerse = risultati[1];
+			this.dadiAttacco = risultatoDadiAttacco;
+			this.dadiDifesa = risultatoDadiDifesa;
+			this.territorioAttaccatoConquistato = conquistato; 		
+			
+			this.difesaInCorso = true;
+			//io sono l'attaccante
+			if(territorioAttaccante.getColorePossessore() == this.mioColore){
+				this.viewPartita.riceviConfermaMioAttacco(territorioAttaccante, territorioAttaccato, risultatoDadiAttacco);
+			}
+			//io sono il difensore
+			else if(territorioAttaccato.getColorePossessore() == this.mioColore){ 
+				this.viewPartita.riceviAttaccoSubito(territorioAttaccante, territorioAttaccato, risultatoDadiAttacco, tempoDifesa);
+			} 
+			//io sono spettatore
+			else{ 
+				this.viewPartita.riceviComunicazioneAttacco(territorioAttaccante.getColorePossessore(), territorioAttaccante, territorioAttaccato, risultatoDadiAttacco);
+				
+			}
+	}
+	
+
+
+
+	/**
+	 * @return il risultato dei dadi della difesa
+	 */
+	public ArrayList<Integer> getDadiDifesa() {
+		return dadiDifesa;
+	}
+
+
+	/**
+	 * @return il numero di unita della difesa sconfitte
+	 */
+	public Integer getUnitaDifesaSconfitte() {
+		return unitaDifesaSconfitte;
+	}
+
+
+	/**
+	 * @return il numero dell'unità dell'attacco perse
+	 */
+	public Integer getUnitaAttaccoPerse() {
+		return unitaAttaccoPerse;
+	}
+
+	
+	/**
+	 * @return true - se il territorio coinvolto nell'attacco è stato conquistato; false altrimenti
+	 */
+	public boolean isTerritorioAttaccatoConquistato() {
+		return territorioAttaccatoConquistato;
+	}
+
+
+
+	/**
+	 * 
+	 * @param giocatoreSconfitto  - il nome del giocatore sconfitto
+	 */
+	public void riceviComunicazioneSconfitta(String giocatoreSconfitto){
+		if (Ambasciatore.getInstance().getMieInfo().getNomeUtente().equals(giocatoreSconfitto)){ //sono io il giocatore sconfitto
+			ControllerLimbo limboSconfitta = new Limbo();
+			this.viewPartita.riceviComunicazioneSconfitta(limboSconfitta);
+			return;
+		}
+		this.viewPartita.riceviComunicazioneSconfitta(giocatoreSconfitto);
+	}
+	
+	/**
+	 * Comunica con l'ambasciatore che inoltrerà la scelta al Server.
+	 * Torna poi un ControllerLimbo.
+	 * @see ControllerPartita
+	 * @see Ambasciatore
+	 */
+	@Override
+	public ControllerLimbo abbandonaPartita(){
+		Ambasciatore.getInstance().abbandonaPartita();
+		ControllerLimbo limboAbbandono = tornaALimbo();
+		return limboAbbandono;
+	}
+	
+	/**
+	 * Ricezione della comunicazione della ritirata di un giocatore. Viene comunicato alla GUI.
+	 * @param giocatoreRitirato - il nome del giocatore ritirato
+	 */
+	public void riceviComunicazioneRitirata(String giocatoreRitirato){
+		this.viewPartita.riceviComunicazioneRitirata(giocatoreRitirato);
+	}
+	
+	/**
+	 * Ricezione della classifica finale. Viene inoltrata alla grafica.
+	 * @param classificaFinale	classifica finale dei giocatori della partita
+	 * @param punteggioPrimo	punteggio del primo giocatore
+	 * @param punteggioSecondo	punteggio del secondo giocatore
+	 */
+	public void riceviClassificaFinale(ArrayList<String> classificaFinale, Integer punteggioPrimo, Integer punteggioSecondo){		
+		this.classificaFinale = classificaFinale;
+		this.viewPartita.riceviClassificaFinale(classificaFinale, punteggioPrimo, punteggioSecondo);
+	}
+	
+	/**
+	 * Metodo per tornare al limbo
+	 * @return un Controller del Limbo.
+	 */
+	private ControllerLimbo tornaALimbo(){
+		Limbo limbo = new Limbo();
+		Ambasciatore.getInstance().setLimbo(limbo);
+		return limbo; 
+	}
+
+	/**
+	 * Setta il flag di difesa in Corso a false.
+	 * Ritorna quindi la mappa della partita.
+	 * @see ControllerPartita
+	 * 
+	 */
+	@Override
+	public Mappa fineDifesa() {
+		this.difesaInCorso = false;
+		return getMappa();
+	}
+	
+	/**
+	 * Getter per la mappa della partota
+	 */
+	public Mappa getMappa(){
+		return this.mappaPartita;
+	}
+
+}
+	
+	
+

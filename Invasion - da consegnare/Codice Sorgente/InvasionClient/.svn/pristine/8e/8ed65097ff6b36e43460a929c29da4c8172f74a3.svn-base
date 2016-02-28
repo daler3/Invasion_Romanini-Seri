@@ -1,0 +1,370 @@
+package guiClient;
+
+import interfacciaGUI.ControllerLimbo;
+import interfacciaGUI.ControllerTavolo;
+import interfacciaGUI.ControllerUtente;
+import interfacciaGUI.ViewLimbo;
+
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JButton;
+import javax.swing.SwingConstants;
+import javax.swing.UIManager;
+
+import classiCondivise.BeanGiocatore;
+import classiCondivise.BeanTavolo;
+import classiCondivise.Classifica;
+import classiCondivise.CreareMessaggio;
+import exceptionCondivise.TavoloInesistenteException;
+import guiClient.immagini.IconLoader;
+
+import java.awt.Container;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.GridBagLayout;
+import java.awt.GridBagConstraints;
+import java.awt.Insets;
+import java.awt.Color;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.Iterator;
+
+@SuppressWarnings("serial")
+public class PanelLimbo extends JPanel implements ViewLimbo {
+
+	final static int colonne = 4;
+	final static int righe = 4;
+	final JPanel p = this;
+	int numRiga = 0;
+	int numColonna = 0;
+	
+	ControllerLimbo controllerLimbo;
+	ArrayList<BeanTavolo> tavoli;
+	JPanel panelSalaGiochi;
+	JPanel pannelloSuperiore;
+	JPanel panelTavoli;
+	ArrayList<JButton> bottoni = new ArrayList<JButton>(righe*colonne);
+	BeanGiocatore io;
+	
+	public PanelLimbo(ControllerLimbo controllerLimbo, ArrayList<BeanTavolo> tavoli) {
+		this.controllerLimbo = controllerLimbo;
+		this.tavoli = tavoli;
+		//Interfaccia generale
+		setMinimumSize(new Dimension(800, 800));
+		setPreferredSize(new Dimension(800, 800));
+		GridBagLayout grigliaEsterna = new GridBagLayout();
+		grigliaEsterna.columnWidths = new int[]{1315};
+		grigliaEsterna.rowHeights = new int[]{232, 390};
+		grigliaEsterna.columnWeights = new double[]{1.0};
+		grigliaEsterna.rowWeights = new double[]{1.0, 2.0};
+		setLayout(grigliaEsterna);
+		//Pannello superiore
+		pannelloSuperiore = new JPanel();
+		pannelloSuperiore.setBackground(Color.WHITE);
+		GridBagConstraints gbc_pannelloSuperiore = new GridBagConstraints();
+		gbc_pannelloSuperiore.fill = GridBagConstraints.BOTH;
+		gbc_pannelloSuperiore.insets = new Insets(0, 0, 5, 0);
+		gbc_pannelloSuperiore.gridx = 0;
+		gbc_pannelloSuperiore.gridy = 0;
+		add(pannelloSuperiore, gbc_pannelloSuperiore);
+		pannelloSuperiore.setLayout(null);
+		//Pannellino immagine
+		JPanel panelImmagine = new JPanel();
+		panelImmagine.setBounds(12, 12, 208, 208);
+		pannelloSuperiore.add(panelImmagine);
+		panelImmagine.setLayout(null);
+		
+		JLabel lblUsername = new JLabel(controllerLimbo.visualizzaMieInfo().getNomeUtente());
+		lblUsername.setForeground(UIManager.getColor("OptionPane.errorDialog.border.background"));
+		lblUsername.setHorizontalAlignment(SwingConstants.CENTER);
+		lblUsername.setBounds(0, 12, 208, 15);
+		panelImmagine.add(lblUsername);
+		
+		JLabel lblFoto = new JLabel(IconLoader.imageIcon("user2.png"));
+		lblFoto.setBounds(10, 39, 186, 169);
+		panelImmagine.add(lblFoto);
+		
+		JButton btnStatistiche = new JButton("Classifica");
+		btnStatistiche.addActionListener(new FrameClassificaListener());
+		btnStatistiche.setBounds(580, 12, 208, 25);
+		pannelloSuperiore.add(btnStatistiche);
+		
+		JButton btnCambiopassword = new JButton("Cambio Password");
+		btnCambiopassword.setBounds(580, 61, 208, 25);
+		btnCambiopassword.addActionListener(new CambioPasswordListener());
+		pannelloSuperiore.add(btnCambiopassword);
+		
+		JButton btnNuovotavolo = new JButton("NuovoTavolo");
+		btnNuovotavolo.addActionListener(new AggiungiTavolo());
+		btnNuovotavolo.setBounds(298, 195, 490, 25);
+		pannelloSuperiore.add(btnNuovotavolo);
+		
+		JLabel label = new JLabel("Numero Partite");
+		label.setBounds(238, 39, 146, 15);
+		pannelloSuperiore.add(label);
+		
+		JLabel label_1 = new JLabel("Punteggio");
+		label_1.setBounds(238, 66, 146, 15);
+		pannelloSuperiore.add(label_1);
+		
+		JLabel label_2 = new JLabel("Pos. Classifica");
+		label_2.setBounds(238, 12, 146, 15);
+		pannelloSuperiore.add(label_2);
+		
+		JLabel label_3 = new JLabel("Partite vinte");
+		label_3.setBounds(238, 98, 146, 15);
+		pannelloSuperiore.add(label_3);
+		
+		JLabel label_4 = new JLabel("Partite secondo");
+		label_4.setBounds(238, 125, 146, 15);
+		pannelloSuperiore.add(label_4);
+		
+		JLabel label_5 = new JLabel("Partite ritirato");
+		label_5.setBounds(238, 152, 146, 15);
+		pannelloSuperiore.add(label_5);
+		
+		this.io = controllerLimbo.visualizzaMieInfo();
+		
+		JLabel lblA = new JLabel(""+io.getPosizioneClassifica());
+		lblA.setBounds(451, 12, 70, 15);
+		pannelloSuperiore.add(lblA);
+		
+		JLabel label_6 = new JLabel(""+io.getNumeroPartitePartecipate());
+		label_6.setBounds(451, 39, 70, 15);
+		pannelloSuperiore.add(label_6);
+		
+		JLabel label_7 = new JLabel(""+io.getPunteggio());
+		label_7.setBounds(451, 66, 70, 15);
+		pannelloSuperiore.add(label_7);
+		
+		JLabel label_8 = new JLabel(""+(CreareMessaggio.floatPulito(io.getPercentualePartiteVinte(), 4)*100)+"%");
+		label_8.setBounds(451, 98, 70, 15);
+		pannelloSuperiore.add(label_8);
+		
+		JLabel label_9 = new JLabel(""+(CreareMessaggio.floatPulito(io.getPercentualePartiteSecondo(), 4)*100)+"%");
+		label_9.setBounds(451, 125, 70, 15);
+		pannelloSuperiore.add(label_9);
+		
+		JLabel label_10 = new JLabel(""+(CreareMessaggio.floatPulito(io.getPercentualePartiteAbbandonate(), 4)*100)+"%");
+		label_10.setBounds(451, 152, 70, 15);
+		pannelloSuperiore.add(label_10);
+		
+		JButton btnLogout = new JButton("Logout");
+		btnLogout.setBounds(580, 147, 208, 25);
+		btnLogout.addActionListener(new LogoutListener());
+		pannelloSuperiore.add(btnLogout);
+		//Pannello inferiore
+		panelSalaGiochi = new JPanel();
+		panelSalaGiochi.setBackground(new Color(51, 51, 51));
+		GridBagConstraints gbc_panelTavoli_1 = new GridBagConstraints();
+		gbc_panelTavoli_1.fill = GridBagConstraints.BOTH;
+		gbc_panelTavoli_1.gridx = 0;
+		gbc_panelTavoli_1.gridy = 1;
+		add(panelSalaGiochi, gbc_panelTavoli_1);
+		GridBagLayout gbl_panelSalaGiochi = new GridBagLayout();
+		gbl_panelSalaGiochi.columnWidths = new int[]{1339, 0};
+		gbl_panelSalaGiochi.rowHeights = new int[]{64, 314, 0};
+		gbl_panelSalaGiochi.columnWeights = new double[]{1.0, Double.MIN_VALUE};
+		gbl_panelSalaGiochi.rowWeights = new double[]{1.0, 5.0, Double.MIN_VALUE};
+		panelSalaGiochi.setLayout(gbl_panelSalaGiochi);
+		
+		JLabel lblSalaGiochi = new JLabel("Sala Giochi");
+		lblSalaGiochi.setBackground(new Color(102, 51, 0));
+		lblSalaGiochi.setForeground(new Color(255, 255, 255));
+		lblSalaGiochi.setFont(new Font("DejaVu Serif Condensed", Font.BOLD | Font.ITALIC, 16));
+		lblSalaGiochi.setHorizontalAlignment(SwingConstants.CENTER);
+		GridBagConstraints gbc_lblSalaGiochi = new GridBagConstraints();
+		gbc_lblSalaGiochi.fill = GridBagConstraints.BOTH;
+		gbc_lblSalaGiochi.insets = new Insets(0, 0, 5, 0);
+		gbc_lblSalaGiochi.gridx = 0;
+		gbc_lblSalaGiochi.gridy = 0;
+		panelSalaGiochi.add(lblSalaGiochi, gbc_lblSalaGiochi);
+			//Pannello dei tavoli
+			panelTavoli = new JPanel();
+			panelTavoli.setBackground(new Color(51, 153, 0));
+				//Lo aggiungiamo alla sala giochi
+				GridBagConstraints gbc_panelTavoli_2 = new GridBagConstraints();
+				gbc_panelTavoli_2.fill = GridBagConstraints.BOTH;
+				gbc_panelTavoli_2.gridx = 0;
+				gbc_panelTavoli_2.gridy = 1;
+				panelSalaGiochi.add(panelTavoli, gbc_panelTavoli_2);
+			//Impostiamo lo stile del pannello
+			GridBagLayout gbl_panel_2 = new GridBagLayout();
+			gbl_panel_2.columnWidths = new int[] {5, 5, 5, 5};	//Dimensione minima larghezza colonne
+			gbl_panel_2.rowHeights = new int[] {43, 5, 43, 5};	//Dimensione minima altezza righe
+			gbl_panel_2.columnWeights = new double[]{1.0, 1.0, 1.0, 1.0};
+			gbl_panel_2.rowWeights = new double[]{1.0, 1.0, 1.0, 1.0};
+			panelTavoli.setLayout(gbl_panel_2);
+			
+		//Componenti del tavolo
+		Iterator<BeanTavolo> itBean = this.tavoli.iterator();
+		while(itBean.hasNext()){
+			BeanTavolo bean = itBean.next();
+			aggiungiTavolo(bean.getIdTavolo(), bean.getNumeroUtenti());
+		}
+		LoginSwing.getInstance().setMinimumSize(new Dimension(900, 650));
+		LoginSwing.getInstance().repaint();
+	}
+	
+	public void aggiungiTavolo(Integer id, Integer numeroGiocatori){
+		JButton tavolo = new JButton("#"+id.toString()+" - "+numeroGiocatori+"Pl.", IconLoader.imageIcon("table2.png"));
+		tavolo.addActionListener(new JoinTavolo());
+		tavolo.setActionCommand(id.toString());
+		tavolo.setBackground(new Color(0, 153, 0));
+		GridBagConstraints gbc_tavolo = new GridBagConstraints();
+		gbc_tavolo.insets = new Insets(5, 5, 5, 5);
+		gbc_tavolo.fill = GridBagConstraints.BOTH;
+		gbc_tavolo.gridx = numColonna;
+		gbc_tavolo.gridy = numRiga;
+		//Aggiunge il tavolo al panel
+		panelTavoli.add(tavolo, gbc_tavolo);
+		//Aggiunge il bottone all'arraylist
+		bottoni.add(tavolo);
+		//Ci spostiamo alla prossima casella per disegnare il bottone
+		prossimaCasella();
+				
+	}
+	private void prossimaCasella(){
+		if(numColonna==3){
+			numColonna = 0;
+			numRiga++;
+		}
+		else{
+			numColonna++;
+		}
+	}
+	
+	/**
+	 * Rimuove tutti i tavoli.
+	 */
+	private void resetPosizione(){
+		this.numColonna = 0;
+		this.numRiga = 0;
+		Iterator<JButton> itBottoni = this.bottoni.iterator();
+		while(itBottoni.hasNext()){
+			JButton bottoneTemp = itBottoni.next();
+			bottoneTemp.setVisible(false);
+			bottoneTemp.setEnabled(false);
+		}
+		Container c = p.getParent();
+		c.revalidate();
+		c.invalidate();
+		c.repaint();
+	}
+	
+	/**
+	 * Aggiorniamo i tavoli presenti nell'interfaccia grafica.
+	 * @param tavoli	I tavoli da mettere.
+	 */
+	@Override
+	public void aggiornaTavoli(ArrayList<BeanTavolo> tavoli){
+		this.tavoli = tavoli;
+		resetPosizione();
+		Iterator<BeanTavolo> itBean = this.tavoli.iterator();
+		while(itBean.hasNext()){
+			BeanTavolo bean = itBean.next();
+			aggiungiTavolo(bean.getIdTavolo(), bean.getNumeroUtenti());
+		}
+		Container c = p.getParent();
+		c.revalidate();
+		c.repaint();
+	}
+	
+	public class JoinTavolo implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent arg0) {
+			Integer idTavolo = Integer.parseInt(arg0.getActionCommand());
+			ControllerTavolo controllerTavolo = null;
+			try {
+				controllerTavolo = controllerLimbo.entraNelTavolo(idTavolo);
+			} catch (TavoloInesistenteException e) {
+				new CreaPopup("Il tavolo non esiste più, sei arrivato tardi.");
+			}
+			if(controllerTavolo != null){
+				//Chiedo i giocatori della partita
+				ArrayList<String> giocatori = controllerTavolo.getElencoGiocatori();
+				Container c = p.getParent();
+				PanelTavoloAperto mioPanel = null;
+				if (c != null) {
+					c.remove(p);
+					mioPanel = new PanelTavoloAperto(controllerTavolo, giocatori, idTavolo);
+					controllerTavolo.setVistaTavolo(mioPanel);
+		            c.add(mioPanel);
+		            c.revalidate();
+		            c.repaint();
+				}
+			}
+		}	
+	}
+	
+	public class AggiungiTavolo implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent arg0) {
+			ControllerTavolo controllerTavolo = controllerLimbo.creaNuovoTavolo();
+			if(controllerTavolo != null){
+				//Chiedo i giocatori della partita
+				Integer idTavolo = controllerTavolo.getIdTavolo();
+				ArrayList<String> giocatori = controllerTavolo.getElencoGiocatori();
+				Container c = p.getParent();
+				PanelTavoloAperto mioPanel = null;
+				if (c != null) {
+					c.remove(p);
+					mioPanel = new PanelTavoloAperto(controllerTavolo, giocatori, idTavolo);
+					controllerTavolo.setVistaTavolo(mioPanel);
+		            c.add(mioPanel);
+		            c.revalidate();
+		            c.repaint();
+				}
+			}
+		}	
+	}
+	
+	public class FrameClassificaListener implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent arg0) {
+			Classifica classifica = controllerLimbo.visualizzaClassifica();
+			//Creo il frame
+			new FrameClassifica(classifica);
+		}
+	}
+	
+	public class LogoutListener implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent arg0) {
+			if(controllerLimbo.logout()){
+				LoginSwing.getInstance().dispose();
+				new CreaPopupExit("Logout effettuato con successo!");
+				System.exit(0);
+			}
+		}	
+	}
+	
+	public class CambioPasswordListener implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent arg0) {
+			JFrame frameCambioPass = new FrameCambioPsw(controllerLimbo);
+			frameCambioPass.setTitle("Cambio Password");
+			frameCambioPass.setSize(800, 800);
+			frameCambioPass.setLocationRelativeTo(null);
+			frameCambioPass.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+			frameCambioPass.pack();
+			frameCambioPass.setVisible(true);
+		}	
+	}
+
+	@Override
+	public void chiusuraServer(ControllerUtente controller) {
+		System.out.println("Provo a rimuovere il pannello");
+
+		Container c = p.getParent();
+		if(c != null){
+			c.remove(p);
+			System.out.println("Ho rimosso il pannello");
+			LoginSwing simpleapp = LoginSwing.getInstance();
+			simpleapp.setController(controller);
+			simpleapp.mostraPanel(new PanelLogin(controller));
+		}
+	}
+}

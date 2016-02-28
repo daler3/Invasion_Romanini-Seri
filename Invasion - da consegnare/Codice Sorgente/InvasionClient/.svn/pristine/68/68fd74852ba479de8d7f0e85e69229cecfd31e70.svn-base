@@ -1,0 +1,25 @@
+package interfacciaGUI;
+
+import java.util.ArrayList;
+
+import classiCondivise.BeanTavolo;
+import exceptionCondivise.TavoloInesistenteException;
+
+public interface ControllerLimbo extends ControllerAccountStatistiche {
+
+	/**
+	 * Fa la richiesta di entrare nel tavolo selezionato
+	 * @param idTavolo	Tavolo in cui si vuole entrare
+	 * @return	Esito richiesta accesso
+	 * @throws TavoloInesistenteException 
+	 */
+	public ControllerTavolo entraNelTavolo(Integer idTavolo) throws TavoloInesistenteException;
+	
+	public ControllerTavolo creaNuovoTavolo();
+
+	public ArrayList<BeanTavolo> aggiornaTavoli();
+	
+	public void setVistaLimbo(ViewLimbo vistaLimbo);
+	
+	
+}

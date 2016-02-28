@@ -1,0 +1,8 @@
+package classiCondivise;
+
+public enum StatoPartita {
+	SCELTACOLORE,
+	POSIZIONAMENTOARMATE,
+	MIOTURNO,
+	TURNOALTRUI;
+}

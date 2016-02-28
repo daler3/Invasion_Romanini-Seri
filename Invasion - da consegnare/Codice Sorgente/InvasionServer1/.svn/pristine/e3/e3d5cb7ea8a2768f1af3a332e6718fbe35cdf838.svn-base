@@ -1,0 +1,21 @@
+package interfacciaGUI;
+
+public interface ControllerGiocatore {
+
+	/**
+	 * Fa la richiesta di entrare nel tavolo selezionato
+	 * @param idTavolo	Tavolo in cui si vuole entrare
+	 * @return	Esito richiesta accesso
+	 */
+	public boolean entraNelTavolo(Integer idTavolo);
+	
+	public boolean creaNuovoTavolo();
+	
+	public void abbandonaMioTavolo();
+	
+	public void abbandonaMiaPartita();
+	
+	public String ottieniNome();
+	
+	
+}

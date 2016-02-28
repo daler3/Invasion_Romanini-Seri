@@ -1,0 +1,84 @@
+package socket;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
+
+public class Lettore implements Runnable {
+
+	private Interprete interprete;
+	private boolean continua;
+	private Socket socket = null;
+	private PrintWriter writer = null;
+	private BufferedReader reader = null;
+	public final static int port = 4445;
+	public final static String ritorno = "RETURN@";
+	public final static String stringaVoid = "VOID@";
+	
+	public static final String customString = "default";
+	private String stringaLetta = customString;
+	
+	public Lettore (Interprete interprete, Socket mioSocket){
+		this.interprete = interprete;
+		this.continua = true;
+		this.socket = mioSocket;
+        try {
+			writer = new PrintWriter(socket.getOutputStream(), true);
+			reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+		} catch (IOException e) {
+			System.err.println("Impossibile creare comunicazione tramite Socket");
+			e.printStackTrace();
+		}
+	}
+	
+	@Override
+	public void run() {
+        //Ciclo di lettura continua
+		while(continua){
+			String stringaLetta = null;
+			String stringaDaInviare = null;
+			try {
+				stringaLetta = reader.readLine();
+				if(stringaLetta.toUpperCase().startsWith(ritorno)){	//Caso risposta
+					aggiornaStringa(stringaLetta);
+				}
+				else{	//Caso comunicazione ricevuta dal client
+					stringaDaInviare = interprete.interpreta(stringaLetta);
+					writer.println(stringaDaInviare);	//Risposta al client - Anche se VOID comunica al client
+					writer.flush();
+				}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NullPointerException e){
+				e.printStackTrace();
+				//TODO gestire un eventuale null del client che spegne la connessione
+			}
+		}
+
+	}
+	
+	public synchronized String inviaComando(Integer secondiAttesa, String comandoDaInviare) throws InterruptedException{
+		//Inviamo la comunicazione al client
+		writer.println(comandoDaInviare);
+		writer.flush();
+		//Attendiamo la risposta dell'utente
+		if(stringaLetta.equals(customString)){
+			wait(secondiAttesa*1050);	//Diamo il 5% di tempo in più al client per rispondere
+		}
+		//Ci salviamo la risposta, ripristiniamo la stringa di default e ritorniamo quello che abbiamo letto
+		String risposta = stringaLetta;
+		this.stringaLetta = customString;
+		return risposta;
+	}
+	
+	public void aggiornaStringa(String rispostaClient){
+		//Aggiorna la stringa e risveglia il thread in attesa
+		stringaLetta = rispostaClient;
+		notifyAll();
+	}
+
+}

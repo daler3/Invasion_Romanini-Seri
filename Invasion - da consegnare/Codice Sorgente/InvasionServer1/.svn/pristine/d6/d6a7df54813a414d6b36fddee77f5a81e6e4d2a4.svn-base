@@ -1,0 +1,60 @@
+package server;
+
+import interfacceRemote.AcceptInterface;
+
+import java.rmi.*;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject; 
+import java.util.*;
+import java.io.*;
+
+import provaRmi.AcceptClass;
+
+public class Start2 {
+	
+	private static final String host = "127.0.0.1";
+	private static final String url = "rmi://"+host+"/Hello";
+	private static final long serialVersionUID = 1L;
+	
+	public static void main(String[] args) {
+		boolean continua = true; 
+		Server mioServer = Server.getInstance();
+		try{
+			if (System.getSecurityManager() == null){
+				System.setSecurityManager(new SecurityManager());
+			}
+			//ServerAccImpl server = new ServerAccImpl();
+			//ServerAcceptInterface stub = (ServerAcceptInterface) UnicastRemoteObject.exportObject(server,0);
+			AcceptInterface stub = new AcceptClass();
+			Registry registry = LocateRegistry.getRegistry(host); 
+			registry.rebind(url, stub);
+		} catch(RemoteException e){
+			System.out.println("cane 1"); 
+			e.printStackTrace();
+		}
+			//Da adesso in poi posso accettare le connessioni
+			System.out.println("Server ready");
+			System.out.println("Server ready");
+			BufferedReader inputBuffer = new BufferedReader(new InputStreamReader(System.in)); 
+			String input = null;
+			continua = true;
+			//registry.unbind(url);
+		try{
+			while(continua){
+				System.out.println("Digitare Exit per uscire"); 
+				input = inputBuffer.readLine(); 
+				if(input.trim().equalsIgnoreCase("exit")){
+				          continua = false;
+				}
+			}
+		} catch(Exception e){
+			System.out.println("cane 2"); 
+		}
+			//inputBuffer.close(); 
+			//registry.unbind(url); 
+			System.out.println("server terminato"); 
+			System.exit(0);
+		
+	}	
+}

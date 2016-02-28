@@ -1,0 +1,98 @@
+package server_daler;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+
+
+public class PosizionamentoArmate {
+
+	public static final String separatoreComando = "@";
+	public static final String separatoreStati = ";";
+	public static final String separatoreStatoArmate = ":";
+	private ArrayList<String> posizioneArmate;
+	private Integer numeroGiocatori;
+	private String[][] tabella;
+	private boolean inizioInserimento = false;
+	
+	public PosizionamentoArmate(Integer numeroGiocatori) {
+		this.numeroGiocatori = numeroGiocatori;
+		this.posizioneArmate = new ArrayList<String>(numeroGiocatori);
+		this.tabella = new String[][];
+	}
+	
+	public void aggiungiComando(String mioComando){
+		if(! nomeGiaPresente(getNomeComando(mioComando)))	//Se l'utente non ha già inserito il comando lo aggiunge
+				posizioneArmate.add(mioComando);
+		if(this.inizioInserimento == false)	//Il primo che entra (il tavolo) abilita l'inserimento
+			this.inizioInserimento = true; 
+	}
+	
+	public getInizioInserimento(){
+		return inizioInserimento;
+	}
+	
+	public Integer contaComandiRicevuti(){
+		return posizioneArmate.size();
+	}
+	
+	public boolean comandiCompleti(){
+		if(contaComandiRicevuti() == numeroGiocatori)
+			return true;
+		return false;
+	}
+	
+	private String getNomeComando(String comando){
+		Integer posizioneSeparatore = comando.indexOf(separatoreComando);
+		String nome = comando.substring(0, posizioneSeparatore);
+		return nome;
+	}
+	
+	private boolean nomeGiaPresente(String nome){
+		Iterator<String> itLista = posizioneArmate.iterator();
+		while(itLista.hasNext()){
+			String comando = itLista.next();
+			String nomeTemp = getNomeComando(comando);
+			if(nomeTemp.equals(nome))
+				return true;
+		}
+		return false;
+	}
+	
+	private String cercaComando(String nomeGiocatore){
+		Iterator<String> itLista = posizioneArmate.iterator();
+		while(itLista.hasNext()){
+			String comando = itLista.next();
+			String nomeTemp = getNomeComando(comando);
+			if(nomeTemp.equals(nomeGiocatore))
+				return comando;
+		}
+		return null;
+	}
+	
+	private String estraiComandoPuro(String nomeGiocatore){
+		//TODO Testare, non sono sicuro funzioni
+		String comando = cercaComando(nomeGiocatore);
+		String comandoPuro = comando.substring(nomeGiocatore.length()+1, comando.length());
+		return comandoPuro;
+	}
+	
+	private String estraiTerritorio(String comandoPuro){
+		String territorio = comandoPuro.substring(0, comandoPuro.indexOf(separatoreStatoArmate));
+	}
+	
+	public Integer numeroArmatePosizionate(){
+		
+		return null;
+	}
+	
+	private Integer numeroTerritori(String comando){
+		return comando.length() - comando.replace(separatoreStatoArmate, "").length();	
+	}
+	
+	public String[][] tabellaPosizionamenti(String nomeGiocatore){
+		String[][] tabella = new String[numeroTerritori(cercaComando(nomeGiocatore))][2];
+		
+		return tabella;
+	}
+	
+}

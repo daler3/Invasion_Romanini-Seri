@@ -1,0 +1,11 @@
+package interfacceRemote;
+
+import java.rmi.Remote;
+
+import classiCondivise.BeanGiocatore;
+
+
+public interface ClientComunicazioneInterfaccia extends Remote {
+	//public boolean iniziaComunicazione();
+	//public BeanGiocatore effettuaLogin(String username, String password);
+}

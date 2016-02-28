@@ -1,0 +1,52 @@
+package server;
+
+import java.sql.SQLException;
+import java.util.ArrayList;
+import classiCondivise.BeanGiocatore;
+import classiCondivise.Classifica;
+import exceptionCondivise.GiocatoreNonTrovatoException;
+
+/**
+ * Controller con cui chiedere informazioni al server da interfaccia grafica
+ * @authors Daniele Romanini - Federico Seri
+ */
+public interface ControllerServer {
+	
+	/**
+	 * Ottiene la classifica generale di gioco
+	 * @return la classifica generale di gioco
+	 * @throws SQLException
+	 */
+	public Classifica ottieniClassifica() throws SQLException;
+	
+	/**
+	 * Metodo per ottenere le informazioni riguardanti un utente connesso specifico
+	 * @param username - il nome dell'utente al quale si è interessati
+	 * @return oggetto contente le informazioni dell'utente
+	 * @throws SQLException l'utente non è stato trovato.
+	 */
+	public BeanGiocatore ottieniInfoUtente(String username) throws SQLException;
+	
+	/**
+	 * Ottiene la lista dei giocatori attualmente connessi al gioco
+	 * @return lista dei nomi degli utenti registrati al gioco sotto forma di ArrayList<String>
+	 */
+	public ArrayList<String> ottieniListaGiocatori();
+	
+	/**
+	 * Ottiene la lista dei nomi degli utenti registrati al gioco.
+	 * @return  lista dei nomi degli utenti registrati al gioco sotto forma di ArrayList<String>
+	 * @throws SQLException
+	 */
+	public ArrayList<String> ottieniListaRegistrati() throws SQLException;
+	
+	/**
+	 * Ritorna il numero totale di partite giocate.
+	 * @return - il numero totale di partite giocate
+	 * @throws SQLException Problema al Db
+	 */
+	public int totalePartiteGiocate() throws SQLException;
+	
+	//TODO: chiusura server
+	
+}

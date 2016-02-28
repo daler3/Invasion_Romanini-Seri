@@ -1,0 +1,26 @@
+package provaRmi;
+
+import interfacciaComunicazione.Server2Client;
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
+
+/**
+ * Classe comunicazione da server a client. Questa è nel server e associata a ogni giocatore
+ * @author daniele
+ *
+ */
+
+public class ClassForPlayer extends UnicastRemoteObject implements InterfaceForPlayer, Server2Client {
+
+	
+	private static final long serialVersionUID = 2L;
+	
+	
+	protected ClassForPlayer() throws RemoteException {
+		super();
+		// TODO Auto-generated constructor stub
+	}
+
+	
+
+}

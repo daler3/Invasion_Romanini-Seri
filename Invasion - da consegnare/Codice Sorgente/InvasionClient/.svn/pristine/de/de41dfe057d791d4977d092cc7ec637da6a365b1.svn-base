@@ -1,0 +1,310 @@
+package client;
+
+import interfacciaGUI.ControllerLimbo;
+import interfacciaGUI.ControllerPartita;
+import interfacciaGUI.ViewPartita;
+
+import java.rmi.RemoteException;
+import java.util.ArrayList;
+import java.util.Iterator;
+
+import classiCondivise.BeanGiocatore;
+import classiCondivise.Colori;
+import exceptionCondivise.TerritorioNonTrovatoException;
+import exceptionCondivise.UnitaInsufficientiException;
+import mappa.*;
+/**
+ * Rappresenta la partita in corso, sono presenti tutti i comandi di gioco qui.
+ * @author timmy
+ *
+ */
+public class Partita extends AccountEStatistiche implements ControllerPartita {
+	private ArrayList<BeanGiocatore> ordineGiocatori = null;
+	private ArrayList<Colori> ordineColori = null;
+	private Colori mioColore = null;	
+	private Mappa mappaPartita = null;
+	private ViewPartita viewPartita;
+	
+	private ArrayList<Integer> dadiAttacco = new ArrayList<Integer>(); 
+	private ArrayList<Integer> dadiDifesa = new ArrayList<Integer>(); 
+	private Integer unitaDifesaSconfitte = 0; 
+	private Integer unitaAttaccoPerse = 0;
+	private boolean territorioAttaccatoConquistato = false; 
+	private boolean difesaInCorso = false; 
+	
+	
+	/**
+	 * Costruttore
+	 */
+	public Partita(){
+		super();
+		Ambasciatore.getInstance().setMiaPartita(this);
+	}
+	
+	@Override
+	public void setVistaPartita(ViewPartita viewPartita) {
+		this.viewPartita = viewPartita;
+	}
+	
+	
+	public void scegliColore (Integer timer, ArrayList<Colori> coloriDisponibili){
+		this.viewPartita.scegliColore(timer, coloriDisponibili);
+	}
+	
+	@Override
+	public void sceltaColoreEffettuata(Colori colore){
+		Ambasciatore.getInstance().sceltaColoreEffettuata(colore);
+	}
+	
+	
+	public void riceviMappa(Mappa mappa){
+		setMappaPartita(mappa);
+		if(! this.difesaInCorso)
+			this.viewPartita.riceviMappa(mappa);
+	}
+	
+	
+	public void riceviOrdinePartita(ArrayList<BeanGiocatore>listaInfoGiocatori, ArrayList<Colori>ordineColori){
+		setOrdineGiocatori(listaInfoGiocatori);
+		setOrdineColori(ordineColori);
+		setMioColore(estraiMioColore(listaInfoGiocatori, ordineColori)); 
+		this.viewPartita.riceviOrdinePartita(listaInfoGiocatori, ordineColori);
+	}
+	
+	@Override
+	public BeanGiocatore getInfoGiocatore(String nome) {
+		Iterator<BeanGiocatore> itGiocatori = this.ordineGiocatori.iterator();
+		BeanGiocatore infoTemp; 
+		BeanGiocatore infoRichieste = null; 
+		while(itGiocatori.hasNext()){
+			infoTemp = itGiocatori.next();
+			if(infoTemp.getNomeUtente().equals(infoTemp)){
+				infoRichieste = infoTemp;
+				break;
+			}
+		}
+		
+		return infoRichieste; //se è null il gicoatore non è stato trovato. //TODO: lancia un'eccezione
+	}
+	
+	public void riceviTerritoriPosizionaArmate(Integer numeroArmateDaPosizionare, Integer tempoPosizionaArmate, Mappa mappaPartita){
+		setMappaPartita(mappaPartita); //setto la mappa della partita
+		this.viewPartita.riceviTerritoriPosizionaArmate(numeroArmateDaPosizionare, tempoPosizionaArmate, mappaPartita);
+	}
+	
+	private Colori estraiMioColore (ArrayList<BeanGiocatore>listaInfoGiocatori, ArrayList<Colori>ordineColori){
+		Iterator<BeanGiocatore> itGiocatori = listaInfoGiocatori.iterator();
+		Integer mioIndex = 0; 
+		Colori mioColore; 
+		BeanGiocatore infoTemp; 
+		BeanGiocatore mioBean = Ambasciatore.getInstance().ottieniMieInfo();
+		String mioUsername = mioBean.getNomeUtente();
+		while(itGiocatori.hasNext()){
+			infoTemp = itGiocatori.next();
+			if(infoTemp.getNomeUtente().equals(mioUsername)){
+				mioIndex = listaInfoGiocatori.indexOf(infoTemp);
+				break; 
+			}
+		}
+		mioColore = ordineColori.get(mioIndex);
+		return mioColore;
+	}
+	
+	
+	
+	@Override
+	public Colori getMioColore() {
+		return mioColore;
+	}
+
+	public void setMioColore(Colori mioColore) {
+		this.mioColore = mioColore;
+	}
+	
+
+	public ArrayList<BeanGiocatore> getOrdineGiocatori() {
+		return ordineGiocatori;
+	}
+
+	public void setOrdineGiocatori(ArrayList<BeanGiocatore> ordineGiocatori) {
+		this.ordineGiocatori = ordineGiocatori;
+	}
+
+	public ArrayList<Colori> getOrdineColori() {
+		return ordineColori;
+	}
+
+	public void setOrdineColori(ArrayList<Colori> ordineColori) {
+		this.ordineColori = ordineColori;
+	}
+	
+	public Mappa getMappaPartita() {
+		return mappaPartita;
+	}
+	
+	public void setMappaPartita(Mappa mappaPartita){
+		this.mappaPartita = mappaPartita;
+	}
+	
+	@Override
+	public void sceltaArmateInizialeEffettuata(String comandoPosizionamento){
+		Ambasciatore.getInstance().sceltaArmateInizialeEffettuata(comandoPosizionamento);
+	}
+	
+	
+	public void riceviComunicazioneNuovoTurno(Colori colore, String username){
+		System.out.println("1 - Nuovo TUrno: "+username);
+		this.viewPartita.riceviComunicazioneNuovoTurno(colore, username);
+		System.out.println("2 - Nuovo TUrno: "+username);
+	}
+
+	public void riceviArmateInizioTurno(Integer numeroArmate, Integer tempo){
+		System.out.println("1 - Ricevo armate inizio turno: ");
+		this.viewPartita.riceviArmateInizioTurno(numeroArmate, tempo);
+		System.out.println("2 - Ricevo armate inizio turno: ");
+	}
+
+	public void comunicazioneInAttesaMossa(Integer tempo){
+		this.viewPartita.comunicazioneInAttesaMossa(tempo);
+	}
+	
+	@Override
+	public void passaTurno(){
+		Ambasciatore.getInstance().passaTurno();
+	}
+	
+	@Override
+	public void comandoSpostaArmate(Integer numeroArmateDaSpostare, String origine, String destinazione) throws TerritorioNonTrovatoException{
+		Ambasciatore.getInstance().comandoSpostaArmate(numeroArmateDaSpostare, origine, destinazione);
+	}
+	
+	@Override
+	public void comandoAttacco(Integer numeroUnitaAttaccanti, String tAttaccato, String tAttaccante) throws UnitaInsufficientiException{
+		Ambasciatore.getInstance().comandoAttacco(numeroUnitaAttaccanti, tAttaccato, tAttaccante);
+	}
+	
+	//chiamo la view
+	public void riceviComunicazioneAttacco(Integer tempoDifesa, Territorio territorioAttaccante, Territorio territorioAttaccato,
+			ArrayList<Integer> risultatoDadiAttacco, ArrayList<Integer> risultatoDadiDifesa, Integer[] risultati, 
+			boolean conquistato){
+			this.unitaDifesaSconfitte = risultati[0];
+			this.unitaAttaccoPerse = risultati[1];
+			this.dadiAttacco = risultatoDadiAttacco;
+			this.dadiDifesa = risultatoDadiDifesa;
+			this.territorioAttaccatoConquistato = conquistato; 			
+		if(territorioAttaccante.getColorePossessore() == this.mioColore){ //io sono l'attaccante
+			this.viewPartita.riceviConfermaMioAttacco(territorioAttaccante, territorioAttaccato, risultatoDadiAttacco);
+			this.difesaInCorso = true;
+//			this.viewPartita.riceviDifesaMioAttacco(mioColore, risultatoDadiDifesa);
+//			this.viewPartita.riceviRisultatiMioAttacco(unitaDifesaSconfitte, unitaAttaccoPerse, conquistato);
+		}
+		else if(territorioAttaccato.getColorePossessore() == this.mioColore){ //io sono quello che è stato attaccato
+			this.viewPartita.riceviAttaccoSubito(territorioAttaccante, territorioAttaccato, risultatoDadiAttacco);
+			this.difesaInCorso = true;
+//			this.viewPartita.riceviConfermaDifesa(risultatoDadiDifesa);
+//			this.viewPartita.riceviRisultatiAttaccoSubito(unitaDifesaSconfitte, unitaAttaccoPerse, conquistato);
+		} 
+		else{ //qualcun altro è stato attaccato
+			this.viewPartita.riceviComunicazioneAttacco(territorioAttaccante.getColorePossessore(), territorioAttaccante, territorioAttaccato, risultatoDadiAttacco);
+			this.difesaInCorso = true;
+//			this.viewPartita.riceviComunicazioneDifesa(territorioAttaccato.getColorePossessore(), risultatoDadiDifesa);
+//			this.viewPartita.riceviComunicazioneRisultatiAttacco(territorioAttaccante.getColorePossessore(), unitaDifesaSconfitte, unitaAttaccoPerse, conquistato);
+		}
+	}
+	
+
+	
+	
+	
+	
+	
+//	private void attendiDifesa(Integer tempoDifesa) throws InterruptedException{
+//		Integer tempoAttesa = (tempoDifesa*1000)-500;
+//		Thread.sleep(tempoAttesa);
+//	}
+	
+	
+//	private synchronized void attendoMiaDifesa(Integer tempoDifesa) throws InterruptedException{
+//		wait(tempoDifesa*1000);
+//	}
+	
+	
+//	//è locale
+//	@Override
+//	public synchronized void miDifendo() {
+//		notifyAll(); //semplicemente notifico per risvegliarmi e comunicare il resto dell'attacco
+//	}
+
+
+	public ArrayList<Integer> getDadiDifesa() {
+		return dadiDifesa;
+	}
+
+
+
+	public Integer getUnitaDifesaSconfitte() {
+		return unitaDifesaSconfitte;
+	}
+
+
+
+	public Integer getUnitaAttaccoPerse() {
+		return unitaAttaccoPerse;
+	}
+
+
+
+	public boolean isTerritorioAttaccatoConquistato() {
+		return territorioAttaccatoConquistato;
+	}
+
+
+
+	//quando un giocatore perde
+	public void riceviComunicazioneSconfitta(String giocatoreSconfitto){
+		if (Ambasciatore.getInstance().getMieInfo().getNomeUtente().equals(giocatoreSconfitto)){ //sono io il giocatore sconfitto
+			ControllerLimbo limboSconfitta = new Limbo();
+			this.viewPartita.riceviComunicazioneSconfitta(limboSconfitta);
+			return;
+		}
+		this.viewPartita.riceviComunicazioneSconfitta(giocatoreSconfitto);
+	}
+	
+	
+	@Override
+	public ControllerLimbo abbandonaPartita(){
+		Ambasciatore.getInstance().abbandonaPartita();
+		ControllerLimbo limboAbbandono = tornaALimbo();
+		return limboAbbandono;
+	}
+	
+	public void riceviComunicazioneRitirata(String giocatoreRitirato){
+		this.viewPartita.riceviComunicazioneRitirata(giocatoreRitirato);
+	}
+	
+	public void riceviClassificaFinale(ArrayList<String> classificaFinale, Integer punteggioPrimo, Integer punteggioSecondo){
+		this.viewPartita.riceviClassificaFinale(classificaFinale, punteggioPrimo, punteggioSecondo);
+	}
+	
+	
+	private ControllerLimbo tornaALimbo(){
+		ControllerLimbo limbo = new Limbo();
+		return limbo; 
+	}
+
+	@Override
+	public Mappa fineDifesa() {
+		this.difesaInCorso = false;
+		return getMappa();
+	}
+	
+	public Mappa getMappa(){
+		return this.mappaPartita;
+	}
+
+
+
+}
+	
+	
+

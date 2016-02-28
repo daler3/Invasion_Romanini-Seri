@@ -1,0 +1,52 @@
+package provaRmi;
+
+import interfacciaComunicazione.Client2Server;
+
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
+
+import miormi2.ServerAcceptInterface;
+
+/**
+ * Questa è lato CLIENT e serve per comunicare col Server
+ * @author daniele
+ *
+ */
+
+public class MyPlayerClass extends UnicastRemoteObject implements MyInterface, Client2Server {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 3L;
+	private static final String host = "127.0.0.1";
+	private static final String url = "rmi://"+host+"/Hello";
+	
+	private String username = null;
+	private String password = null;
+	private InterfaceForPlayer interInServer = null; 
+	
+	
+	protected MyPlayerClass() throws RemoteException {
+		super();
+		// TODO Auto-generated constructor stub
+	}
+
+
+	public void eseguiLogin(String username, String password) throws Exception{
+		this.username=username; 
+		this.password=password; 
+		
+		if (System.getSecurityManager() == null)
+			System.setSecurityManager(new SecurityManager());
+			Registry registry = LocateRegistry.getRegistry(host);
+			AcceptInterface stub = (AcceptInterface) registry.lookup(url); 		
+			//lo loggo
+			this.interInServer = stub.login(this, username, password); 
+	}
+	
+
+			
+}

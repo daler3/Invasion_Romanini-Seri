@@ -1,0 +1,74 @@
+package interfacciaComunicazione;
+
+public interface Client2Server {
+	/**
+	 * Il server tenta il login con le informazioni passate.
+	 * Il client attende il responso.
+	 * @param Username
+	 * @param Password
+	 * @return il responso dell'operazione
+	 */
+	boolean effettuaLogin(String Username, String Password);
+	boolean effettuaLogout(String Username);
+	boolean effettuaRegistrazione(String Username, String Password);
+	boolean esciPartita();
+	boolean cambiaPassword(String vecchiaPassword, String nuovaPassword);
+	boolean cambiaUsername(String nuovoUser, String password);
+	//Metodi di visualizzazione statistiche
+	
+	/**
+	 * Il server crea il tavolo e ci aggiunge (modifica il nostro stato).
+	 * Il client aggiunge un tavolo all'interfaccia grafica e cambia il nostro stato
+	 * @return l'ID del tavolo.
+	 */
+	String CreaTavolo();
+	
+	/**
+	 * Il server abbandona il tavolo corrente, sa dove mi trovo in ogni momento.
+	 * Il client ci rimuove dal tavolo e se sono l'unico connesso lo cancella
+	 * @return esito operazione
+	 */
+	boolean abbandonaTavolo();
+	
+	/**
+	 * Il server farà il join del tavolo e aggiorna il nostro stato
+	 * Il client si aggiunge a quel tavolo e modifica il prorio stato
+	 * @param idTavolo
+	 * @return l'esito dell'operazione
+	 */
+	boolean joinTavolo(String idTavolo);
+	
+	/**
+	 * 
+	 * @return
+	 */
+	boolean abbandonaPartita();
+	
+	//manda al server il colore scelto. Torna true se disponibile, false se non lo è
+	//se torna false siamo dei coglioni e avremo sbagliato a coordinare tutto
+	boolean scegliColore(String colore);
+	
+	/**
+	 * 
+	 * @param statoAttaccante
+	 * @param statoDifensore
+	 * @param armateAttaccanti
+	 * @return
+	 */
+	String attaccaStato(String statoAttaccante, String statoDifensore, Integer armateAttaccanti);
+	
+	//Da gestire meglio la difesa, e considerare che esisterà lo stesso metodo anche server2client
+	Integer[] lanciaDadi(Integer numeroDadi);
+	
+	boolean passaTurno();
+	
+	/**
+	 * 
+	 * @param stato
+	 * @param numero
+	 * @return il numero di pedine ancora da posizionare
+	 */
+	Integer posizionaArmate(String territorio, Integer numero);
+	
+	
+}

@@ -1,0 +1,148 @@
+package client;
+
+import java.util.ArrayList;
+
+import classiCondivise.BeanGiocatore;
+import classiCondivise.Colori;
+import mappa.*;
+/**
+ * Rappresenta la partita in corso, sono presenti tutti i comandi di gioco qui.
+ * @author timmy
+ *
+ */
+public class Partita {
+	private ArrayList<BeanGiocatore> giocatori = null;
+	private Mappa mappaPartita = null;
+	private Integer idPartita = null;
+	private GiocatoreLimbo giocatoreGiocante = null;
+	
+	public Partita(ArrayList<BeanGiocatore> mieiGiocatori, Integer idPartita, Mappa mappa){
+		this.giocatori = (ArrayList<BeanGiocatore>) mieiGiocatori.clone();
+		this.idPartita = idPartita;
+		this.mappaPartita = mappa;
+	}
+	
+	/**
+	 * Vengono rimosse le unità secondo comunicazione del server.
+	 * @param nomeTerritorioDaModificare Nel del territorio a cui sottrarre le armate.
+	 * @param armatePerse Numero di armate perse.
+	 * @throws Exception Inconsistenza nel numero di unità presenti sul territorio
+	 */
+	public void applicaAttacco(String nomeTerritorioDaModificare, Integer armatePerse) throws Exception{
+		//TODO Aggiungere eccezioni personalizzate
+		Territorio territorioDaModificare = this.mappaPartita.trovaTerritorio(nomeTerritorioDaModificare);
+		territorioDaModificare.rimuoviUnita(armatePerse);
+		if(territorioDaModificare.getUnitaPresenti() < 0){
+			throw new Exception("Sono stati eliminati troppi territori - Mappa non aggiornata");
+		}
+		//La conquista di un territorio ci viene comunicata dal Server
+	}
+	
+	/**
+	 * Viene conquistato il territorio secondo comunicazione del server
+	 * @param nomeTerritorioConquistato Il nome del territorio conquistato
+	 * @param coloreNuovoPossessore Il colore del nuovo possessore del territorio
+	 * @throws Exception Impossibile conquistare un territorio con delle armate ancora presenti
+	 */
+	public void applicaConquista(String nomeTerritorioConquistato, Colori coloreNuovoPossessore) throws Exception{
+		Territorio territorioConquistato = this.mappaPartita.trovaTerritorio(nomeTerritorioConquistato);
+		if(territorioConquistato.getUnitaPresenti() > 0){
+			//TODO Aggiungere eccezioni personalizzate
+			throw new Exception("Mappa non aggiornata - Impossibile conquistare un territorio con delle armate ancora presenti");
+		}
+		territorioConquistato.setColorePossessore(coloreNuovoPossessore);
+	}
+
+	/**
+	 * Vengono spostate le armate (Prima bisogna chiedere conferma al server per lo spostamento)
+	 * @param nomeTerPartenza Territorio da cui verranno rimosse le armate
+	 * @param nomeTerArrivo Territorio in cui verranno spostate la armate
+	 * @param numeroArmate Numero di armate spostate
+	 * @throws Exception Mappa non aggiornata - Impossibile effettuare lo spostamento
+	 */
+	public void spostaArmate(String nomeTerPartenza, String nomeTerArrivo, Integer numeroArmate) throws Exception{
+		//TODO Aggiungere eccezioni personalizzate
+		Territorio terrPartenza = this.mappaPartita.trovaTerritorio(nomeTerPartenza);
+		Territorio terrArrivo = this.mappaPartita.trovaTerritorio(nomeTerArrivo);
+		terrPartenza.spostaUnita(numeroArmate, terrArrivo);
+	}
+	
+	/**
+	 * Posizioniamo i rinforzi in un determinato territorio
+	 * @param nomeTerritorio Nome del territorio da rinforzare.
+	 * @param numeroArmate Armate da aggiungere
+	 * @param coloreRichiedente Colore di chi fa la richiesta
+	 * @throws Exception Mappa non aggiornata - non possediamo il territorio da rinforzare
+	 */
+	public void posizionaRinforzi(String nomeTerritorio, Integer numeroArmate, Colori coloreRichiedente) throws Exception{
+		Territorio territorio = this.mappaPartita.trovaTerritorio(nomeTerritorio);
+		if(territorio.isEnemy(coloreRichiedente)){
+			throw new Exception("Mappa non aggiornata - non possediamo il territorio da rinforzare");
+		}
+		territorio.aggiungiUnita(numeroArmate);
+	}
+	
+	/**
+	 * Fa scorrere la lista dei turni
+	 * @param giocatoreAttuale	Il giocatore che ha appena finito il turno.
+	 * @param giocatoreFuturo	Il giocatore che deve iniziare a giocare.
+	 * @throws Exception Eccezioni dovute alla non sincronizzazione con il server.
+	 */
+	public void passaTurno(GiocatoreLimbo giocatoreAttuale, GiocatoreLimbo giocatoreFuturo) throws Exception{
+		//TODO Aggiungere eccezioni personalizzate
+		//Controlliamo se le informazioni passate dal server coincidono con quelle del client
+		if(giocatoreGiocante == giocatoreFuturo)
+			throw new Exception("Non si può passare il turno allo stesso giocatore");
+		if(giocatoreGiocante != giocatoreAttuale)
+			throw new Exception("Le informazioni sui turni non erano aggiornate");
+//		if(prossimoGiocatore(giocatoreGiocante) != giocatoreFuturo)
+//			throw new Exception("Ordine sul client sbagliato - Farsi reinviare le informazioni");
+		//Passiamo il turno
+		setGiocatoreGiocante(giocatoreFuturo);
+	}
+	
+
+	public void abbandonaPartita(GiocatoreLimbo giocatore){
+		giocatori.remove(giocatore);
+	}
+	
+	public ArrayList<GiocatoreLimbo> getGiocatori() {
+		return (ArrayList<GiocatoreLimbo>) giocatori.clone();
+	}
+
+	public Integer getIdPartita() {
+		return idPartita;
+	}
+
+	public Mappa getMappaPartita() {
+		return mappaPartita;
+	}
+
+	public GiocatoreLimbo getGiocatoreGiocante() {
+		return giocatoreGiocante;
+	}
+	
+//	/**
+//	 * Ci dice chi gioca dopo il giocatore passato.
+//	 * @param giocatore Giocatore che sta giocando.
+//	 * @return Giocatore successivo.
+//	 */
+//	public Giocatore prossimoGiocatore(BeanGiocatore giocatoreAttuale, BeanGiocatore prossimoGiocatore){
+//		//TODO Testare se va bene - potrebbe non far giocare l'ultimo giocatore o non tornare all'inizio
+//		int totaleGiocatori = giocatori.size();
+//		int posizione = giocatori.indexOf(giocatore);
+//		if(posizione+1 == totaleGiocatori){	//Siamo arrivati alla fine del ciclo
+//			return giocatori.get(0);	//Ci ritorna il primo giocatore
+//		}
+//		else{
+//			return giocatori.get(posizione+1);
+//		}
+//		
+//		
+//	}
+
+	public void setGiocatoreGiocante(GiocatoreLimbo giocatoreGiocante) {
+		this.giocatoreGiocante = giocatoreGiocante;
+	}
+	
+}

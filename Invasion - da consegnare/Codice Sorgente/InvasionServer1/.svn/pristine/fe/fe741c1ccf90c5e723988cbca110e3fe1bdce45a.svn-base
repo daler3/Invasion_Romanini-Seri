@@ -1,0 +1,8 @@
+package eccezioni;
+
+public class InserimentoMancanteException extends Exception {
+
+	public InserimentoMancanteException() {
+		super();
+	}
+}

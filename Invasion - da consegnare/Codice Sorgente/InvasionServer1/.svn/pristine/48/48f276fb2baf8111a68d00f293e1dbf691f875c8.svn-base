@@ -1,0 +1,692 @@
+package dbManager;
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+
+import classiCondivise.Classifica;
+public class DbManager {
+
+	
+	/*
+	 * - Classifica generale ()
+	 */
+	
+	
+	
+	
+	
+	private final static String DRIVER = "org.apache.derby.jdbc.EmbeddedDriver";
+	private final static String DBNAME = "database";
+	private final static String URL = "jdbc:derby:"+DBNAME, 
+			USER = "admin",
+			PSW = "admin";
+
+	/**
+	 * Crea un connessione al DB.
+	 * @return	La connessione al DB.
+	 * @throws InstantiationException
+	 * @throws IllegalAccessException
+	 * @throws ClassNotFoundException
+	 * @throws SQLException
+	 */
+	public synchronized Connection connessioneDb() throws InstantiationException, IllegalAccessException, ClassNotFoundException, SQLException{
+		Class.forName(DRIVER).newInstance();
+		return DriverManager.getConnection(URL, USER, PSW);
+	}
+	
+	/**
+	 * Chiude la connessione al db.
+	 * @param connessione	La connessione da chiudere.
+	 */
+	public synchronized void disconnessioneDb(Connection connessione){
+		try {
+			connessione.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Tenta il login con le credenziali scelte. Aggiorna l'ultimo tentativo di login.
+	 * @param connessione	La connessione al DB.
+	 * @param nomeUtente	Lo username del giocatore.
+	 * @param password		La password del giocatore.
+	 * @return	true: Login effettuato; false: Credenziali errate;
+	 * @throws SQLException	Connessione non valida.
+	 */
+	public synchronized boolean effettuaLogin(Connection connessione, String nomeUtente, String password) throws SQLException{
+		Statement st = connessione.createStatement();
+		String miaQuery = "SELECT COUNT(*) "+
+							"FROM GIOCATORE "+
+							"WHERE NOMEGIOCATORE='"+nomeUtente+"' AND PASSWORD='"+password+"'";
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		resultSet.next();
+		Integer numeroGiocatori = resultSet.getInt(1);
+		resultSet.close();
+		st.close();
+		if(numeroGiocatori >= 1){
+			aggiornaAccesso(connessione, nomeUtente);
+			return true;
+		}
+		else{
+			return false;
+		}
+	}
+	
+	/**
+	 * Aggiorna l'informazione dell'ultimo accesso alla partita del giocatore.
+	 * @param connessione	Connessione al DB.
+	 * @param nomeUtente	Username del giocatore che ha effettuato l'accesso.
+	 * @throws SQLException	Connessione non valida.
+	 */
+	private synchronized void aggiornaAccesso(Connection connessione, String nomeUtente) throws SQLException{
+		Timestamp data = new Timestamp(System.currentTimeMillis());
+		String miaQuery = "UPDATE GIOCATORE "+
+							"SET DATAULTIMOACCESSO=? "+
+							"WHERE NOMEGIOCATORE=?";
+		PreparedStatement preparedStatement = connessione.prepareStatement(miaQuery);
+		preparedStatement.setTimestamp(1, data);
+		preparedStatement.setString(2, nomeUtente);;
+		preparedStatement.executeUpdate();
+		preparedStatement.close();
+	}
+	
+	/**
+	 * Salva nel DB la partita appena avviata.
+	 * @param connessione	La connessione al DB.
+	 * @param giocatori	Lista dei nomi dei giocatori che partecipano alla partita.
+	 * @return	L'Id della partita avviata
+	 * @throws SQLException	Connessione al DB non valida.
+	 */
+	public synchronized Integer creaPartita(Connection connessione, ArrayList<String> giocatori) throws SQLException{
+		Integer idPartita = estraiNumeroPartita(connessione);
+		Timestamp data = new Timestamp(System.currentTimeMillis());
+		String miaQuery = "INSERT INTO PARTITA (IDPARTITA, DATAPARTITA)"+
+							"VALUES (?, ?)";
+		PreparedStatement preparedStatement = connessione.prepareStatement(miaQuery);
+		preparedStatement.setInt(1,idPartita);
+		preparedStatement.setTimestamp(2, data);
+		preparedStatement.executeUpdate();
+		preparedStatement.close();
+		aggiungiPartecipazione(connessione, giocatori, idPartita);
+		return idPartita;	//Ritornerò l'id della partita
+	}
+	
+	/**
+	 * Aggiunge al DB i partecipanti alla partita.
+	 * @param connessione	La connessione al DB.
+	 * @param giocatori	Lista dei giocatori che partecipano.
+	 * @param partita	La partita a cui partecipano.
+	 * @throws SQLException	Connessione al DB non valida.
+	 */
+	private synchronized void aggiungiPartecipazione(Connection connessione, ArrayList<String> giocatori, Integer partita) throws SQLException{
+		Iterator<String> itGiocatori = giocatori.iterator();
+		String miaQuery = "INSERT INTO PARTECIPAZIONEPARTITA (IDPARTITA, NOMEGIOCATORE, POSIZIONE, PUNTIVINTI) "+
+					"VALUES (?, ?, ?, ?)";
+		PreparedStatement preparedStatement = connessione.prepareStatement(miaQuery);
+		while(itGiocatori.hasNext()){
+			preparedStatement.setInt(1, partita);
+			preparedStatement.setString(2, itGiocatori.next());
+			preparedStatement.setInt(3, -1);
+			preparedStatement.setInt(4, 0);
+			preparedStatement.executeUpdate();
+		}
+		preparedStatement.close();
+	}
+	
+	/**
+	 * Estrae il numero della nuova partita.
+	 * @param connessione	Connessione al DB.
+	 * @return	Il numero della partita.
+	 * @throws SQLException	Connessione al DB non valida.
+	 */
+	private synchronized Integer estraiNumeroPartita(Connection connessione) throws SQLException{
+		Statement st = connessione.createStatement();
+		String miaQuery = "SELECT MAX(IDPARTITA)+1 "+
+							"FROM PARTITA";
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		resultSet.next();
+		Integer id = resultSet.getInt(1);
+		resultSet.close();
+		st.close();
+		return id;	//Ritorno l'id della partita
+	}
+	
+	/**
+	 * Prova ad aggiungere l'utente al DB.
+	 * @param connessione	Connessione al DB.
+	 * @param nomeNuovoGiocatore	Username del nuovo giocatore.
+	 * @param passwordNuovoGiocatore	Password del nuovo giocatore.
+	 * @return	true: Registrazione avvenuta con successo; false: Username già in uso;
+	 * @throws SQLException	Connessione al DB non valida.
+	 */
+	public synchronized boolean creaUtente(Connection connessione, String nomeNuovoGiocatore, String passwordNuovoGiocatore) throws SQLException{
+		if(usernameInUso(connessione, nomeNuovoGiocatore)){	//Impossibile creare il nuovo utente
+			return false;
+		}
+		//Estraggo la data
+		Timestamp data = new Timestamp(System.currentTimeMillis());
+		//Preparo la query per il nuovo giocatore
+		String miaQuery = "INSERT INTO GIOCATORE (NOMEGIOCATORE, PASSWORD, DATAREGISTRAZIONE, DATAULTIMOACCESSO) "+
+						"VALUES (?, ?, ?, ?)";
+		PreparedStatement preparedStatement = connessione.prepareStatement(miaQuery);
+		preparedStatement.setString(1, nomeNuovoGiocatore);
+		preparedStatement.setString(2, passwordNuovoGiocatore);
+		preparedStatement.setTimestamp(3, data);
+		preparedStatement.setTimestamp(4, data);
+		//Invio lo statement e lo chiudo
+		preparedStatement.executeUpdate();
+		preparedStatement.close();
+		return true;
+	}
+	
+	/**
+	 * Cancella lo username inviato
+	 * @param connessione	La connessione al DB
+	 * @param nomeGiocatore	Il nome del giocatore da cancellare
+	 * @throws SQLException	Problema nell'esecuzione della query
+	 */
+	public synchronized void cancellaUtente(Connection connessione, String nomeGiocatore) throws SQLException{
+		String miaQuery = "DELETE FROM GIOCATORE "+
+							"WHERE NOMEGIOCATORE = ?";
+		PreparedStatement preparedStatement = connessione.prepareStatement(miaQuery);
+		preparedStatement.setString(1, nomeGiocatore);
+		preparedStatement.executeUpdate();
+		preparedStatement.close();
+	}
+	
+	/**
+	 * Prova a cambiare la password
+	 * @param connessione
+	 * @param username
+	 * @param vecchiaPassword
+	 * @param nuovaPassword
+	 * @return
+	 * @throws SQLException
+	 */
+	public synchronized boolean cambiaPassword(Connection connessione, String username, String vecchiaPassword, String nuovaPassword) throws SQLException{
+		if(effettuaLogin(connessione, username, vecchiaPassword) == false)
+			return false;
+		else{
+			String miaQuery = "UPDATE GIOCATORE "+
+					"SET PASSWORD=? "+
+					"WHERE NOMEGIOCATORE=?";
+			PreparedStatement preparedStatement = connessione.prepareStatement(miaQuery);
+			preparedStatement.setString(1, nuovaPassword);
+			preparedStatement.setString(2, username);
+			preparedStatement.executeUpdate();
+			preparedStatement.close();
+			return true;
+		}
+	}
+	
+	/**
+	 * Ci informa se lo username è già in uso
+	 * @param connessione	La connessione al DB
+	 * @param nomeUtente	Il nome da controllare
+	 * @return	-true: Utente già esistente;	-false:Utente inesistente;
+	 */
+	public synchronized boolean usernameInUso(Connection connessione, String nomeUtente){
+		String miaQuery = "SELECT COUNT(*) "+
+							"FROM GIOCATORE "+
+							"WHERE NOMEGIOCATORE = '"+nomeUtente+"'";
+		try {
+			Statement st = connessione.createStatement();
+			ResultSet resultSet = st.executeQuery(miaQuery);
+			resultSet.next();
+			int numero = resultSet.getInt(1);
+			if(numero == 0){
+				return false;
+			}
+		} catch (SQLException e) {
+			System.err.println("Impossibile eseguire query");
+			e.printStackTrace();
+		}
+		return true;
+
+	}
+	
+	/**
+	 * L'elenco di tutti i territori presenti sulla mappa.
+	 * @param connessione	Connessione del DB
+	 * @return	La lista di tutti i territori
+	 * @throws SQLException	Connessione al DB non valida.
+	 */
+	public synchronized ArrayList<String> elencoTerritori(Connection connessione) throws SQLException{
+		ArrayList<String> territori = new ArrayList<String>();
+		String miaQuery="SELECT NOMETERRITORIO "+
+							"FROM TERRITORIO "+
+							"ORDER BY NOMETERRITORIO ASC ";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		while(resultSet.next()){
+			String nomeContinente = resultSet.getString(1);
+			territori.add(nomeContinente);
+		}
+		resultSet.close();
+		st.close();
+		return territori;
+	}
+	
+	/**
+	 * Elenco dei terriori di un dato continente.
+	 * @param connessione	Connessione al DB.
+	 * @param continenteDiAppartenenza	Il continente di cui vogliamo i territori.
+	 * @return	La lista dei territori cercati.
+	 * @throws SQLException	Connessione al DB non valida.
+	 */
+	public synchronized ArrayList<String> elencoTerritori(Connection connessione, String continenteDiAppartenenza) throws SQLException{
+		ArrayList<String> territori = new ArrayList<String>();
+		String miaQuery="SELECT NOMETERRITORIO "+
+							"FROM TERRITORIO "+
+							"WHERE NOMECONTINENTE='"+continenteDiAppartenenza+"'"+
+							"ORDER BY NOMETERRITORIO ASC ";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		while(resultSet.next()){
+			String nomeContinente = resultSet.getString(1);
+			territori.add(nomeContinente);
+		}
+		resultSet.close();
+		st.close();
+		return territori;
+	}
+	
+	/**
+	 * Elenco dei confini di un dato territorio.
+	 * @param connessione	Connessione al DB.
+	 * @param territorioCentrale	Il territorio di cui cerchiamo i confini.
+	 * @return	La lista dei territori confinanti.
+	 * @throws SQLException	Connessione al DB non valida.
+	 */
+	public synchronized ArrayList<String> elencoConfini(Connection connessione, String territorioCentrale) throws SQLException{
+		ArrayList<String> territori = new ArrayList<String>();
+		String miaQuery="SELECT NOMETERRITORIO2 "+
+							"FROM CONFINE "+
+							"WHERE NOMETERRITORIO1='"+territorioCentrale+"'"+
+							"ORDER BY NOMETERRITORIO2 ASC ";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		while(resultSet.next()){
+			String nomeContinente = resultSet.getString(1);
+			territori.add(nomeContinente);
+		}
+		resultSet.close();
+		st.close();
+		return territori;
+	}
+	
+	/**
+	 * Il numero di continenti presenti.
+	 * @param connessione	Connessione al DB.
+	 * @return	Il numero di continenti presenti.
+	 * @throws SQLException	Connessione al DB non valida.
+	 */
+	public synchronized int numeroDiContinenti(Connection connessione) throws SQLException{
+		String miaQuery = "SELECT COUNT(*) "+
+				"FROM CONTINENTE";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		resultSet.next();
+		int risultato = resultSet.getInt(1);
+		resultSet.close();
+		st.close();
+		return risultato;
+	}
+	
+	/**
+	 * Elenco dei continenti presenti (ordinati per ordine alfabetico crescente).
+	 * @param connessione	Connessione al DB
+	 * @return	La lista dei continenti presenti.
+	 * @throws SQLException	Connessione al DB non valida.
+	 */
+	public synchronized ArrayList<String> elencoContinenti(Connection connessione) throws SQLException{
+		ArrayList<String> continenti = new ArrayList<String>(numeroDiContinenti(connessione));
+		String miaQuery="SELECT NOMECONTINENTE "+
+							"FROM CONTINENTE "+
+							"ORDER BY NOMECONTINENTE ASC ";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		while(resultSet.next()){
+			String nomeContinente = resultSet.getString(1);
+			continenti.add(nomeContinente);
+		}
+		resultSet.close();
+		st.close();
+		return continenti;
+	}
+	
+	/**
+	 * La lista dei bonus di tutti i continenti (ordinati per ordine alfabetico crescente).
+	 * @param connessione	Connessione al DB
+	 * @return	La lista dei bonus di ogni continente.
+	 * @throws SQLException	Connessione al DB non valida.
+	 */
+	public synchronized ArrayList<Integer> elencoBonusContinenti(Connection connessione) throws SQLException{
+		ArrayList<Integer> bonus = new ArrayList<Integer>(numeroDiContinenti(connessione));
+		String miaQuery="SELECT BONUS "+
+				"FROM CONTINENTE "+
+				"ORDER BY NOMECONTINENTE ASC ";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		while(resultSet.next()){
+			Integer valore = resultSet.getInt(1);
+			bonus.add(valore);
+		}
+		resultSet.close();
+		st.close();
+		return bonus;
+	}
+	
+	/**
+	 * Aggiorna l'utente in seguito ad una partita.
+	 * @param connessione			La connessione al DB.
+	 * @param username				Lo username del giocatore.
+	 * @param idPartita				L'id della partita a cui ha partecipato.
+	 * @param punteggioGiocatore	Il punteggio ottenuto dal giocatore nella partita.
+	 * @param posizioneClassifica	La posizione nella classifica della partita.
+	 * @throws SQLException			Connessione al DB non valida.
+	 */
+	public synchronized void aggiornaUtentePostPartita(Connection connessione, String username, Integer idPartita, Integer punteggioGiocatore, Integer posizioneClassifica) throws SQLException{
+		//Preparo la query per il nuovo giocatore
+		String miaQuery = "UPDATE PARTECIPAZIONEPARTITA " +
+				"SET POSIZIONE = ?, PUNTIVINTI = ? "+
+				"WHERE IDPARTITA = ? and NOMEGIOCATORE = ?";
+		PreparedStatement preparedStatement = connessione.prepareStatement(miaQuery);
+		preparedStatement.setInt(1, posizioneClassifica);
+		preparedStatement.setInt(2, punteggioGiocatore);
+		preparedStatement.setInt(3, idPartita);
+		preparedStatement.setString(4, username);
+		//Invio lo statement e lo chiudo
+		preparedStatement.executeUpdate();
+		preparedStatement.close();
+	}
+	
+	/**
+	 * Ci da la percentuale di partite vinte da un giocatore.
+	 * @param connessione	Connessione al DB
+	 * @param username		L'utente di cui vogliamo le statistiche.
+	 * @return				Un valore compreso tra 0 e 1.
+	 * @throws SQLException	Connessione al DB non valida.
+	 */
+	public synchronized float percentualePartiteVinte(Connection connessione, String username) throws SQLException{
+		int totalePartite = totalePartiteGiocate(connessione, username);
+		String miaQuery = "SELECT COUNT(*) FROM PARTECIPAZIONEPARTITA WHERE NOMEGIOCATORE = '"+username+"' AND POSIZIONE = 1";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		resultSet.next();
+		int risultato = resultSet.getInt(1);
+		resultSet.close();
+		st.close();
+		float risultatoPercentuale = (float)risultato/totalePartite;
+		return risultatoPercentuale;
+	}
+	
+	/**
+	 * Ci da la percentuale di partite in cui un giocatore è arrivato secondo.
+	 * @param connessione	Connessione al DB
+	 * @param username		L'utente di cui vogliamo le statistiche.
+	 * @return				Un valore compreso tra 0 e 1.
+	 * @throws SQLException	Connessione al DB non valida.
+	 */
+	public synchronized float percentualePartiteSecondo(Connection connessione, String username) throws SQLException{
+		int totalePartite = totalePartiteGiocate(connessione, username);
+		String miaQuery = "SELECT COUNT(*) FROM PARTECIPAZIONEPARTITA WHERE NOMEGIOCATORE = '"+username+"' AND POSIZIONE = 2";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		resultSet.next();
+		int risultato = resultSet.getInt(1);
+		resultSet.close();
+		st.close();
+		float risultatoPercentuale = (float)risultato/totalePartite;
+		return risultatoPercentuale;
+	}
+
+	/**
+	 * Ci da la percentuale di partite abbandonate da un giocatore.
+	 * @param connessione	Connessione al DB
+	 * @param username		L'utente di cui vogliamo le statistiche.
+	 * @return				Un valore compreso tra 0 e 1.
+	 * @throws SQLException	Connessione al DB non valida.
+	 */
+	public synchronized float percentualePartiteAbbandonate(Connection connessione, String username) throws SQLException{
+		int totalePartite = totalePartiteGiocate(connessione, username);
+		String miaQuery = "SELECT COUNT(*) FROM PARTECIPAZIONEPARTITA WHERE NOMEGIOCATORE = '"+username+"' AND POSIZIONE = -1";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		resultSet.next();
+		int risultato = resultSet.getInt(1);
+		resultSet.close();
+		st.close();
+		float risultatoPercentuale = (float)risultato/totalePartite;
+		return risultatoPercentuale;
+		
+	}
+
+	/**
+	 * Il numero di partite giocate da un giocatore.
+	 * @param connessione	Connessione al DB
+	 * @param username		L'utente di cui vogliamo le statistiche.
+	 * @return				Il numero di partite giocate.
+	 * @throws SQLException	Connessione al DB non valida.
+	 */
+	public synchronized int totalePartiteGiocate(Connection connessione, String username) throws SQLException{
+		String miaQuery = "SELECT COUNT(*) FROM PARTECIPAZIONEPARTITA WHERE NOMEGIOCATORE = '"+username+"'";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		resultSet.next();
+		int risultato = resultSet.getInt(1);
+		resultSet.close();
+		st.close();
+		return risultato;
+	}
+	
+	/**
+	 * Il numero di punti di un giocatore.
+	 * @param connessione	Connessione al DB.
+	 * @param username		L'utente di cui vogliamo le statistiche.
+	 * @return				Il punteggio.
+	 * @throws SQLException	Connessione al DB non valida.
+	 */
+	public synchronized int puntiVinti(Connection connessione, String username) throws SQLException{
+		String miaQuery = "SELECT SUM(PUNTIVINTI) FROM PARTECIPAZIONEPARTITA WHERE NOMEGIOCATORE = '"+username+"'";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		resultSet.next();
+		int risultato = resultSet.getInt(1);
+		resultSet.close();
+		st.close();
+		return risultato;
+	}
+	
+	/**
+	 * Ci ritorna la classifica dei giocatori.
+	 * @param connessione	Connessione al DB.
+	 * @return				La classifica totale
+	 * @throws SQLException	Connessione al DB non valida.
+	 */
+	public synchronized Classifica classificaGenerale(Connection connessione) throws SQLException{
+		//Contiamo il numero di giocatori
+		String miaQuery = "SELECT COUNT(*) FROM GIOCATORE";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		resultSet.next();
+		int numeroRighe = resultSet.getInt(1);
+		resultSet.close();
+		Classifica miaClassifica = new Classifica(numeroRighe);
+		//Ci da la classifica di punteggio in ordine decrescente
+		miaQuery = "SELECT * "+
+				"FROM CLASSIFICAPUNTEGGIO "+
+				"UNION "+
+				"SELECT * "+
+				"FROM FUORICLASSIFICA "+
+				"ORDER BY PUNTI DESC, NOME ASC";
+		ResultSet resultSet2 = st.executeQuery(miaQuery);
+		while(resultSet2.next()){		
+			String nome = resultSet2.getString("NOME");
+			Integer punti = resultSet2.getInt("PUNTI");
+			miaClassifica.aggiungiGiocatore(nome, punti);
+		}
+		resultSet2.close();
+		st.close();
+		return miaClassifica;
+		/*
+		 * CREATE VIEW ClassificaPunteggio (Nome, Punti) AS
+		 *SELECT NOMEGIOCATORE AS NG, Sum(PUNTIVINTI) AS A
+		 *FROM PARTECIPAZIONEPARTITA AS PP JOIN NUMEROPARTITE AS NP
+		 *	ON NOMEGIOCATORE = NP.B
+		 *GROUP BY NOMEGIOCATORE
+		 *ORDER BY A DESC
+		 *
+		 *CREATE VIEW FuoriClassifica (Nome, Punti) AS
+		 *SELECT NOMEGIOCATORE, 0 AS PUNTEGGIO
+		 *FROM GIOCATORE 
+		 *WHERE NOMEGIOCATORE NOT IN 
+		 *	(SELECT NOME 
+		 *	FROM CLASSIFICAPUNTEGGIO) 
+		 */
+	}
+	
+	/**
+	 * La posizione del giocatore nella classifica generale.
+	 * @param connessione	Connessione al DB.
+	 * @param username		L'utente di cui vogliamo le statistiche.
+	 * @return				La posizione.
+	 * @throws SQLException	Connessione al DB non valida.
+	 */
+	public synchronized Integer posizioneInClassifica(Connection connessione, String username) throws SQLException{
+		Classifica miaClassifica = classificaGenerale(connessione);
+		return miaClassifica.getPosizione(username);
+	}
+	
+	public synchronized String[] estraiContinenti (Connection connessione) throws SQLException{
+		Integer numeroRighe = numeroDiContinenti(connessione);
+		String miaQuery = "SELECT NOMECONTINENTE "+
+				"FROM CONTINENTE "+
+				"ORDER BY NOMECONTINENTE ASC";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet2 = st.executeQuery(miaQuery);
+		String[] continenti = new String[numeroRighe];
+		for(int i = 0; i < numeroRighe; i++){
+			resultSet2.next();
+			String nome = resultSet2.getString(1);
+			continenti[i] = nome;
+		}
+		resultSet2.close();
+		st.close();
+		return continenti;
+	}
+		
+	public synchronized Integer[] estraiBonus (Connection connessione) throws SQLException{
+		Integer numeroRighe = numeroDiContinenti(connessione); 
+		Integer maxContinenti = numeroDiContinenti(connessione);
+		Integer[] bonus = new Integer[maxContinenti];
+		//Ci da la classifica di punteggio in ordine decrescente
+		String miaQuery = "SELECT BONUS "+
+				"FROM CONTINENTE "+
+				"ORDER BY NOMECONTINENTE ASC";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet2 = st.executeQuery(miaQuery);
+		for(int i = 0; i < numeroRighe; i++){
+			resultSet2.next();
+			Integer valore = resultSet2.getInt(1);
+			bonus[i] = valore;
+		}
+		resultSet2.close();
+		st.close();
+		return bonus;
+	}
+	
+	private synchronized Integer numeroMassimoTerritori (Connection connessione) throws SQLException{
+		String miaQuery = "SELECT MAX(NUMERO) "+
+				"FROM NUMEROTERRITORI";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		resultSet.next();
+		int risultato = resultSet.getInt(1);
+		resultSet.close();
+		st.close();
+		return risultato;
+	}
+	
+	public synchronized String[][] estraiTerritori (Connection connessione) throws SQLException{
+		String[] continenti = estraiContinenti(connessione);
+		Integer maxTerritori = numeroMassimoTerritori(connessione);
+		String[][] territori = new String[continenti.length][maxTerritori];
+		String miaQuery = "SELECT NOMETERRITORIO FROM TERRITORIO  "+
+				"WHERE NOMECONTINENTE = ?";
+		PreparedStatement preparedStatement = connessione.prepareStatement(miaQuery);
+		for(int i = 0; i < continenti.length; i++){
+			preparedStatement.setString(1, continenti[i]);
+			ResultSet rs = preparedStatement.executeQuery();
+			int j = 0;
+			while(rs.next()){
+				territori[i][j] = rs.getString(1);
+			}
+		}
+		preparedStatement.close();
+		return territori;
+	}
+		
+	private synchronized Integer numeroMassimoConfini(Connection connessione) throws SQLException{
+		String miaQuery = "SELECT MAX(NUMERO) "+
+		"FROM NUMEROCONFINI";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		resultSet.next();
+		int risultato = resultSet.getInt(1);
+		resultSet.close();
+		st.close();
+		return risultato;
+		
+	}
+	
+	private synchronized Integer numeroTotaleTerritori(Connection connessione) throws SQLException{
+		String miaQuery = "SELECT SUM(NUMERO) "+
+		"FROM NUMEROTERRITORI";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		resultSet.next();
+		int risultato = resultSet.getInt(1);
+		resultSet.close();
+		st.close();
+		return risultato;
+	}
+	
+	public synchronized String[] estraiTuttiTerritori (Connection connessione) throws SQLException{
+		Integer numeroRighe = numeroTotaleTerritori(connessione);
+		String miaQuery = "SELECT NOMETERRITORIO1 "+
+				"FROM CONFINE "+
+				"GROUP BY NOMETERRITORIO1 "+
+				"ORDER BY NOMETERRITORIO1 ASC";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet2 = st.executeQuery(miaQuery);
+		String territori[] = new String[numeroRighe];
+		for(int i = 0; i < numeroRighe; i++){
+			resultSet2.next();
+			String nome = resultSet2.getString(1);
+			territori[i] = nome;
+		}
+		resultSet2.close();
+		st.close();
+		return territori;
+	}
+	
+	public synchronized String[][] estraiConfini (Connection connessione) throws SQLException{
+		String[] tuttiTerritori = estraiTuttiTerritori(connessione);
+		Integer maxConfini = numeroMassimoConfini(connessione);
+		String [][] confini = new String[tuttiTerritori.length][maxConfini];
+		for(int i = 0; i < tuttiTerritori.length; i++){
+			ArrayList<String> confiniStato;
+			confiniStato = elencoConfini(connessione, tuttiTerritori[i]);
+			Iterator<String> itConfini = confiniStato.iterator();
+			int j = 0;
+			while(itConfini.hasNext()){
+				confini[i][j] = itConfini.next();
+				j++;
+			}
+		}
+		return confini;
+	}
+}

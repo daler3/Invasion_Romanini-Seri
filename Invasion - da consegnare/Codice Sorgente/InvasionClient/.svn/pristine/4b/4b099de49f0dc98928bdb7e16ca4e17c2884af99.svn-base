@@ -1,0 +1,15 @@
+package interfacciaGUI;
+
+public interface ControllerTavolo extends ControllerAccountStatistiche {
+	
+	//lo da il client
+	public ControllerLimbo abbandonaTavolo();
+
+	
+	public boolean avviaTavolo(Integer idTavolo);
+	
+	
+	public void setVistaTavolo(ViewTavolo vistaTavolo);
+	
+	
+}

@@ -1,0 +1,38 @@
+package interfacceRemote;
+
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+import java.util.ArrayList;
+
+import classiCondivise.BeanGiocatore;
+import classiCondivise.BeanTavolo;
+
+/**
+ * Interfaccia remota per la comunicazione RMI lato Client
+ *
+ */
+public interface ClientComunicazioneInterfaccia extends Remote {
+	
+	/**
+	 * L'utente riceve il bean con le proprie info
+	 * @param mieInfo - Bean con le info da inviare al Client.
+	 * @throws RemoteException
+	 */
+	public void riceviMieInfo(BeanGiocatore mieInfo) throws RemoteException;
+	
+	/**
+	 * L'utente riceve la lista aggiornata dei giocatori con cui è attualmente seduto a un tavolo.
+	 * @param nomiGiocatoriSeduti - la lista dei nomi dei giocatori attualmente seduti al tavolo con l'utente
+	 * @throws RemoteException
+	 */
+	public void cambiamentiTavolo(ArrayList<String> nomiGiocatoriSeduti) throws RemoteException;
+	
+	/**
+	 * Metodo per ricevere le info riguardanti i tavoli aperti
+	 * @param infoTavoliAperti - lista di BeanTavoli contenenti le informazioni sui tavoli attualmente aperti (id e numero giocatori attualmente seduti)
+	 * @throws RemoteException
+	 */
+	public void riceviInfoTavoli(ArrayList<BeanTavolo> infoTavoliAperti) throws RemoteException;
+	
+	
+}

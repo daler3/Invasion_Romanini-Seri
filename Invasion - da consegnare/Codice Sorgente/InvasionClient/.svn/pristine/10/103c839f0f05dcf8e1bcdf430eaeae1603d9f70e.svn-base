@@ -1,0 +1,51 @@
+package client;
+
+import java.io.IOException;
+import java.net.Socket;
+import java.rmi.RemoteException;
+
+import socket.InterpreteClient;
+import comunicazione.Client2Server;
+import comunicazione.ClientComunicazione;
+
+/**
+ * 
+ * Classe per settare la classe di comunicazione 
+ *
+ */
+
+public class SetCommunicationStrategy {
+
+	final static int port = 4445;
+	final static String host = "127.0.0.1";
+	
+	
+	public SetCommunicationStrategy() {
+		super();
+	}
+
+	
+	public void setComunicazione(StrategiaComunicazione comunicazione){
+		Client2Server interfacciaComunicazione = null;		
+		Ambasciatore.getInstance().setInterfacciaComunicazione(interfacciaComunicazione);
+		
+		if(comunicazione == StrategiaComunicazione.SOCKET){
+			try {
+				interfacciaComunicazione = new ClientComunicazione();
+				Ambasciatore.getInstance().setInterfacciaComunicazione(interfacciaComunicazione);
+			} catch (RemoteException e) {
+				return;
+			}
+		}
+		else if(comunicazione == StrategiaComunicazione.RMI){
+			try {
+				Socket socket = new Socket(host , port);
+				new InterpreteClient(socket);
+			} catch (IOException e) {
+				System.err.println("Impossibile connettersi a "+host+":"+port);
+				return;
+			}
+		}
+	}
+	
+}

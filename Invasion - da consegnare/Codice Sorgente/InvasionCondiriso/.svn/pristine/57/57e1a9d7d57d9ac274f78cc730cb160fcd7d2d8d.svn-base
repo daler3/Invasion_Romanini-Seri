@@ -1,0 +1,33 @@
+package interfacceRemote;
+
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+
+import classiCondivise.BeanGiocatore;
+
+/**
+ * Interfaccia remota di comunicazione lato Server
+ *
+ */
+public interface ServerComunicazioneInterfaccia extends Remote{
+	
+	/**
+	 * Esegue il login.
+	 * @param username	username dell'utente
+	 * @param password	password dell'utente
+	 * @return il BeanGiocatore con le info dell'utente se il login è andato a buon fine; null altrimenti
+	 * @throws RemoteException
+	 */
+	public BeanGiocatore eseguiLogin(String username, String password) throws RemoteException;
+	
+	/**
+	 * Esegue la registrazione.
+	 * @param username	username dell'utente
+	 * @param password	password dell'utente
+	 * @return il BeanGiocatore con le info dell'utente se la registrazione è andato a buon fine; null altrimenti
+	 * @throws RemoteException
+	 */
+	public BeanGiocatore eseguiRegistrazione(String username, String password) throws RemoteException;
+	
+	
+}

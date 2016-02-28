@@ -1,0 +1,425 @@
+package server_daler;
+
+import java.sql.SQLException;
+import java.util.*;
+
+import org.omg.CosNaming.NamingContextPackage.NotFound;
+
+import classiCondivise.BeanGiocatore;
+import classiCondivise.Colori;
+import classiCondivise.StatiUtente;
+import interfacciaComunicazione.*;
+import mappa.*;
+
+public class GiocatoreConnesso {
+	
+	/**
+	 * Tutte le informazioni dell'utente.
+	 */
+	private BeanGiocatore mieInfo;
+	/**
+	 * Interfaccia per l'invio di messaggi al client.
+	 */
+	private Server2Client interfacciaComunicazione;
+	
+	/**
+	 * Informazioni relative all'eventuale partita a cui sta partecipando
+	 */
+	private Integer numeroArmateDaPosizionare; 
+	public ArrayList<Territorio> territoriPosseduti; 
+	private Colori coloreGiocatore; 
+	private Partita miaPartita;
+	private TavoloAperto mioTavolo;
+	private boolean tuoTurno=false;
+	private StatiUtente statoAttuale;
+	private Server mioServer; 
+
+	
+	public String getUsername(){
+		return this.mieInfo.getNomeUtente();
+	}
+	
+	public Partita getMiaPartita() {
+		return miaPartita;
+	}
+
+	public void setMiaPartita(Partita miaPartita) {
+		this.miaPartita = miaPartita;
+	}
+
+	
+	//gli passo il riferimento al thread timer, chiamo il metodo. e poi faccio
+	//if(!thread.isAlive){threadTimer.Interrupt()}//cosi si blocca
+	
+	
+	
+	
+	/**
+	 * Costruttore
+	 * @param interfacciaComunicazione
+	 * @param territoriPosseduti
+	 * @param username
+	 * @param statoAttuale
+	 */
+	public GiocatoreConnesso(Server2Client interfacciaComunicazione) {
+		super();
+		//L'interfaccia per inviare i messaggi al client.
+		this.interfacciaComunicazione = interfacciaComunicazione;
+		//Quando viene istanziato il giocatore inizialmente non è connesso.
+		this.statoAttuale = StatiUtente.NONCONNESSO;
+		//Recuperiamo l'istanza del Server (Singleton)
+		this.mioServer = Server.getInstance();
+	}
+	
+//	@Override
+//	public void run() {
+//		// TODO Auto-generated method stub
+//		
+//	}
+
+	/**
+	 * Effettua il login se possibile.
+	 * @param username	Nome con cui effettuare il login.
+	 * @param password	Password con cui effettuare il login.
+	 * @return			Esito del login
+	 */
+	public boolean loginUtente(String username, String password){
+		boolean loginEffettuato = false;
+		try{
+			loginEffettuato = this.mioServer.aggiungiGiocatoreConnesso(this, username, password);
+			if(loginEffettuato){
+				//Effettua tutte le operazioni per mettere il giocatore nel Limbo.
+				inizializzaGiocatore();
+			}
+		}catch(SQLException e){
+			System.err.println("Impossibile effettuare login");
+			e.printStackTrace();
+		}
+		return loginEffettuato;
+	}
+	
+	/**
+	 * Effettua la registrazione se possibile
+	 * @param username	Nome con cui effettuare la registrazione.
+	 * @param password	Password con cui effettuare la registrazione.
+	 * @return			Esito della registrazione.
+	 */
+	public boolean registrazioneUtente(String username, String password){
+		boolean registrazioneEffettuata = false;
+		try {
+			registrazioneEffettuata = this.mioServer.registraNuovoGiocatore(username, password);
+			if(registrazioneEffettuata){
+				//Dopo esserci registrati sul DB effettuiamo normalmente il Login
+				registrazioneEffettuata = loginUtente(username, password);
+			}	
+		} catch (SQLException e) {
+			System.err.println("Impossibile registrarsi");
+			e.printStackTrace();
+		}
+		return registrazioneEffettuata;
+	}
+	
+	/**
+	 * Ci informa del nostro stato attuale.
+	 * @return	Lo stato del giocatore.
+	 */
+	public StatiUtente getStatoAttuale() {
+		return statoAttuale;
+	}
+	
+	/**
+	 * Effettua tutte le operazioni necessarie per inizializzare il giocatore
+	 */
+	private void inizializzaGiocatore(){
+		statoLimbo();
+		this.miaPartita = null;
+		this.coloreGiocatore = null;
+		this.numeroArmateDaPosizionare = null;
+		this.tuoTurno = false;
+	}
+	
+	/**
+	 * Comando del client di abbandonare il tavolo.
+	 */
+	public void abbandonaTavolo(){
+		if(this.mioTavolo != null){
+			mioServer.rimuoviGiocatoreDaTavolo(this);
+		}
+		inizializzaGiocatore();
+	}
+	
+	/**
+	 * Comando del client di abbandonare la partita.
+	 */
+	public void abbandonaPartita(){
+		if(this.miaPartita != null){
+			miaPartita.disconnettiUtente(this);
+		}
+		inizializzaGiocatore();
+	}
+	
+	public void disconnetti(){
+		//Abbandoniamo un eventuale partita
+		abbandonaPartita();
+		//Abbandoniamo un eventuale tavolo
+		abbandonaTavolo();
+		//Ci mettiamo nello stato disconnesso
+		statoDisconnesso();
+		//Ci disconnettiamo dal server
+		mioServer.rimuoviDaConnessi(this);
+	}
+	
+	public void comunicaDisconnessione(){
+		inizializzaGiocatore();
+		
+	}
+	
+	/**
+	 * Ci mette con lo stato nel Limbo.
+	 */
+	private void statoLimbo(){
+		this.statoAttuale = StatiUtente.LIMBO;
+	}
+	/**
+	 * Ci mette con lo stato  InTavolo.
+	 */
+	private void statoTavolo(){
+		this.statoAttuale = StatiUtente.INTAVOLO;
+	}
+	/**
+	 * Ci mette con lo stato InPartita.
+	 */
+	private void statoPartita(){
+		this.statoAttuale = StatiUtente.INPARTITA;
+	}
+	
+	private void statoDisconnesso(){
+		this.statoAttuale = StatiUtente.NONCONNESSO;
+	}
+
+	//TODO A cosa serve? Non possiamo cambiare l'interfaccia di comunicazione a runtime.
+	public void setInterfacciaComunicazione(Server2Client interfacciaComunicazione) {
+		this.interfacciaComunicazione = interfacciaComunicazione;
+	}
+	
+	//TODO Quando mai chiederemo al nostro giocatore se è il suo turno? Al massimo è private.
+	public boolean isTuoTurno() {
+		return tuoTurno;
+	}
+
+
+	//TODO possibile duplicato con comunicaTurno - abbiamo realmente bisogno di una comunicazione speciale per segnalare il nostro turno?
+	public void setTuoTurno(boolean tuoTurno) {
+		if(this.tuoTurno==false && tuoTurno==true){
+			//TODO Notificare al client che è il proprio turno.
+		}
+		this.tuoTurno = tuoTurno;	
+	}
+	
+	
+	public void comunicaTurno(Colori colore, String username){
+		//TODO
+		//chiama metodo di interfaccia comunicazione che dice che è il turno di questo e di quello
+	}
+
+	
+	public void fineTurno(){
+		this.setTuoTurno(false);
+	}
+	
+	
+	public boolean attendiUnaMossa(Integer tempo){
+		boolean mossa=this.interfacciaComunicazione.attendiMossa(tempo);
+		//chiamo interfaccia comunicazione
+
+		return mossa;
+		
+	}
+
+
+	public Integer getNumeroArmateDaPosizionare() {
+		return numeroArmateDaPosizionare;
+	}
+
+	
+	public void setColoreGiocatore(Colori coloreGiocatore) {
+		this.coloreGiocatore = coloreGiocatore;
+	}
+	
+	//TODO Da implementare come scritto su carta
+	public void comunicaTerritoriPosizionaArmate(Integer timer){
+		this.interfacciaComunicazione.comunicaTerritoriPosizioneArmate(this.territoriPosseduti, this.numeroArmateDaPosizionare, timer);		
+	}
+	
+	//to mia partita...
+	public void setArmateSuTerritorio(Territorio territorioPos, Integer numeroArmate) throws Exception{
+		miaPartita.setArmateSuTerritorio(this, territorioPos, numeroArmate);	
+	}
+	
+	
+	
+	public void comunicaMappa (Mappa mappa){
+		//manda l'intera mappa al client
+	}
+	
+	
+
+	
+	
+	
+	
+	
+	public Colori scegliColore (ArrayList<Colori> coloriDisponibili, Integer timer){
+		
+		return this.interfacciaComunicazione.scegliColore(coloriDisponibili); 
+	}
+	
+	public void comunicaListaColori(ArrayList<Colori> ordneColori){
+		
+	}
+
+
+
+	public void setNumeroArmateDaPosizionare(Integer numeroArmateDaPosizionare) {
+		this.numeroArmateDaPosizionare = numeroArmateDaPosizionare;
+	}
+
+	//a inizio turno dopo posizionamento, annidato a altro
+	public void aggiungiArmateSuTerritorio(Territorio territorioPos, Integer numeroArmate) throws Exception{
+		miaPartita.setArmateSuTerritorio(this, territorioPos, numeroArmate);
+	}
+
+
+	public Colori getColoreGiocatore() {
+		return coloreGiocatore;
+	}
+	
+	
+	//COMUNICA LE ARMATE CHE DEVE POSIZIONARE
+	public void riceviArmateInizioTurno(Integer numeroArmate, Integer tempo){
+		//le manda al server, quando ha fatto il client chiama altri metodi per settare, 
+		//poi fatto diventa == true
+		this.interfacciaComunicazione.settaggioArmateInizioTurno(numeroArmate, tempo);
+		//se il timer scade e non è ancora tornato dovrebbe essere false, invece cosi mi affido alla scadenza del timer nel client
+	}
+	
+	
+
+	public ArrayList<Territorio> getTerritoriPosseduti() {
+		return territoriPosseduti;
+	}
+	
+	/**
+	 * METODI PER ATTACCO AVVENNUTO
+	 */
+	public void parteAttacco(Integer numeroUnitaAttaccanti, Territorio territorioAttaccato, Territorio territorioAttaccante){
+		try{ 
+			miaPartita.attacco(numeroUnitaAttaccanti, territorioAttaccato.getNome(), territorioAttaccante.getNome());
+		} catch(Exception e){
+			
+		}
+		//chiama attaccoAvvenuto 
+		//chiama attendiDifesa, che fa partire il timer e si aspetta un interrupt se il client preme prima il pulsante
+		
+		//fatto tutto ciò mi occupo del risultato, lo gestisco localmente e lo comunico a tutti
+	}
+	
+	//attaccoAvvenuto fa partire il TIMERDIFESA NEI CLIENT
+	public void attaccoAvvenuto(ArrayList<Integer> risultatoDadiAttacco, Territorio territorioAttaccato, Territorio territorioAttaccante, Integer timer){
+		
+	}
+	
+	
+	public void attendiDifesa(Territorio territorioAttaccato, Territorio territorioAttaccante, Thread timer){
+		//qui parte il timer, NON APPENA SCADE, O RICEVE UN INTERRUPT PERCHE' IL CLIENT SCHIACCIA, SI SBLOCCA O SCADE E CHIAMA DIFESA AVVENUTA
+		//chiama difesaAvvenuta
+	}
+	
+	public void difesaAvvenuta(ArrayList<Integer> risultatoDadiAttacco, Territorio territorioAttaccato, Territorio territorioAttaccante){
+		
+	}
+
+
+	public void risultatoSessioneAttacco(Integer [] risultati, Territorio territorioAttaccato, Territorio territorioAttaccante, boolean conquistato){
+		
+	}
+	
+	
+	//comunica ordine
+	public void comunicaOrdine (ArrayList<String> nomiGiocatoriInOrdine){
+		
+	}
+	
+	public void fineDellaPartita(String nomeVincitore){
+		
+	}
+	
+	
+	public void effettuaMossa(){
+		
+	}
+	
+	
+	public void comunicaAttacco(Territorio territorioAttaccante, Territorio territorioAttaccato, Integer numeroUnitaAttaccanti, Integer numeroUnitaDifesa, Integer [] risultati, boolean conquistato){
+		
+	}
+	
+	public void nuovoTurno(String vecchioGiocatore, String nuovoGiocatore){
+		
+	}
+
+	/**
+	 * Comunica la sconfitta al client.
+	 * Se siamo il giocatore sconfitto, veniamo riportati al limbo.
+	 * @param giocatoreSconfitto	Il giocatore sconfitto.
+	 */
+	public void comunicaSconfitta(String giocatoreSconfitto){
+		if(getUsername().equals(giocatoreSconfitto)){
+			//Se siamo il giocatore sconfitto torniamo nel limbo
+			inizializzaGiocatore();
+		}
+		//TODO Comunica sconfitta al client
+	}
+	
+	/**
+	 * Inviamo la lista di tutti i tavoli aperti al client. 
+	 * @param tavoliAperti	La lista dei tavoli aperti.
+	 */
+	public void comunicaTavoli(ArrayList<TavoloAperto> tavoliAperti){
+		if(this.statoAttuale == StatiUtente.LIMBO){
+			//Viene comunicato solo agli utenti che si trovano nel limbo.
+			//TODO Comunicare il cambiamento dei tavoli al client.
+		}
+		else if(this.statoAttuale == StatiUtente.INTAVOLO){
+			//TODO decidere cosa fa quando è intavolo della comunicazione
+		}
+	}
+	
+	public Integer creaTavolo(){
+		Integer idTavolo;
+		//Chiediamo al server di creare il tavolo
+		idTavolo = this.mioServer.creaTavolo(this);
+		//Ci mettiamo in tavolo
+		statoTavolo();
+		//Torniamo al client in numero del tavolo creato.
+		return idTavolo;
+	}
+	
+	
+	
+
+	public BeanGiocatore getMieInfo() {
+		return mieInfo;
+	}
+
+	public void setMieInfo(BeanGiocatore mieInfo) {
+		this.mieInfo = mieInfo;
+	}
+	
+
+
+	
+	
+	
+	
+}

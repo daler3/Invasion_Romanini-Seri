@@ -1,0 +1,298 @@
+package guiClient;
+
+import interfacciaGUI.ControllerLimbo;
+import interfacciaGUI.ControllerUtente;
+
+import java.awt.Color;
+import java.awt.Container;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+import javax.swing.ButtonGroup;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JPasswordField;
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+
+import java.awt.GridBagLayout;
+import java.awt.GridBagConstraints;
+import java.awt.Insets;
+import java.io.IOException;
+import java.net.Socket;
+import java.rmi.RemoteException;
+import java.util.ArrayList;
+
+import javax.swing.JToggleButton;
+
+import socket.InterpreteClient;
+import comunicazione.Client2Server;
+import comunicazione.ClientComunicazione;
+import classiCondivise.BeanTavolo;
+import client.Ambasciatore;
+import client.GiocatoreTavoli;
+
+
+public class PanelLogin extends JPanel {
+
+	final JPanel p = this;
+	final static int port = 4445;
+	final static String host = "127.0.0.1";
+	//Info
+	ControllerUtente controllerUtente;
+	
+	
+	//La griglia
+	private GridBagLayout gridBagLayout;
+	private GridBagConstraints gbc_lblTitolo;
+	private GridBagConstraints gbc_lblUser;
+	private GridBagConstraints gbc_usernameField;
+	private GridBagConstraints gbc_lblPassword;
+	private GridBagConstraints gbc_passwordField;
+	private GridBagConstraints gbc_lblProtocollo;
+	private GridBagConstraints gbc_rdbtnSocket;
+	private GridBagConstraints gbc_rdbtnRmi;
+	private GridBagConstraints gbc_btnRegistrazione;
+	private GridBagConstraints gbc_btnLogin;
+	//I componenti
+	private JLabel lblTitolo;
+	private JLabel lblUser;
+	private JLabel lblPassword;
+	private JLabel lblProtocollo;
+	private JTextField usernameField;
+	private JPasswordField passwordField;
+	private JToggleButton rdbtnSocket;
+	private JToggleButton rdbtnRmi;
+	private ButtonGroup mioGruppo;
+	private JButton btnRegistrazione;
+	private JButton btnLogin;
+	
+	public PanelLogin(ControllerUtente mioControllerUtente) {
+		this.controllerUtente = mioControllerUtente; 
+		gridBagLayout = new GridBagLayout();
+		//Il gruppo dei pulsanti radiobox
+		mioGruppo = new ButtonGroup();
+		//Impostiamo la dimensione delle colonne-righe e il loro ridimensionamento dinamico
+		gridBagLayout.columnWidths = new int[]{20, 60, 60, 60, 20};
+		gridBagLayout.rowHeights = new int[]{19, 15, 19, 15, 19, 15, 19, 15, 19, 15, 19};
+		gridBagLayout.columnWeights = new double[]{0.0, 0.33, 0.33, 0.33, 0.0};
+		gridBagLayout.rowWeights = new double[]{0.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.3, 1.5, 0.0};
+		//gridBagLayout.rowWeights = new double[]{1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, Double.MIN_VALUE};
+		setLayout(gridBagLayout);
+		//Iniziamo ad inserire i componenti
+		lblTitolo = new JLabel("Accedi per giocare ad Invasion!");
+		lblTitolo.setForeground(Color.RED);
+		lblTitolo.setFont(lblTitolo.getFont().deriveFont(lblTitolo.getFont().getStyle() | Font.BOLD, lblTitolo.getFont().getSize() + 4f));
+		lblTitolo.setHorizontalAlignment(SwingConstants.CENTER);
+		gbc_lblTitolo = new GridBagConstraints();
+		gbc_lblTitolo.anchor = GridBagConstraints.NORTH;
+		gbc_lblTitolo.fill = GridBagConstraints.HORIZONTAL;
+		gbc_lblTitolo.insets = new Insets(0, 0, 5, 5);
+		gbc_lblTitolo.gridwidth = 3;
+		gbc_lblTitolo.gridx = 1;
+		gbc_lblTitolo.gridy = 0;
+		add(lblTitolo, gbc_lblTitolo);
+		
+		lblUser = new JLabel("Username");
+		lblUser.setFont(new Font("Dialog", Font.BOLD, 12));
+		lblUser.setHorizontalAlignment(SwingConstants.CENTER);
+		gbc_lblUser = new GridBagConstraints();
+		gbc_lblUser.fill = GridBagConstraints.BOTH;
+		gbc_lblUser.insets = new Insets(0, 0, 5, 5);
+		gbc_lblUser.gridx = 2;
+		gbc_lblUser.gridy = 1;
+		add(lblUser, gbc_lblUser);
+		
+		usernameField = new JTextField();
+		usernameField.setToolTipText("Inserisci il tuo nome");
+		usernameField.setHorizontalAlignment(SwingConstants.CENTER);
+		usernameField.setColumns(10);
+		gbc_usernameField = new GridBagConstraints();
+		gbc_usernameField.fill = GridBagConstraints.BOTH;
+		gbc_usernameField.insets = new Insets(0, 0, 5, 5);
+		gbc_usernameField.gridx = 2;
+		gbc_usernameField.gridy = 2;
+		add(usernameField, gbc_usernameField);
+		usernameField.setColumns(10);
+		
+		lblPassword = new JLabel("Password");
+		lblPassword.setFont(new Font("Dialog", Font.BOLD, 12));
+		lblPassword.setHorizontalAlignment(SwingConstants.CENTER);
+		gbc_lblPassword = new GridBagConstraints();
+		gbc_lblPassword.fill = GridBagConstraints.BOTH;
+		gbc_lblPassword.insets = new Insets(0, 0, 5, 5);
+		gbc_lblPassword.gridx = 2;
+		gbc_lblPassword.gridy = 3;
+		add(lblPassword, gbc_lblPassword);
+		
+		passwordField = new JPasswordField();
+		passwordField.setToolTipText("Inserisci la tua password");
+		passwordField.setHorizontalAlignment(SwingConstants.CENTER);
+		gbc_passwordField = new GridBagConstraints();
+		gbc_passwordField.fill = GridBagConstraints.BOTH;
+		gbc_passwordField.insets = new Insets(0, 0, 5, 5);
+		gbc_passwordField.gridx = 2;
+		gbc_passwordField.gridy = 4;
+		add(passwordField, gbc_passwordField);
+		
+		lblProtocollo = new JLabel("Protocollo di connessione");
+		lblProtocollo.setFont(new Font("Dialog", Font.BOLD, 12));
+		lblProtocollo.setHorizontalAlignment(SwingConstants.CENTER);
+		gbc_lblProtocollo = new GridBagConstraints();
+		gbc_lblProtocollo.fill = GridBagConstraints.BOTH;
+		gbc_lblProtocollo.insets = new Insets(0, 0, 5, 5);
+		gbc_lblProtocollo.gridx = 2;
+		gbc_lblProtocollo.gridy = 6;
+		add(lblProtocollo, gbc_lblProtocollo);
+		rdbtnSocket = new JToggleButton("Socket");
+		rdbtnSocket.setBackground(Color.LIGHT_GRAY);
+		rdbtnSocket.setToolTipText("Comunicazione tramite Socket");
+		rdbtnSocket.setSelected(true);
+		rdbtnSocket.setHorizontalAlignment(SwingConstants.CENTER);
+		mioGruppo.add(rdbtnSocket);
+		gbc_rdbtnSocket = new GridBagConstraints();
+		gbc_rdbtnSocket.fill = GridBagConstraints.HORIZONTAL;
+		gbc_rdbtnSocket.insets = new Insets(0, 0, 5, 5);
+		gbc_rdbtnSocket.gridx = 1;
+		gbc_rdbtnSocket.gridy = 7;
+		add(rdbtnSocket, gbc_rdbtnSocket);
+		
+		btnRegistrazione = new JButton("Registrarmi");
+		btnRegistrazione.addActionListener(new PassaRegistrazioneListener());
+		rdbtnRmi = new JToggleButton("RMI");
+		rdbtnRmi.setBackground(Color.LIGHT_GRAY);
+		rdbtnRmi.setToolTipText("Comunicazione tramite RMI");
+		rdbtnRmi.setHorizontalAlignment(SwingConstants.CENTER);
+		mioGruppo.add(rdbtnRmi);
+		gbc_rdbtnRmi = new GridBagConstraints();
+		gbc_rdbtnRmi.fill = GridBagConstraints.HORIZONTAL;
+		gbc_rdbtnRmi.insets = new Insets(0, 0, 5, 5);
+		gbc_rdbtnRmi.gridx = 3;
+		gbc_rdbtnRmi.gridy = 7;
+		add(rdbtnRmi, gbc_rdbtnRmi);
+		gbc_btnRegistrazione = new GridBagConstraints();
+		gbc_btnRegistrazione.anchor = GridBagConstraints.NORTH;
+		gbc_btnRegistrazione.fill = GridBagConstraints.HORIZONTAL;
+		gbc_btnRegistrazione.insets = new Insets(0, 0, 0, 5);
+		gbc_btnRegistrazione.gridx = 1;
+		gbc_btnRegistrazione.gridy = 9;
+		add(btnRegistrazione, gbc_btnRegistrazione);
+		
+		btnLogin = new JButton("LOGIN!");
+		btnLogin.addActionListener(new EffettuaLogin());
+		gbc_btnLogin = new GridBagConstraints();
+		gbc_btnLogin.fill = GridBagConstraints.HORIZONTAL;
+		gbc_btnLogin.insets = new Insets(0, 0, 0, 5);
+		gbc_btnLogin.anchor = GridBagConstraints.NORTH;
+		gbc_btnLogin.gridx = 3;
+		gbc_btnLogin.gridy = 9;
+		add(btnLogin, gbc_btnLogin);
+		
+		
+	}
+	
+	public class EffettuaLogin implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent arg0) {
+			String nome = usernameField.getText();
+			String password = new String(passwordField.getPassword());
+			ControllerLimbo controllerLimbo = null;
+			if(nome.isEmpty()){
+				lblTitolo.setText(lblTitolo.getText()+" - Inserire un nome");
+				return;
+			}
+			if(password.isEmpty()){
+				lblTitolo.setText("Inserire una password");
+				return;
+			}
+			//Controlli sui campi superati - Istanzio la comunicazione
+			Client2Server comunicazione;
+			if(rdbtnRmi.isSelected()){
+				try {
+					comunicazione = new ClientComunicazione();
+					Ambasciatore.getInstance().setInterfacciaComunicazione(comunicazione);
+				} catch (RemoteException e) {
+					System.out.println("Impossibile connettersi all'rmi");
+					return;
+				}
+			}
+			else if(rdbtnSocket.isSelected()){
+				try {
+					Socket socket = new Socket(host , port);
+					new InterpreteClient(socket);
+				} catch (IOException e) {
+					System.out.println("Impossibile connettersi a "+host+":"+port);
+					return;
+				}
+			}
+			System.out.println("Mi preparo ad inviare il comando di login");
+			//Effettuiamo il login
+			controllerLimbo = controllerUtente.effettuaLogin(nome, password);
+			if(controllerLimbo != null){	//Login effettuato con successo
+				new CreaPopup("Login Effettuato con successo");
+				ArrayList<BeanTavolo> tavoli = controllerLimbo.aggiornaTavoli();
+				//Disegno il Limbo
+				Container c = p.getParent();
+				PanelLimbo mioPanel = null;
+				if (c != null) {
+					c.remove(p);
+					mioPanel = new PanelLimbo(controllerLimbo, tavoli);
+		            c.add(mioPanel);
+		            c.revalidate();
+				}
+			}
+			else{
+				new CreaPopup("Username o Password errati");
+			}
+		}
+	}
+	
+	public class PassaRegistrazioneListener implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent arg0) {
+			//System.out.println("Proviamo ad avviare");
+			Container c = p.getParent();
+			PanelRegistrazione mioPanel = null;
+			 if (c != null) {
+				 c.remove(p);
+	             mioPanel = new PanelRegistrazione(controllerUtente);
+	             mioPanel.setUser(usernameField.getText());
+	             mioPanel.setPassword(new String(passwordField.getPassword()));
+	             mioPanel.setToggle(getToggle());
+	             c.add(mioPanel);
+	             c.revalidate();
+	             // c.setSize(PanelRegistrazione., height);                 
+	        }
+		}	
+	}
+	
+	public void setUser(String username){
+		usernameField.setText(username);
+	}
+	
+	public void setPassword(String password){
+		passwordField.setText(password);
+	}
+	public void setToggle(Integer numero){
+		if(numero.equals(null))
+			return;
+		if(numero.equals(1)){
+			rdbtnSocket.setSelected(true);
+		}
+		if(numero.equals(2)){
+			rdbtnRmi.setSelected(true);
+		}
+	}
+	public Integer getToggle(){
+		if(rdbtnSocket.isSelected())
+			return 1;
+		if(rdbtnRmi.isSelected())
+			return 2;
+		return null;
+	}
+
+}

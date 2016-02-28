@@ -1,0 +1,334 @@
+package server_daler;
+
+import java.util.*;
+
+import org.omg.CosNaming.NamingContextPackage.NotFound;
+
+import classiCondivise.BeanGiocatore;
+import classiCondivise.Colori;
+import classiCondivise.StatiUtente;
+import interfacciaComunicazione.*;
+import mappa.*;
+
+public class GiocatoreConnesso {
+	
+	private Server2Client interfacciaComunicazione; 
+	private Integer numeroArmateDaPosizionare = null; 
+	public ArrayList<Territorio> territoriPosseduti = null; 
+	private Colori coloreGiocatore = null; 
+	private Partita miaPartita=null;
+	private String username=null; 
+	private boolean tuoTurno=false;
+	private StatiUtente statoAttuale;
+	private Server mioServer; 
+	private BeanGiocatore mieInfo;
+
+	
+	
+	
+	public Partita getMiaPartita() {
+		return miaPartita;
+	}
+
+	public void setMiaPartita(Partita miaPartita) {
+		this.miaPartita = miaPartita;
+	}
+
+	
+	//gli passo il riferimento al thread timer, chiamo il metodo. e poi faccio
+	//if(!thread.isAlive){threadTimer.Interrupt()}//cosi si blocca
+	
+	
+	
+	
+	/**
+	 * Costruttore
+	 * @param interfacciaComunicazione
+	 * @param territoriPosseduti
+	 * @param username
+	 * @param statoAttuale
+	 */
+	public GiocatoreConnesso(Server2Client interfacciaComunicazione, String username,
+			StatiUtente statoAttuale, BeanGiocatore mieInfo) {
+		super();
+		this.interfacciaComunicazione = interfacciaComunicazione;
+		this.username = username;
+		this.statoAttuale = statoAttuale;
+		this.mioServer = Server.getInstance();
+		this.setMieInfo(mieInfo); 
+	}
+	
+//	@Override
+//	public void run() {
+//		// TODO Auto-generated method stub
+//		
+//	}
+
+
+	public StatiUtente getStatoAttuale() {
+		return statoAttuale;
+	}
+
+
+
+
+	public void setStatoAttuale(StatiUtente statoAttuale) {
+		this.statoAttuale = statoAttuale;
+	}
+
+
+
+
+	public void setInterfacciaComunicazione(Server2Client interfacciaComunicazione) {
+		this.interfacciaComunicazione = interfacciaComunicazione;
+	}
+	
+	
+	public boolean isTuoTurno() {
+		return tuoTurno;
+	}
+
+
+	public void setTuoTurno(boolean tuoTurno) {
+		if(this.tuoTurno==false && tuoTurno==true){
+			//chiamo metodo dell'interfaccia di comunicazione per chiamare che è tuoTurno
+		}
+		this.tuoTurno = tuoTurno;	
+	}
+	
+	
+	public void comunicaTurno(Colori colore, String username){
+		//chiama metodo di interfaccia comunicazione che dice che è il turno di questo e di quello
+	}
+
+	
+	public void fineTurno(){
+		this.setTuoTurno(false);
+	}
+	
+	
+	public boolean attendiUnaMossa(Integer tempo){
+		boolean mossa=this.interfacciaComunicazione.attendiMossa(tempo);
+		//chiamo interfaccia comunicazione
+
+		return mossa;
+		
+	}
+
+
+	public Integer getNumeroArmateDaPosizionare() {
+		return numeroArmateDaPosizionare;
+	}
+
+	
+	public void setColoreGiocatore(Colori coloreGiocatore) {
+		this.coloreGiocatore = coloreGiocatore;
+	}
+
+
+
+
+	public String getUsername() {
+		return username;
+	}
+
+
+
+
+	public void setUsername(String username) {
+		this.username = username;
+	}
+
+	
+	//TODO Da implementare come scritto su carta
+	public void comunicaTerritoriPosizionaArmate(Integer timer){
+		this.interfacciaComunicazione.comunicaTerritoriPosizioneArmate(this.territoriPosseduti, this.numeroArmateDaPosizionare, timer);		
+	}
+	
+	//to mia partita...
+	public void setArmateSuTerritorio(Territorio territorioPos, Integer numeroArmate) throws Exception{
+		miaPartita.setArmateSuTerritorio(this, territorioPos, numeroArmate);	
+	}
+	
+	
+	
+	public void comunicaMappa (Mappa mappa){
+		//manda l'intera mappa al client
+	}
+	
+	
+
+	
+	
+	
+	
+	
+	public Colori scegliColore (ArrayList<Colori> coloriDisponibili, Integer timer){
+		
+		return this.interfacciaComunicazione.scegliColore(coloriDisponibili); 
+	}
+	
+	public void comunicaListaColori(ArrayList<Colori> ordneColori){
+		
+	}
+
+
+
+	public void setNumeroArmateDaPosizionare(Integer numeroArmateDaPosizionare) {
+		this.numeroArmateDaPosizionare = numeroArmateDaPosizionare;
+	}
+
+	//a inizio turno dopo posizionamento, annidato a altro
+	public void aggiungiArmateSuTerritorio(Territorio territorioPos, Integer numeroArmate) throws Exception{
+		miaPartita.setArmateSuTerritorio(this, territorioPos, numeroArmate);
+	}
+
+
+	public Colori getColoreGiocatore() {
+		return coloreGiocatore;
+	}
+	
+	
+	//COMUNICA LE ARMATE CHE DEVE POSIZIONARE
+	public void riceviArmateInizioTurno(Integer numeroArmate, Integer tempo){
+		//le manda al server, quando ha fatto il client chiama altri metodi per settare, 
+		//poi fatto diventa == true
+		this.interfacciaComunicazione.settaggioArmateInizioTurno(numeroArmate, tempo);
+		//se il timer scade e non è ancora tornato dovrebbe essere false, invece cosi mi affido alla scadenza del timer nel client
+	}
+	
+	
+
+	public ArrayList<Territorio> getTerritoriPosseduti() {
+		return territoriPosseduti;
+	}
+	
+	/**
+	 * METODI PER ATTACCO AVVENNUTO
+	 */
+	public void parteAttacco(Integer numeroUnitaAttaccanti, Territorio territorioAttaccato, Territorio territorioAttaccante){
+		try{ 
+			miaPartita.attacco(numeroUnitaAttaccanti, territorioAttaccato, territorioAttaccante);
+		} catch(Exception e){
+			
+		}
+		//chiama attaccoAvvenuto 
+		//chiama attendiDifesa, che fa partire il timer e si aspetta un interrupt se il client preme prima il pulsante
+		
+		//fatto tutto ciò mi occupo del risultato, lo gestisco localmente e lo comunico a tutti
+	}
+	
+	//attaccoAvvenuto fa partire il TIMERDIFESA NEI CLIENT
+	public void attaccoAvvenuto(ArrayList<Integer> risultatoDadiAttacco, Territorio territorioAttaccato, Territorio territorioAttaccante, Integer timer){
+		
+	}
+	
+	
+	public void attendiDifesa(Territorio territorioAttaccato, Territorio territorioAttaccante, Thread timer){
+		//qui parte il timer, NON APPENA SCADE, O RICEVE UN INTERRUPT PERCHE' IL CLIENT SCHIACCIA, SI SBLOCCA O SCADE E CHIAMA DIFESA AVVENUTA
+		//chiama difesaAvvenuta
+	}
+	
+	public void difesaAvvenuta(ArrayList<Integer> risultatoDadiAttacco, Territorio territorioAttaccato, Territorio territorioAttaccante){
+		
+	}
+
+
+	public void risultatoSessioneAttacco(Integer [] risultati, Territorio territorioAttaccato, Territorio territorioAttaccante, boolean conquistato){
+		
+	}
+	
+	
+	//comunica ordine
+	public void comunicaOrdine (ArrayList<String> nomiGiocatoriInOrdine){
+		
+	}
+	
+	//TODO Il giocatore viene rimosso dalla partita e torna nel limbo
+	public void finePartitaPerTe(){
+		
+	}
+	
+	public void fineDellaPartita(String nomeVincitore){
+		
+	}
+	
+	
+	public void effettuaMossa(){
+		
+	}
+	
+	
+	public void comunicaAttacco(Territorio territorioAttaccante, Territorio territorioAttaccato, Integer numeroUnitaAttaccanti, Integer numeroUnitaDifesa, Integer [] risultati, boolean conquistato){
+		
+	}
+	
+	public void nuovoTurno(String vecchioGiocatore, String nuovoGiocatore){
+		
+	}
+
+	public void comunicaSconfitta(String giocatoreSconfitto){
+		
+	}
+	
+	
+	public void giocatoreRimossoDaTavolo(String username){
+		
+	}
+	
+	
+	//chiamato da giocatore
+	public boolean rimuovimiDaTavolo(){
+		try {
+			mioServer.rimuoviGiocatoreDaTavolo(this);
+			return true; 
+		} catch (NotFound e) {
+			return false;
+		}
+	}
+	
+	public void tavoloRimosso(Integer idTavoloRimosso){
+		
+	}
+	
+	public void riceviListaTavoli(ArrayList<TavoloAperto> tavoliAperti){
+		
+	}
+	
+	
+	//per mancata connessione
+	public boolean rimuoviPerErroreConnessione(){
+		try {
+			mioServer.rimuoviGiocatore(this);
+			mioServer.rimuoviDaConnessi(this);
+			return true; 
+		} catch (NotFound e) {
+			e.printStackTrace();
+			return false;
+		}
+	}
+	
+	
+	public boolean accedi(){
+		
+	}
+	
+	public boolean registrazione(){
+		//non so manco se va qua
+	}
+
+	public BeanGiocatore getMieInfo() {
+		return mieInfo;
+	}
+
+	public void setMieInfo(BeanGiocatore mieInfo) {
+		this.mieInfo = mieInfo;
+	}
+	
+
+
+	
+	
+	
+	
+}

@@ -1,0 +1,13 @@
+package interfacciaGUI;
+
+import java.util.ArrayList;
+
+import classiCondivise.BeanGiocatore;
+
+public interface ViewTavolo {
+
+	public void aggiornaUtenti(ArrayList<String> utenti);
+	
+	public void avviaPartita(ControllerPartita nuovaPartita);
+	
+}

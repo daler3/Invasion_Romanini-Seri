@@ -1,0 +1,467 @@
+package oldGui;
+
+import java.awt.Rectangle;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
+import java.util.ArrayList;
+import java.util.Hashtable;
+
+import guiClient.immagini.IconLoader;
+
+import javax.swing.ImageIcon;
+import javax.swing.JPanel;
+import javax.swing.JLabel;
+import javax.swing.JButton;
+
+import java.awt.Color;
+
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.JSlider;
+import java.awt.Font;
+import javax.swing.UIManager;
+
+public class MerdaPannelloMappa2 extends JPanel {
+	private final static String testo1 = "Seleziona Territorio1";
+	private final static String testo2 = "Seleziona Territorio2";
+	private final static String testoSpostare = "Numero Armate Da Spostare";
+	
+	
+	public MerdaPannelloMappa2() {
+		setBackground(new Color(255, 255, 255));
+		setLayout(null);
+		
+		JPanel pnlBottoni = new JPanel();
+		pnlBottoni.setBounds(0, 0, 991, 798);
+		pnlBottoni.setOpaque(false);
+		add(pnlBottoni);
+		pnlBottoni.setLayout(null);
+		
+		JButton btnAlaska = new JButton();
+		btnAlaska.setForeground(new Color(0, 51, 0));
+		btnAlaska.setFont(new Font("Dialog", Font.BOLD, 14));
+		btnAlaska.setOpaque(false);
+		btnAlaska.setContentAreaFilled(false);
+		btnAlaska.setBorderPainted(false);
+		btnAlaska.setActionCommand("Alaska");
+		btnAlaska.setBounds(12, 45, 73, 99);
+		pnlBottoni.add(btnAlaska);
+		
+		JButton button_7 = new JButton();
+		button_7.setOpaque(false);
+		button_7.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_7.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_7.setContentAreaFilled(false);
+		button_7.setBorderPainted(false);
+		button_7.setActionCommand("Alaska");
+		button_7.setBounds(82, 55, 158, 50);
+		pnlBottoni.add(button_7);
+		
+		JButton button = new JButton();
+		button.setOpaque(false);
+		button.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button.setFont(new Font("Dialog", Font.BOLD, 14));
+		button.setContentAreaFilled(false);
+		button.setBorderPainted(false);
+		button.setActionCommand("Alaska");
+		button.setBounds(70, 104, 108, 64);
+		pnlBottoni.add(button);
+		
+		JButton button_1 = new JButton();
+		button_1.setOpaque(false);
+		button_1.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_1.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_1.setContentAreaFilled(false);
+		button_1.setBorderPainted(false);
+		button_1.setActionCommand("Alaska");
+		button_1.setBounds(173, 104, 62, 90);
+		pnlBottoni.add(button_1);
+		
+		JButton button_2 = new JButton();
+		button_2.setOpaque(false);
+		button_2.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_2.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_2.setContentAreaFilled(false);
+		button_2.setBorderPainted(false);
+		button_2.setActionCommand("Alaska");
+		button_2.setBounds(226, 104, 73, 90);
+		pnlBottoni.add(button_2);
+		
+		JButton button_3 = new JButton();
+		button_3.setOpaque(false);
+		button_3.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_3.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_3.setContentAreaFilled(false);
+		button_3.setBorderPainted(false);
+		button_3.setActionCommand("Alaska");
+		button_3.setBounds(252, 12, 120, 112);
+		pnlBottoni.add(button_3);
+		
+		JButton button_4 = new JButton();
+		button_4.setOpaque(false);
+		button_4.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_4.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_4.setContentAreaFilled(false);
+		button_4.setBorderPainted(false);
+		button_4.setActionCommand("Alaska");
+		button_4.setBounds(82, 168, 96, 78);
+		pnlBottoni.add(button_4);
+		
+		JButton button_5 = new JButton();
+		button_5.setOpaque(false);
+		button_5.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_5.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_5.setContentAreaFilled(false);
+		button_5.setBorderPainted(false);
+		button_5.setActionCommand("Alaska");
+		button_5.setBounds(183, 180, 96, 90);
+		pnlBottoni.add(button_5);
+		
+		JButton button_6 = new JButton();
+		button_6.setOpaque(false);
+		button_6.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_6.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_6.setContentAreaFilled(false);
+		button_6.setBorderPainted(false);
+		button_6.setActionCommand("Alaska");
+		button_6.setBounds(105, 258, 96, 78);
+		pnlBottoni.add(button_6);
+		
+		JButton button_8 = new JButton();
+		button_8.setOpaque(false);
+		button_8.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_8.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_8.setContentAreaFilled(false);
+		button_8.setBorderPainted(false);
+		button_8.setActionCommand("Alaska");
+		button_8.setBounds(173, 310, 106, 50);
+		pnlBottoni.add(button_8);
+		
+		JButton button_9 = new JButton();
+		button_9.setOpaque(false);
+		button_9.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_9.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_9.setContentAreaFilled(false);
+		button_9.setBorderPainted(false);
+		button_9.setActionCommand("Alaska");
+		button_9.setBounds(173, 364, 80, 78);
+		pnlBottoni.add(button_9);
+		
+		JButton button_10 = new JButton();
+		button_10.setOpaque(false);
+		button_10.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_10.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_10.setContentAreaFilled(false);
+		button_10.setBorderPainted(false);
+		button_10.setActionCommand("Alaska");
+		button_10.setBounds(252, 349, 96, 132);
+		pnlBottoni.add(button_10);
+		
+		JButton button_11 = new JButton();
+		button_11.setOpaque(false);
+		button_11.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_11.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_11.setContentAreaFilled(false);
+		button_11.setBorderPainted(false);
+		button_11.setActionCommand("Alaska");
+		button_11.setBounds(206, 454, 73, 151);
+		pnlBottoni.add(button_11);
+		
+		JButton button_12 = new JButton();
+		button_12.setOpaque(false);
+		button_12.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_12.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_12.setContentAreaFilled(false);
+		button_12.setBorderPainted(false);
+		button_12.setActionCommand("Alaska");
+		button_12.setBounds(453, 493, 108, 112);
+		pnlBottoni.add(button_12);
+		
+		JButton button_13 = new JButton();
+		button_13.setOpaque(false);
+		button_13.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_13.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_13.setContentAreaFilled(false);
+		button_13.setBorderPainted(false);
+		button_13.setActionCommand("Alaska");
+		button_13.setBounds(560, 493, 62, 83);
+		pnlBottoni.add(button_13);
+		
+		JButton button_15 = new JButton();
+		button_15.setOpaque(false);
+		button_15.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_15.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_15.setContentAreaFilled(false);
+		button_15.setBorderPainted(false);
+		button_15.setActionCommand("Alaska");
+		button_15.setBounds(453, 429, 80, 71);
+		pnlBottoni.add(button_15);
+		
+		JButton button_16 = new JButton();
+		button_16.setOpaque(false);
+		button_16.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_16.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_16.setContentAreaFilled(false);
+		button_16.setBorderPainted(false);
+		button_16.setActionCommand("Alaska");
+		button_16.setBounds(532, 393, 62, 107);
+		pnlBottoni.add(button_16);
+		
+		JButton button_17 = new JButton();
+		button_17.setOpaque(false);
+		button_17.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_17.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_17.setContentAreaFilled(false);
+		button_17.setBorderPainted(false);
+		button_17.setActionCommand("Alaska");
+		button_17.setBounds(375, 310, 86, 120);
+		pnlBottoni.add(button_17);
+		
+		JButton button_18 = new JButton();
+		button_18.setOpaque(false);
+		button_18.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_18.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_18.setContentAreaFilled(false);
+		button_18.setBorderPainted(false);
+		button_18.setActionCommand("Alaska");
+		button_18.setBounds(453, 321, 86, 50);
+		pnlBottoni.add(button_18);
+		
+		JButton button_19 = new JButton();
+		button_19.setOpaque(false);
+		button_19.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_19.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_19.setContentAreaFilled(false);
+		button_19.setBorderPainted(false);
+		button_19.setActionCommand("Alaska");
+		button_19.setBounds(350, 226, 86, 99);
+		pnlBottoni.add(button_19);
+		
+		JButton button_20 = new JButton();
+		button_20.setOpaque(false);
+		button_20.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_20.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_20.setContentAreaFilled(false);
+		button_20.setBorderPainted(false);
+		button_20.setActionCommand("Alaska");
+		button_20.setBounds(411, 243, 86, 64);
+		pnlBottoni.add(button_20);
+		
+		JButton button_21 = new JButton();
+		button_21.setOpaque(false);
+		button_21.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_21.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_21.setContentAreaFilled(false);
+		button_21.setBorderPainted(false);
+		button_21.setActionCommand("Alaska");
+		button_21.setBounds(411, 167, 86, 64);
+		pnlBottoni.add(button_21);
+		
+		JButton button_22 = new JButton();
+		button_22.setOpaque(false);
+		button_22.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_22.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_22.setContentAreaFilled(false);
+		button_22.setBorderPainted(false);
+		button_22.setActionCommand("Alaska");
+		button_22.setBounds(323, 136, 86, 95);
+		pnlBottoni.add(button_22);
+		
+		JButton button_23 = new JButton();
+		button_23.setOpaque(false);
+		button_23.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_23.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_23.setContentAreaFilled(false);
+		button_23.setBorderPainted(false);
+		button_23.setActionCommand("Alaska");
+		button_23.setBounds(361, 94, 62, 50);
+		pnlBottoni.add(button_23);
+		
+		JButton button_24 = new JButton();
+		button_24.setOpaque(false);
+		button_24.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_24.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_24.setContentAreaFilled(false);
+		button_24.setBorderPainted(false);
+		button_24.setActionCommand("Alaska");
+		button_24.setBounds(421, 45, 86, 123);
+		pnlBottoni.add(button_24);
+		
+		JButton button_25 = new JButton();
+		button_25.setOpaque(false);
+		button_25.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_25.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_25.setContentAreaFilled(false);
+		button_25.setBorderPainted(false);
+		button_25.setActionCommand("Alaska");
+		button_25.setBounds(509, 55, 86, 210);
+		pnlBottoni.add(button_25);
+		
+		JButton button_26 = new JButton();
+		button_26.setOpaque(false);
+		button_26.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_26.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_26.setContentAreaFilled(false);
+		button_26.setBorderPainted(false);
+		button_26.setActionCommand("Alaska");
+		button_26.setBounds(519, 258, 119, 132);
+		pnlBottoni.add(button_26);
+		
+		JButton button_27 = new JButton();
+		button_27.setOpaque(false);
+		button_27.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_27.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_27.setContentAreaFilled(false);
+		button_27.setBorderPainted(false);
+		button_27.setActionCommand("Alaska");
+		button_27.setBounds(628, 272, 96, 132);
+		pnlBottoni.add(button_27);
+		
+		JButton button_28 = new JButton();
+		button_28.setOpaque(false);
+		button_28.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_28.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_28.setContentAreaFilled(false);
+		button_28.setBorderPainted(false);
+		button_28.setActionCommand("Alaska");
+		button_28.setBounds(721, 310, 73, 99);
+		pnlBottoni.add(button_28);
+		
+		JButton button_29 = new JButton();
+		button_29.setOpaque(false);
+		button_29.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_29.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_29.setContentAreaFilled(false);
+		button_29.setBorderPainted(false);
+		button_29.setActionCommand("Alaska");
+		button_29.setBounds(667, 226, 127, 78);
+		pnlBottoni.add(button_29);
+		
+		JButton button_30 = new JButton();
+		button_30.setOpaque(false);
+		button_30.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_30.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_30.setContentAreaFilled(false);
+		button_30.setBorderPainted(false);
+		button_30.setActionCommand("Alaska");
+		button_30.setBounds(571, 187, 96, 83);
+		pnlBottoni.add(button_30);
+		
+		JButton button_31 = new JButton();
+		button_31.setOpaque(false);
+		button_31.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_31.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_31.setContentAreaFilled(false);
+		button_31.setBorderPainted(false);
+		button_31.setActionCommand("Alaska");
+		button_31.setBounds(594, 69, 73, 125);
+		pnlBottoni.add(button_31);
+		
+		JButton button_32 = new JButton();
+		button_32.setOpaque(false);
+		button_32.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_32.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_32.setContentAreaFilled(false);
+		button_32.setBorderPainted(false);
+		button_32.setActionCommand("Alaska");
+		button_32.setBounds(651, 12, 73, 151);
+		pnlBottoni.add(button_32);
+		
+		JButton button_33 = new JButton();
+		button_33.setOpaque(false);
+		button_33.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_33.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_33.setContentAreaFilled(false);
+		button_33.setBorderPainted(false);
+		button_33.setActionCommand("Alaska");
+		button_33.setBounds(721, 12, 73, 99);
+		pnlBottoni.add(button_33);
+		
+		JButton button_34 = new JButton();
+		button_34.setOpaque(false);
+		button_34.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_34.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_34.setContentAreaFilled(false);
+		button_34.setBorderPainted(false);
+		button_34.setActionCommand("Alaska");
+		button_34.setBounds(702, 94, 73, 90);
+		pnlBottoni.add(button_34);
+		
+		JButton button_35 = new JButton();
+		button_35.setOpaque(false);
+		button_35.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_35.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_35.setContentAreaFilled(false);
+		button_35.setBorderPainted(false);
+		button_35.setActionCommand("Alaska");
+		button_35.setBounds(712, 168, 108, 71);
+		pnlBottoni.add(button_35);
+		
+		JButton button_36 = new JButton();
+		button_36.setOpaque(false);
+		button_36.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_36.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_36.setContentAreaFilled(false);
+		button_36.setBorderPainted(false);
+		button_36.setActionCommand("Alaska");
+		button_36.setBounds(770, 45, 120, 123);
+		pnlBottoni.add(button_36);
+		
+		JButton button_37 = new JButton();
+		button_37.setOpaque(false);
+		button_37.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_37.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_37.setContentAreaFilled(false);
+		button_37.setBorderPainted(false);
+		button_37.setActionCommand("Alaska");
+		button_37.setBounds(816, 156, 73, 99);
+		pnlBottoni.add(button_37);
+		
+		JButton button_38 = new JButton();
+		button_38.setOpaque(false);
+		button_38.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_38.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_38.setContentAreaFilled(false);
+		button_38.setBorderPainted(false);
+		button_38.setActionCommand("Alaska");
+		button_38.setBounds(806, 363, 73, 99);
+		pnlBottoni.add(button_38);
+		
+		JButton button_39 = new JButton();
+		button_39.setOpaque(false);
+		button_39.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_39.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_39.setContentAreaFilled(false);
+		button_39.setBorderPainted(false);
+		button_39.setActionCommand("Alaska");
+		button_39.setBounds(702, 401, 108, 99);
+		pnlBottoni.add(button_39);
+		
+		JButton button_40 = new JButton();
+		button_40.setOpaque(false);
+		button_40.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_40.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_40.setContentAreaFilled(false);
+		button_40.setBorderPainted(false);
+		button_40.setActionCommand("Alaska");
+		button_40.setBounds(758, 488, 86, 99);
+		pnlBottoni.add(button_40);
+		
+		JButton button_41 = new JButton();
+		button_41.setOpaque(false);
+		button_41.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_41.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_41.setContentAreaFilled(false);
+		button_41.setBorderPainted(false);
+		button_41.setActionCommand("Alaska");
+		button_41.setBounds(841, 454, 73, 133);
+		pnlBottoni.add(button_41);
+		
+		JLabel lblLabelmappa = new JLabel(IconLoader.imageIcon("RiskMap3.png"));
+		lblLabelmappa.setBackground(new Color(255, 255, 255));
+		lblLabelmappa.setBounds(0, 0, 926, 628);
+		add(lblLabelmappa);
+	}
+}

@@ -1,0 +1,97 @@
+package server_daler;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+
+import classiCondivise.BeanTavolo;
+import classiCondivise.CreareMessaggio;
+
+public class testListe {
+
+	public static void main(String[] args) {
+		
+
+		
+		//Integer y =(int) Math.floor(16/3);
+		
+		double z = 14.0;
+		
+		double k = 3.0;
+		
+		Integer x = (int) Math.ceil(z/k);
+	
+		System.out.println("Il numero ceil è "+x.toString() );
+		
+//		ArrayList<Integer> tuaLista = new ArrayList<Integer>(3);
+//		
+//		for(Integer i = 0; i <5; i ++){
+//			tuaLista.add(0, i);
+//		}
+//		System.out.println("Prima lista:  "+tuaLista.toString());
+		
+//		Collections.shuffle(tuaLista);
+//		
+//		System.out.println("Seconda lista:  "+tuaLista.toString());
+		
+//		GenericSupport<Integer> mg = new GenericSupport<Integer>();
+//		Integer i = null;
+//		Integer prox;
+//		try {
+//			prox = mg.prossimo(i, tuaLista);
+//		} catch (Exception e1) {
+//			// TODO Auto-generated catch block
+//			e1.printStackTrace();
+//			prox=null;
+//		}
+//		for(i = 0; i <9; i ++){
+//			try {
+//				System.out.println("Attuale: "+prox.toString());
+//				prox = mg.prossimo(prox, tuaLista);
+//				System.out.println("Prossimo: "+prox.toString());
+//			} catch (Exception e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+//		}
+//		
+		
+		
+		
+//		Iterator<Integer> mioIt = tuaLista.iterator();
+//		while(mioIt.hasNext()){
+//			System.out.println(mioIt.next().toString());
+//		}
+//		
+//		
+//		//ArrayList<Integer> tuaLista = new ArrayList<Integer>(3);
+//		
+//		
+//		
+//		Collections.shuffle(tuaLista);
+//		//Collections.shuffle(tuaLista);
+//		System.out.println("Seconda lista:  ");
+//		Iterator<Integer> tuoIt = tuaLista.iterator();
+//		while(tuoIt.hasNext()){
+//			System.out.println(tuoIt.next().toString());
+//		}
+		
+		
+//		Integer idTavolo = null;
+//		Integer numP = 10;
+//		
+//		BeanTavolo mioBean = new BeanTavolo(idTavolo, numP);
+//		
+//		
+//		
+//		String m = mioBean.toString();
+//		
+//		System.out.println("Ciao "+m);
+//		
+//		BeanTavolo mioBean2 = CreareMessaggio.estraiBeanTavolo(m);
+//		
+//		System.out.println("Ciao2 "+mioBean2.toString());
+		
+	}
+
+}

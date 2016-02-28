@@ -1,0 +1,44 @@
+package interfacciaGUI;
+import classiCondivise.BeanGiocatore;
+import classiCondivise.Colori;
+
+import java.util.*;
+
+import exceptionCondivise.GiocatoreNonTrovatoException;
+import exceptionCondivise.TerritorioNonTrovatoException;
+import exceptionCondivise.UnitaInsufficientiException;
+import mappa.Mappa;
+
+public interface ControllerPartita extends ControllerAccountStatistiche {
+
+	public void sceltaColoreEffettuata(Colori colore);
+	
+	public void setVistaPartita(ViewPartita viewPartita);
+	
+	public Colori getMioColore();
+	
+	public BeanGiocatore getInfoGiocatore(String nome);
+	
+	
+	public void sceltaArmateInizialeEffettuata(String comandoPosizionamento);
+	
+	public void passaTurno();
+	
+	
+	public void comandoSpostaArmate(Integer numeroArmateDaSpostare, String origine, String destinazione) throws TerritorioNonTrovatoException;
+	
+	//io attacco
+	public void comandoAttacco(Integer numeroUnitaAttaccanti, String tAttaccato, String tAttaccante) throws UnitaInsufficientiException, GiocatoreNonTrovatoException, TerritorioNonTrovatoException;
+	
+	public ArrayList<Integer> getDadiDifesa();
+	public Integer getUnitaDifesaSconfitte();
+	public Integer getUnitaAttaccoPerse();
+	public boolean isTerritorioAttaccatoConquistato();
+	public Mappa fineDifesa();
+		
+	public Mappa getMappa();
+	
+	public ControllerLimbo abbandonaPartita();
+	
+
+}

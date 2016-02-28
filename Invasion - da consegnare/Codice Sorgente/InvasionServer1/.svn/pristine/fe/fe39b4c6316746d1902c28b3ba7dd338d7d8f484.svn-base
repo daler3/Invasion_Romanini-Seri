@@ -1,0 +1,609 @@
+package server_daler;
+
+import java.sql.SQLException;
+import java.util.*;
+
+import classiCondivise.BeanGiocatore;
+import classiCondivise.BeanTavolo;
+import classiCondivise.Classifica;
+import classiCondivise.Colori;
+import classiCondivise.StatiUtente;
+import eccezioni.GiocatoreNonTrovatoException;
+import interfacciaComunicazione.*;
+import mappa.*;
+
+
+/**
+ *Classe che rappresenta un giocatore, ovvero un utente, che è connesso al gioco.
+ *
+ */
+
+public class GiocatoreConnesso {
+	
+	/**
+	 * Tutte le informazioni dell'utente.
+	 */
+	private BeanGiocatore mieInfo;
+	/**
+	 * Interfaccia per lo scambio di messaggi col client
+	 */
+	private Server2Client interfacciaComunicazione;
+	
+	/**
+	 * Indica lo stato attuale dell'utente
+	 */
+	private StatiUtente statoAttuale;
+	
+	/**
+	 * Riferimento alla classe Server
+	 */
+	private Server mioServer; 
+	
+	/**
+	 * Riferimento al tavolo (non ancora chiuso, quindi la partita corrispondente non è ancora iniziata) in cui il giocatore è seduto.
+	 */
+	private TavoloAperto mioTavolo;
+	
+	
+	/**
+	 * Riferimento alla partita a cui l'utente sta partecipando
+	 */
+	private Partita miaPartita; //partita
+	
+	/**
+	 * Colore del giocatore durante la partita
+	 */
+	private Colori coloreGiocatore; //partita
+	
+	/**
+	 * Informazioni relative all'eventuale partita a cui sta partecipando
+	 */
+	private Integer numeroArmateDaPosizionare; //partita
+	
+	/**
+	 * Elenco dei territori posseduti dal giocatore durante la partita 
+	 */
+	private ArrayList<Territorio> territoriPosseduti = new ArrayList<Territorio>(); //partita
+	
+	/**
+	 * Indicase è il turno dell'utente o meno durante la partita a cui sta partecipando
+	 */
+	private boolean tuoTurno = false; //partita
+	
+	
+
+	/**
+	 * Costruttore. Chiamato non appena un client si connette e fa richiesta di registrazione o di login.
+	 * @param interfacciaComunicazione - riferimento alla comunicazione, con visibilità di interfaccia, per comunicare con il client
+	 */
+	public GiocatoreConnesso(Server2Client interfacciaComunicazione) {
+		super();
+		//L'interfaccia per inviare i messaggi al client.
+		this.interfacciaComunicazione = interfacciaComunicazione;
+		//Quando viene istanziato il giocatore inizialmente non è connesso.
+		this.statoAttuale = StatiUtente.NONCONNESSO;
+		//Recuperiamo l'istanza del Server (Singleton)
+		this.mioServer = Server.getInstance();
+	}
+
+	public GiocatoreConnesso(){
+		//Quando viene istanziato il giocatore inizialmente non è connesso.
+		this.statoAttuale = StatiUtente.NONCONNESSO;
+		//Recuperiamo l'istanza del Server (Singleton)
+		this.mioServer = Server.getInstance();
+	}
+	
+	public void assegnaInterfacciaComunicazione(Server2Client interfaccia){
+		this.interfacciaComunicazione = interfaccia;
+	}
+	
+	
+	/**
+	 * Effettua il login se possibile.
+	 * @param username	Nome con cui effettuare il login.
+	 * @param password	Password con cui effettuare il login.
+	 * @return			- Il Bean con le Info del giocatore se il login è andato a buon fine; - null altrimenti	
+	 */
+	public BeanGiocatore loginUtente(String username, String password){
+		boolean loginEffettuato = false;
+		try{
+			loginEffettuato = this.mioServer.aggiungiGiocatoreConnesso(this, username, password);
+			if(loginEffettuato){
+				//Effettua tutte le operazioni per mettere il giocatore nel Limbo.
+				inizializzaGiocatore();
+			} 
+			else return null; //se il login non è andato a buon fine ritorno null
+		}catch(SQLException e){
+			System.err.println("Impossibile effettuare login");
+			e.printStackTrace(); //TODO posso anche throware SQL Exception e farla interpretare
+		}
+		return this.mieInfo;
+		//return null;
+		//return loginEffettuato;
+	}
+	
+	/**
+	 * Effettua la registrazione se possibile. 
+	 * Se la registrazione è andata a buon fine, al termine dell'operazione l'utente sarà loggato.
+	 * @param username	Nome con cui effettuare la registrazione.
+	 * @param password	Password con cui effettuare la registrazione.
+	 * @return			Esito della registrazione.
+	 */
+	public BeanGiocatore registrazioneUtente(String username, String password){
+		boolean registrazioneEffettuata = false;
+		BeanGiocatore mioBean = null; 
+		try {
+			registrazioneEffettuata = this.mioServer.registraNuovoGiocatore(username, password);
+			if(registrazioneEffettuata){
+				//Dopo esserci registrati sul DB effettuiamo normalmente il Login
+				mioBean = loginUtente(username, password);
+			}	
+		} catch (SQLException e) {
+			System.err.println("Impossibile registrarsi");
+			e.printStackTrace();
+		}
+		return mioBean;
+	}
+	
+	/**
+	 * Metodo per cambiare la password.
+	 * @param vecchiaPassword - la vecchia password
+	 * @param nuovaPassword - la nuova password
+	 * @return true - se il cambio di password è andato a buon fine; false - altrimenti
+	 */
+	public boolean cambiaPassword(String vecchiaPassword, String nuovaPassword){
+		try {
+			return mioServer.cambiaPassword(this, vecchiaPassword, nuovaPassword);
+		} catch (SQLException e) {
+			return false;
+		}
+	}
+	
+	
+	/**
+	 * Metodo per ottenere le informazioni riguardanti un utente specifico (richiesto dal client).
+	 * @param nomeUtente - il nome dell'utente di cui se vogliono le info
+	 * @return le info riguardanti l'utente richiesto
+	 */
+	public BeanGiocatore ottieniInfoUtente (String nomeUtente){
+		try {
+			return mioServer.ottieniInfoUtente(nomeUtente);
+		} catch (GiocatoreNonTrovatoException e) {
+			//il giocatore non è stato trovato, non è stato quindi possibile ottenere le sue info
+			e.printStackTrace();
+			return null; 
+		}
+	}
+	
+
+	
+	/**
+	 * Metodo per ottenere la classifica generale del gioco su richiesta del client
+	 * @return la classifica generale
+	 */
+	public Classifica ottieniClassifica(){
+		try {
+			return mioServer.ottieniClassifica();
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return null; 
+		}
+	}
+	
+	
+	/**
+	 * Effettua tutte le operazioni necessarie per inizializzare il giocatore: riporta il giocatore come se fosse nel limbo
+	 *TODO: rivedi se poi mettiamo decorator
+	 * 
+	 */
+	private void inizializzaGiocatore(){
+		statoLimbo();
+		this.miaPartita = null;
+		this.coloreGiocatore = null;
+		this.numeroArmateDaPosizionare = null;
+		this.tuoTurno = false; 
+	}
+	
+	
+	/**
+	 * Ci mette con lo stato nel Limbo.
+	 */
+	private void statoLimbo(){
+		this.statoAttuale = StatiUtente.LIMBO;
+	}
+	/**
+	 * Ci mette con lo stato  InTavolo.
+	 */
+	private void statoTavolo(){
+		this.statoAttuale = StatiUtente.INTAVOLO;
+	}
+	/**
+	 * Ci mette con lo stato InPartita.
+	 */
+	private void statoPartita(){
+		this.statoAttuale = StatiUtente.INPARTITA;
+	}
+	
+	/**
+	 * Ci mette con lo stato NonConnesso.
+	 */
+	private void statoDisconnesso(){
+		this.statoAttuale = StatiUtente.NONCONNESSO;
+	}
+
+
+	/**
+	 * Getter per lo stato attuale del giocatore
+	 * @return	Lo stato del giocatore.
+	 */
+	public StatiUtente getStatoAttuale() {
+		return statoAttuale;
+	}
+	
+	/**
+	 * Getter per le info del giocatore
+	 * @return - il Bean contenente le info del giocatore
+	 */
+	public BeanGiocatore getMieInfo() {
+		return mieInfo;
+	}
+
+	
+	/**
+	 * Setter per il Bean rappresentante le info del giocatore
+	 * @param mieInfo - il bean rappresentante le info del giocatore
+	 */
+	public void setMieInfo(BeanGiocatore mieInfo) {
+		this.mieInfo = mieInfo;
+	}
+	
+	/**
+	 * Aggiorna le infoUtente, e le invia al client corrispondente.
+	 * @param mieInfo - il bean rappresentante le info del giocatore
+	 */
+	public void aggiornaInfoUtente(BeanGiocatore mieInfo){
+		setMieInfo(mieInfo);
+		this.interfacciaComunicazione.inviaMieInfo(mieInfo);
+	}
+	
+	
+	/**
+	 * Getter per lo username del giocatore
+	 * @return - lo username del giocatore
+	 */
+	public String getUsername(){
+		return this.mieInfo.getNomeUtente();
+	}
+	
+	
+	/**
+	 * Metodo per disconnettere un giocatore dal gioco (sia per logout che per disconnessione imprevista). 
+	 */
+	public boolean disconnetti(){
+		//Ci disconnettiamo dal server
+		boolean esitoDisconnessione = mioServer.rimuoviDaConnessi(this);
+		if(esitoDisconnessione){
+			//Abbandoniamo un eventuale partita
+			abbandonaPartita();
+			//Abbandoniamo un eventuale tavolo
+			abbandonaTavolo();
+			//Ci mettiamo nello stato disconnesso
+			statoDisconnesso();		
+		}
+		return esitoDisconnessione;
+	}
+	
+	
+	/**
+	 * Comando del client di abbandonare la partita (sia volutamente che per disconnessione improvvisa).
+	 * Riporta inoltre l'utente nello stato iniziale
+	 */
+	public void abbandonaPartita(){
+		if(this.miaPartita != null){
+			try {
+				miaPartita.disconnettiUtente(this);
+			} catch (SQLException e) {
+				//Impossibile disconnettere l'utente
+				e.printStackTrace();
+			}
+		}
+		inizializzaGiocatore();
+	}
+	
+	
+	/**
+	 * Comando del client di abbandonare il tavolo (sia volutamente che per disconnessione improvvisa).
+	 * Riporta inoltre l'utente nello stato iniziale
+	 */
+	public void abbandonaTavolo(){
+		if(this.mioTavolo != null){
+			mioTavolo.rimuoviGiocatore(this);
+		}
+		inizializzaGiocatore(); //il giocatore mi chiederà lui le info del limbo dopo il suo abbandono
+		//this.mioServer.inviaListaTavoli(this);
+	}
+	
+		
+	/**
+	 * Metodo per comunicare al client la lista dei nomi degli altri utenti connessi al tavolo.
+	 * Non comunica nulla se il giocatore non è seduto a nessun tavolo.
+	 * @param nomiGiocatori - la lista dei nomi dei giocatori attualmente seduti al tavolo
+	 */
+	public void cambiamentiTavolo(ArrayList<String> nomiGiocatori){
+		//controllo se lo stato è in tavolo
+		if(statoAttuale == StatiUtente.INTAVOLO){
+			this.interfacciaComunicazione.comunicaCambiamentiTavolo(nomiGiocatori);
+		}
+	}
+	
+	
+	/**
+	 * Metodo del client per richiedere la lista dei Tavoli Aperti.
+	 * @return - la lista con le info dei tavoli aperti (id e numero giocatori)
+	 */
+	public ArrayList<BeanTavolo> richiediListaTavoliAperti(){
+		ArrayList <BeanTavolo> infoTavoli = mioServer.ottieniInfoTavoli();
+		return infoTavoli; 
+//		ArrayList <BeanTavolo> infoTavoli = impacchettaTavoli();
+//		return infoTavoli; 
+	}
+	
+
+	
+	/**
+	 * Inviamo la lista con le info di tutti i tavoli aperti al client. 
+	 * Lo fa solo se è nel Limbo.
+	 * @param tavoliAperti	La lista dei tavoli aperti.
+	 */
+	public void comunicaBeanTavoli(ArrayList<BeanTavolo> tavoliAperti){
+		if(this.statoAttuale == StatiUtente.LIMBO){ //Viene comunicato solo agli utenti che si trovano nel limbo.
+			this.interfacciaComunicazione.comunicaInfoTavoli(tavoliAperti);
+		}
+	}
+	
+	/**
+	 * Comando del client di creare un nuovo tavolo (a cui il creatore si aggiungerà)
+	 * @return - l'id del tavolo appena creato
+	 */
+	public Integer creaTavolo(){
+		//Chiediamo al server di creare il tavolo
+		TavoloAperto nuovoTavolo = this.mioServer.creaTavolo(this);
+		this.mioTavolo = nuovoTavolo;
+		//Ci mettiamo in tavolo
+		statoTavolo();
+		//Torniamo al client in numero del tavolo creato.
+		return nuovoTavolo.getIdTavolo();
+	}
+	
+	
+
+	/**
+	 * 	
+	 * Metodo per aggiungersi a un tavolo. 
+	 * Se l'aggiunta va a buon fine cambia lo stato attuale in "InTavolo."
+	 * @param idtavolo					L'Id del tavolo a cui il giocatore si vuole aggiungere
+	 * @return la lista dei giocatori connessi al tavolo se l'aggiunta è andata a buon fine; null altrimenti
+	 */
+	public ArrayList <String> joinTavolo(Integer idTavolo){
+		 this.mioTavolo = mioServer.joinTavolo(this, idTavolo);
+		 ArrayList <String> nomiPartecipanti = this.mioTavolo.creaListStringhePerClient();
+		if(nomiPartecipanti != null)
+			statoTavolo();
+		return nomiPartecipanti; 
+	}
+	
+	
+	/**
+	 * Comando del client di avviare il tavolo a cui ha preso parte
+	 * @param idTavolo - l'id del tavolo che il client ha richiesto di avviare 
+	 * @return true - se il tavolo verrà avviato; false - altrimenti
+	 */
+	public boolean avviaTavolo(Integer idTavolo){
+		if(statoAttuale != StatiUtente.INTAVOLO && idTavolo != mioTavolo.getIdTavolo()){
+			return false; //non ero in un tavolo (o non ero nel tavolo richiesto) non posso richiedere di avviare il tavolo
+		}
+		try {
+			return this.mioTavolo.avviaTavolo(getUsername());
+		} catch (GiocatoreNonTrovatoException e) {
+			//Il giocatore che ha richiesto non risulta più connesso nel server
+			//TODO: magari lo faccio disconnettere
+			e.printStackTrace();
+			return false; 
+		}
+	}
+	
+	
+	/**
+	 * Comunicazione del Server al Client di inizio di una nuova Partita
+	 */
+	public void comunicazioneInizioPartita(){
+		this.interfacciaComunicazione.comunicazioneInizioPartita(); 
+	}
+	
+	
+	
+	
+	
+	/**
+	 * DA QUI IN POI FACCIO I METODI RIGUARDANTI PARTITA
+	 * 
+	 * 
+	 */
+
+	
+	
+	/**
+	 * Setta lo stato dell'oggetto a partita, e setta il riferimento alla partita che il giocatore sta giocando
+	 * @param miaPartita
+	 */
+	public void setStatoPartita(Partita miaPartita){
+		this.mioTavolo = null; 
+		setMiaPartita(miaPartita); 
+		//cambio lo stato con InPartita
+		statoPartita();
+		//comunico al client che  la partita inizia
+		//this.interfacciaComunicazione.iniziaPartita(miaPartita.getIdPartita(), infoGiocatoriPartita);
+	}
+	
+	public void setMiaPartita(Partita miaPartita) {
+		this.miaPartita = miaPartita;
+	}
+	
+	
+	public void comunicaOrdinePartita(ArrayList<BeanGiocatore> listaInfoGiocatori, ArrayList<Colori> ordineColori){
+		this.interfacciaComunicazione.ordinePartita(listaInfoGiocatori, ordineColori);
+	}
+
+	
+	public void scegliColore (Integer timer, ArrayList<Colori> coloriDisponibili){
+		this.interfacciaComunicazione.scegliColore(timer, coloriDisponibili); 
+	}
+	
+	/**
+	 * Chiamata da Client
+	 */
+	public void sceltaColoreEffettuata(Colori colore){
+		this.miaPartita.coloreScelto(colore);
+	}
+	
+	public Integer getNumeroArmateDaPosizionare() {
+		return numeroArmateDaPosizionare;
+	}
+	
+	public void setNumeroArmateDaPosizionare(Integer numeroArmateDaPosizionare){
+		this.numeroArmateDaPosizionare = numeroArmateDaPosizionare;
+	}
+	
+	public ArrayList<Territorio> getTerritoriPosseduti(){
+		return this.territoriPosseduti;
+	}
+	
+	public Territorio getUnTerritorio (int index){
+		return this.territoriPosseduti.get(index);
+	}
+	
+	
+	public void aggiungiTerritoriPosseduti(Territorio territorioDaAggiungere){
+		this.territoriPosseduti.add(territorioDaAggiungere);
+	}
+
+	
+	public void setColoreGiocatore(Colori coloreGiocatore) {
+		this.coloreGiocatore = coloreGiocatore;
+	}
+	
+	public Colori getColoreGiocatore() {
+		return this.coloreGiocatore;
+	}
+	
+	
+	
+	public void comunicaTerritoriPosizionaArmate(Mappa mappaPartita, Integer timer){
+		this.interfacciaComunicazione.comunicaTerritoriPosizionaArmate(this.numeroArmateDaPosizionare, timer, mappaPartita);		
+	}
+	
+	
+	public void comunicaMappa (Mappa mappa){
+		this.interfacciaComunicazione.comunicaMappa(mappa);
+	}
+	
+	/**
+	 * Chiamata da client..sia per inizio che per inizio turno.
+	 * @return
+	 */
+	public void sceltaArmateInizialeEffettuata(String comandoPosizionamento){
+		this.miaPartita.aggiungiPosizionamento(comandoPosizionamento);
+	}
+	
+	public boolean isTuoTurno() {
+		return tuoTurno;
+	}
+	
+	
+	public void setTuoTurno(boolean tuoTurno) {
+		this.tuoTurno = tuoTurno;	
+	}
+	
+	/**
+	 * Comunica l'inizio del nuovo turno.
+	 * @param colore
+	 * @param username
+	 */
+	public void comunicaTurno(Colori colore, String username){
+		this.interfacciaComunicazione.comunicaTurno(colore, username);
+	}
+	
+	
+	public void fineTurno(){
+		this.setTuoTurno(false);
+	}
+	
+	public void passaTurno(){
+		if(this.miaPartita != null && isTuoTurno()){ //controllo
+			this.miaPartita.passaTurno();
+		}
+	}
+	
+	//COMUNICA LE ARMATE CHE DEVE POSIZIONARE
+	public void comunicaArmateInizioTurno(Integer numeroArmate, Integer tempo){
+		//le manda al server, quando ha fatto il client chiama altri metodi per settare, 
+		//poi fatto diventa == true
+		this.interfacciaComunicazione.comunicaArmateInizioTurno(numeroArmate, tempo);
+		//se il timer scade e non è ancora tornato dovrebbe essere false, invece cosi mi affido alla scadenza del timer nel client
+	}
+	
+	public void comunicaAttendiMossa(Integer tempo){
+		this.interfacciaComunicazione.comunicaAttendiMossa(tempo);
+	}
+	
+	
+	public void comunicaAttacco(Integer tempoDifesa, Territorio territorioAttaccante, Territorio territorioAttaccato, Integer numeroUnitaAttaccanti, Integer numeroUnitaDifesa, Integer [] risultati, boolean conquistato){
+		this.interfacciaComunicazione.comunicaAttacco(tempoDifesa, territorioAttaccante, territorioAttaccato, numeroUnitaAttaccanti, numeroUnitaDifesa, risultati, conquistato);
+	}
+	
+	
+	/**
+	 * Comunica la sconfitta al client.
+	 * Se siamo il giocatore sconfitto, veniamo riportati al limbo.
+	 * @param giocatoreSconfitto	Il giocatore sconfitto.
+	 */
+	public void comunicaSconfitta(String giocatoreSconfitto){
+		if(getUsername().equals(giocatoreSconfitto)){
+			//Se siamo il giocatore sconfitto torniamo nel limbo
+			inizializzaGiocatore();
+		}
+		//comunico al client la sconfitta di un giocatore
+		this.interfacciaComunicazione.comunicaSconfitta(giocatoreSconfitto);
+	}
+	
+	
+	public void comandoSpostaArmate(Integer numeroArmateDaSpostare, String origine, String destinazione){
+		this.miaPartita.spostaArmate(numeroArmateDaSpostare, origine, destinazione);
+	}
+	
+	
+	public void comandoAttacco(Integer numeroUnitaAttaccanti, String tAttaccato, String tAttaccante){
+		try {
+			this.miaPartita.attacco(numeroUnitaAttaccanti, tAttaccato, tAttaccante);
+		} catch (Exception e) {
+			// TODO DA RIVEDERE LE ECCEZIONI
+			e.printStackTrace();
+		}
+	}
+	
+	
+	
+	public void fineDellaPartita(String nomeVincitore){
+		
+	}
+	
+
+	
+	
+	
+	
+	
+	
+		
+		
+}

@@ -1,0 +1,72 @@
+package provaRmi;
+
+import java.rmi.*;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject; 
+import java.util.ArrayList;
+//sarà da cambiare
+import server_daler.ThreadPlayer;
+
+
+
+
+public class AcceptClass extends UnicastRemoteObject implements AcceptInterface{
+	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private ArrayList<ClassForPlayer> clients = null;
+	private ArrayList<String> clientNames = null;
+	private Object lock = null;
+	private Thread serverThread; 
+	
+	
+	//costruttore di default 
+	public AcceptClass() throws RemoteException {
+		clients = new ArrayList<ClassForPlayer>(); 
+		clientNames = new ArrayList<String>(); 
+		lock = new Object();
+	}
+	
+	/**
+	 * Questo è chiamato da MyPlayerClass. Ritorna infatti un'interfaccia con i metodi che il giocatore 
+	 * può utilizzare per giocare la partita (e gli altri per la comunicazione col server)
+	 */
+	@Override
+	public InterfaceForPlayer login(MyInterface client2, String name, String password) throws RemoteException{
+		//Istanzio una classe per il giocatore. Questa classe implementa InterfaceForPlayer
+		//nel costruttore di classForPlayer creerò il ThreadPlayer. Solo ClassForPlayer avrà il riferimento al Thread.
+		ClassForPlayer classePerClient = new ClassForPlayer(client2, name, password, this);
+		synchronized (lock) {
+		      clients.add(classePerClient);
+		      clientNames.add(name);
+		}
+		//System.out.println("Nuovo client connesso");
+		//Faccio partire il ThreadPlayer
+		classePerClient.startThreadPlayer();
+		return classePerClient; 	
+	}
+	
+	
+
+	/**
+	@Override
+	public InterfaceForPlayer login(MyInterface client2, String name, String password) throws RemoteException{
+		ClassForPlayer classePerClient = new ClassForPlayer();
+		serverThread = new Thread(classePerClient);
+		classePerClient.setThread(serverThread);
+		synchronized (lock) {
+		      clients.add(classePerClient);
+		      clientNames.add(name);
+		}
+		System.out.println("Nuovo client connesso");
+		serverThread.start(); 
+		return classePerClient;
+	}
+	*/
+	
+	
+
+}

@@ -1,0 +1,133 @@
+package oldClient;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+
+import client.Limbo;
+import client.Partita;
+import client.Tavolo;
+
+public class SalaPartita {
+	private ArrayList<Tavolo> tavoli = null;
+	
+	public SalaPartita(){
+		tavoli = new ArrayList<Tavolo>();
+	}
+	
+	/**
+	 * Crea e aggiunge un tavolo alla Sala
+	 * @param giocatore
+	 * @param id
+	 */
+	public Tavolo aggiungiTavolo(String giocatore, Integer id){
+		Tavolo mioTavolo = new Tavolo(giocatore, id);
+		tavoli.add(mioTavolo);
+		return mioTavolo;
+		//TODO: Nell'interfaccia grafica mostrare il nuovo tavolo aggiunto
+	}
+	
+	public Tavolo joinTavolo(String giocatore, Integer id) throws Exception{
+		//TODO Aggiungere eccezioni personalizzate
+		return joinTavolo(giocatore, cercaTavolo(id));
+	}
+	
+	public Tavolo joinTavolo(String giocatore, Tavolo tavolo) throws Exception{
+		//TODO Aggiungere eccezioni personalizzate
+		tavolo.joinTavolo(giocatore);
+		return tavolo;
+	}
+	
+	/**
+	 * Usciamo dal tavolo e lo cancelliamo in caso di tavolo vuoto
+	 * @param giocatore
+	 * @param id
+	 */
+	public void esciDalTavolo(Limbo giocatore, Integer id){
+		esciDalTavolo(giocatore, cercaTavolo(id));
+	}
+
+	/**
+	 * Usciamo dal tavolo e lo cancelliamo in caso di tavolo vuoto
+	 * @param giocatore
+	 * @param tavolo
+	 */
+	public void esciDalTavolo(Limbo giocatore, Tavolo tavolo){
+		tavolo.abbandonaTavolo(giocatore);
+		if(tavolo.numeroGiocatori()<=0){
+			tavoli.remove(tavolo);
+		}
+	}
+	
+	/**
+	 * Usciamo dal tavolo e lo cancelliamo in caso di tavolo vuoto
+	 * @param giocatore Il giocatore che vuole abbandonare la partita
+	 * @param partita La partita da cui vogliamo uscire
+	 */
+	public void esciDallaPartita(Limbo giocatore, Partita partita){
+		partita.abbandonaPartita(giocatore);
+	}
+	
+	/**
+	 * Ci torna il riferimento al tavolo cercato
+	 * @param idTavolo
+	 * @return il tavolo ricercato se presente altrimenti NULL se non trovato
+	 */
+	public Tavolo cercaTavolo(Integer idTavolo){
+		Iterator<Tavolo> iteratoreTavolo = tavoli.iterator();
+		while(iteratoreTavolo.hasNext()){
+			Tavolo mioTavolo = iteratoreTavolo.next();
+			if(mioTavolo.getIdTavolo().equals(idTavolo))
+				return mioTavolo;
+		}
+		return null;
+	}
+	
+	/**
+	 * Rimuove il tavolo cercato (Viene passato l'id del tavolo)
+	 * @param idTavolo
+	 */
+	public void rimuoviTavolo(Integer idTavolo) {
+		//TODO Aggiungere eccezioni personalizzate
+		Tavolo tavoloDaRimuovere = cercaTavolo(idTavolo);
+		try{
+			rimuoviTavolo(tavoloDaRimuovere);
+		}
+		catch(Exception e){
+			//TODO: Debuggare errore
+		};
+	}
+	
+	/**
+	 * Rimuove il tavolo cercato (Viene direttamente passato il tavolo) 
+	 * @param tavoloDaRimuovere
+	 * @throws Exception 
+	 */
+	public void rimuoviTavolo(Tavolo tavoloDaRimuovere) throws Exception {
+		if(tavoloDaRimuovere==null){
+			//TODO: Mettere un throw exception tavolo non esistente
+			throw new Exception();
+		}
+		tavoli.remove(tavoloDaRimuovere);
+	}
+	
+	/**
+	 * Avvia la partita sul tavolo prescelto e lo rimuove dai tavoli aperti
+	 * @param tavoloPronto Il tavolo in cui si era seduti
+	 * @param idPartita Id della nuova partita
+	 * @return La partita dopo che viene creata
+	 */
+	public Partita StartPartita(Tavolo tavoloPronto, Integer idPartita){
+		//TODO farsi passare i bean dei giocatori prima di avviare la parita
+		//Partita miaPartita = new Partita(tavoloPronto.getElencoGiocatori(),idPartita);
+		//Una volta avviata la partita cancella il tavolo
+		//TODO Utilizzare eccezioni personalizzate
+		try {
+			rimuoviTavolo(tavoloPronto);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+//		return miaPartita;
+		return null;
+	}
+	
+}

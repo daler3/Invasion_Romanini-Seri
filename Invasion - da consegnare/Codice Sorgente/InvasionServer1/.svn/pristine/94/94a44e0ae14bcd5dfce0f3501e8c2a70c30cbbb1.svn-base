@@ -1,0 +1,22 @@
+package server_daler;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+
+public class testListe {
+
+	public static void main(String[] args) {
+		ArrayList<Integer> miaLista = new ArrayList<Integer>(3);
+		
+		for(Integer i = 0; i <5; i ++){
+			miaLista.add(0, i);
+		}
+		
+		Iterator<Integer> mioIt = miaLista.iterator();
+		while(mioIt.hasNext()){
+			System.out.println(mioIt.next().toString());
+		}
+
+	}
+
+}

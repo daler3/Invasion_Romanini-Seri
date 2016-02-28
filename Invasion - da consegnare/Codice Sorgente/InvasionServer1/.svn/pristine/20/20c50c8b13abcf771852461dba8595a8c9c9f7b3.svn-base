@@ -1,0 +1,986 @@
+package dbManager;
+
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+
+import classiCondivise.Classifica;
+//TODO Levare tutti gli static
+public class TestDbManager {
+
+	
+	/*
+	 * - Classifica generale ()
+	 */
+	
+	
+	
+	
+	
+	private static final String DRIVER = "org.apache.derby.jdbc.EmbeddedDriver";
+	private static final String DBNAME = "database";
+	private static final String URL = "jdbc:derby:"+DBNAME, 
+			USER = "admin",
+			PSW = "admin";
+
+	/**
+	 * Crea un connessione al DB.
+	 * @return	La connessione al DB.
+	 * @throws InstantiationException
+	 * @throws IllegalAccessException
+	 * @throws ClassNotFoundException
+	 * @throws SQLException
+	 */
+	public static synchronized Connection connessioneDb() throws InstantiationException, IllegalAccessException, ClassNotFoundException, SQLException{
+		Class.forName(DRIVER).newInstance();
+		return DriverManager.getConnection(URL, USER, PSW);
+	}
+	
+	/**
+	 * Chiude la connessione al db.
+	 * @param connessione	La connessione da chiudere.
+	 */
+	public static synchronized void disconnessioneDb(Connection connessione){
+		try {
+			connessione.close();
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Tenta il login con le credenziali scelte.
+	 * @param connessione	La connessione al DB.
+	 * @param nomeUtente	Lo username del giocatore.
+	 * @param password		La password del giocatore.
+	 * @return	true: Login effettuato; false: Credenziali errate;
+	 * @throws SQLException	Connessione non valida.
+	 */
+	public static synchronized boolean effettuaLogin(Connection connessione, String nomeUtente, String password) throws SQLException{
+		Statement st = connessione.createStatement();
+		String miaQuery = "SELECT COUNT(*) "+
+							"FROM GIOCATORE "+
+							"WHERE NOMEGIOCATORE='"+nomeUtente+"' AND PASSWORD='"+password+"'";
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		resultSet.next();
+		Integer numeroGiocatori = resultSet.getInt(1);
+		resultSet.close();
+		st.close();
+		if(numeroGiocatori >= 1){
+			aggiornaAccesso(connessione, nomeUtente);
+			return true;
+		}
+		else{
+			return false;
+		}
+	}
+	
+	/**
+	 * Aggiorna l'informazione dell'ultimo accesso alla partita del giocatore.
+	 * @param connessione	Connessione al DB.
+	 * @param nomeUtente	Username del giocatore che ha effettuato l'accesso.
+	 * @throws SQLException	Connessione non valida.
+	 */
+	private static synchronized void aggiornaAccesso(Connection connessione, String nomeUtente) throws SQLException{
+		Timestamp data = new Timestamp(System.currentTimeMillis());
+		String miaQuery = "UPDATE GIOCATORE "+
+							"SET DATAULTIMOACCESSO=? "+
+							"WHERE NOMEGIOCATORE=?";
+		PreparedStatement preparedStatement = connessione.prepareStatement(miaQuery);
+		preparedStatement.setTimestamp(1, data);
+		preparedStatement.setString(2, nomeUtente);;
+		preparedStatement.executeUpdate();
+		preparedStatement.close();
+	}
+	
+	/**
+	 * Salva nel DB la partita appena avviata.
+	 * @param connessione	La connessione al DB.
+	 * @param giocatori	Lista dei nomi dei giocatori che partecipano alla partita.
+	 * @return	L'Id della partita avviata
+	 * @throws SQLException	Connessione al DB non valida.
+	 */
+	public static synchronized Integer creaPartita(Connection connessione, ArrayList<String> giocatori) throws SQLException{
+		Integer idPartita = estraiNumeroPartita(connessione);
+		Timestamp data = new Timestamp(System.currentTimeMillis());
+		String miaQuery = "INSERT INTO PARTITA (IDPARTITA, DATAPARTITA)"+
+							"VALUES (?, ?)";
+		PreparedStatement preparedStatement = connessione.prepareStatement(miaQuery);
+		preparedStatement.setInt(1,idPartita);
+		preparedStatement.setTimestamp(2, data);
+		preparedStatement.executeUpdate();
+		preparedStatement.close();
+		aggiungiPartecipazione(connessione, giocatori, idPartita);
+		return idPartita;	//Ritornerò l'id della partita
+	}
+	
+	/**
+	 * Aggiunge al DB i partecipanti alla partita.
+	 * @param connessione	La connessione al DB.
+	 * @param giocatori	Lista dei giocatori che partecipano.
+	 * @param partita	La partita a cui partecipano.
+	 * @throws SQLException	Connessione al DB non valida.
+	 */
+	private static synchronized void aggiungiPartecipazione(Connection connessione, ArrayList<String> giocatori, Integer partita) throws SQLException{
+		Iterator<String> itGiocatori = giocatori.iterator();
+		String miaQuery = "INSERT INTO PARTECIPAZIONEPARTITA (IDPARTITA, NOMEGIOCATORE, POSIZIONE, PUNTIVINTI) "+
+					"VALUES (?, ?, ?, ?)";
+		PreparedStatement preparedStatement = connessione.prepareStatement(miaQuery);
+		while(itGiocatori.hasNext()){
+			preparedStatement.setInt(1, partita);
+			preparedStatement.setString(2, itGiocatori.next());
+			preparedStatement.setInt(3, -1);
+			preparedStatement.setInt(4, 0);
+			preparedStatement.executeUpdate();
+		}
+		preparedStatement.close();
+	}
+	
+	/**
+	 * Estrae il numero della nuova partita.
+	 * @param connessione	Connessione al DB.
+	 * @return	Il numero della partita.
+	 * @throws SQLException	Connessione al DB non valida.
+	 */
+	private static synchronized Integer estraiNumeroPartita(Connection connessione) throws SQLException{
+		Statement st = connessione.createStatement();
+		String miaQuery = "SELECT MAX(IDPARTITA)+1 "+
+							"FROM PARTITA";
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		resultSet.next();
+		Integer id = resultSet.getInt(1);
+		resultSet.close();
+		st.close();
+		return id;	//Ritorno l'id della partita
+	}
+	
+	
+	
+	/**
+	 * Prova ad aggiungere l'utente al DB.
+	 * @param connessione	Connessione al DB.
+	 * @param nomeNuovoGiocatore	Username del nuovo giocatore.
+	 * @param passwordNuovoGiocatore	Password del nuovo giocatore.
+	 * @return	true: Registrazione avvenuta con successo; false: Username già in uso;
+	 * @throws SQLException	Connessione al DB non valida.
+	 */
+	public static synchronized boolean creaUtente(Connection connessione, String nomeNuovoGiocatore, String passwordNuovoGiocatore) throws SQLException{
+		if(usernameInUso(connessione, nomeNuovoGiocatore)){	//Impossibile creare il nuovo utente
+			return false;
+		}
+		//Estraggo la data
+		Timestamp data = new Timestamp(System.currentTimeMillis());
+		//Preparo la query per il nuovo giocatore
+		String miaQuery = "INSERT INTO GIOCATORE (NOMEGIOCATORE, PASSWORD, DATAREGISTRAZIONE, DATAULTIMOACCESSO) "+
+						"VALUES (?, ?, ?, ?)";
+		PreparedStatement preparedStatement = connessione.prepareStatement(miaQuery);
+		preparedStatement.setString(1, nomeNuovoGiocatore);
+		preparedStatement.setString(2, passwordNuovoGiocatore);
+		preparedStatement.setTimestamp(3, data);
+		preparedStatement.setTimestamp(4, data);
+		//Invio lo statement e lo chiudo
+		preparedStatement.executeUpdate();
+		preparedStatement.close();
+		return true;
+	}
+	
+	/**
+	 * Cancella lo username inviato
+	 * @param connessione	La connessione al DB
+	 * @param nomeGiocatore	Il nome del giocatore da cancellare
+	 * @throws SQLException	Problema nell'esecuzione della query
+	 */
+	public static synchronized void cancellaUtente(Connection connessione, String nomeGiocatore) throws SQLException{
+		String miaQuery = "DELETE FROM GIOCATORE "+
+							"WHERE NOMEGIOCATORE = ?";
+		PreparedStatement preparedStatement = connessione.prepareStatement(miaQuery);
+		preparedStatement.setString(1, nomeGiocatore);
+		preparedStatement.executeUpdate();
+		preparedStatement.close();
+	}
+	
+	public static synchronized boolean cambiaPassword(Connection connessione, String username, String vecchiaPassword, String nuovaPassword) throws SQLException{
+		if(effettuaLogin(connessione, username, vecchiaPassword) == false)
+			return false;
+		else{
+			String miaQuery = "UPDATE GIOCATORE "+
+					"SET PASSWORD=? "+
+					"WHERE NOMEGIOCATORE=?";
+			PreparedStatement preparedStatement = connessione.prepareStatement(miaQuery);
+			preparedStatement.setString(1, nuovaPassword);
+			preparedStatement.setString(2, username);
+			preparedStatement.executeUpdate();
+			preparedStatement.close();
+			return true;
+		}
+	}
+	
+	/**
+	 * Ci informa se lo username è già in uso
+	 * @param connessione	La connessione al DB
+	 * @param nomeUtente	Il nome da controllare
+	 * @return	-true: Utente già esistente;	-false:Utente inesistente;
+	 */
+	public static synchronized boolean usernameInUso(Connection connessione, String nomeUtente){
+		String miaQuery = "SELECT COUNT(*) "+
+							"FROM GIOCATORE "+
+							"WHERE NOMEGIOCATORE = '"+nomeUtente+"'";
+		try {
+			Statement st = connessione.createStatement();
+			ResultSet resultSet = st.executeQuery(miaQuery);
+			resultSet.next();
+			int numero = resultSet.getInt(1);
+			if(numero == 0){
+				return false;
+			}
+		} catch (SQLException e) {
+			System.err.println("Impossibile eseguire query");
+			e.printStackTrace();
+		}
+		return true;
+
+	}
+	
+	/**
+	 * L'elenco di tutti i territori presenti sulla mappa.
+	 * @param connessione	Connessione del DB
+	 * @return	La lista di tutti i territori
+	 * @throws SQLException	Connessione al DB non valida.
+	 */
+	public static synchronized ArrayList<String> elencoTerritori(Connection connessione) throws SQLException{
+		ArrayList<String> territori = new ArrayList<String>();
+		String miaQuery="SELECT NOMETERRITORIO "+
+							"FROM TERRITORIO "+
+							"ORDER BY NOMETERRITORIO ASC ";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		while(resultSet.next()){
+			String nomeContinente = resultSet.getString(1);
+			territori.add(nomeContinente);
+		}
+		resultSet.close();
+		st.close();
+		return territori;
+	}
+	
+	/**
+	 * Elenco dei terriori di un dato continente.
+	 * @param connessione	Connessione al DB.
+	 * @param continenteDiAppartenenza	Il continente di cui vogliamo i territori.
+	 * @return	La lista dei territori cercati.
+	 * @throws SQLException	Connessione al DB non valida.
+	 */
+	public static synchronized ArrayList<String> elencoTerritori(Connection connessione, String continenteDiAppartenenza) throws SQLException{
+		ArrayList<String> territori = new ArrayList<String>();
+		String miaQuery="SELECT NOMETERRITORIO "+
+							"FROM TERRITORIO "+
+							"WHERE NOMECONTINENTE='"+continenteDiAppartenenza+"'"+
+							"ORDER BY NOMETERRITORIO ASC ";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		while(resultSet.next()){
+			String nomeContinente = resultSet.getString(1);
+			territori.add(nomeContinente);
+		}
+		resultSet.close();
+		st.close();
+		return territori;
+	}
+	
+	/**
+	 * Elenco dei confini di un dato territorio.
+	 * @param connessione	Connessione al DB.
+	 * @param territorioCentrale	Il territorio di cui cerchiamo i confini.
+	 * @return	La lista dei territori confinanti.
+	 * @throws SQLException	Connessione al DB non valida.
+	 */
+	public static synchronized ArrayList<String> elencoConfini(Connection connessione, String territorioCentrale) throws SQLException{
+		ArrayList<String> territori = new ArrayList<String>();
+		String miaQuery="SELECT NOMETERRITORIO2 "+
+							"FROM CONFINE "+
+							"WHERE NOMETERRITORIO1='"+territorioCentrale+"'"+
+							"ORDER BY NOMETERRITORIO2 ASC ";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		while(resultSet.next()){
+			String nomeContinente = resultSet.getString(1);
+			territori.add(nomeContinente);
+		}
+		resultSet.close();
+		st.close();
+		return territori;
+	}
+	
+	/**
+	 * Il numero di continenti presenti.
+	 * @param connessione	Connessione al DB.
+	 * @return	Il numero di continenti presenti.
+	 * @throws SQLException	Connessione al DB non valida.
+	 */
+	public static synchronized int numeroDiContinenti(Connection connessione) throws SQLException{
+		String miaQuery = "SELECT COUNT(*) "+
+				"FROM CONTINENTE";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		resultSet.next();
+		int risultato = resultSet.getInt(1);
+		resultSet.close();
+		st.close();
+		return risultato;
+	}
+	
+	/**
+	 * Elenco dei continenti presenti (ordinati per ordine alfabetico crescente).
+	 * @param connessione	Connessione al DB
+	 * @return	La lista dei continenti presenti.
+	 * @throws SQLException	Connessione al DB non valida.
+	 */
+	public static synchronized ArrayList<String> elencoContinenti(Connection connessione) throws SQLException{
+		ArrayList<String> continenti = new ArrayList<String>(numeroDiContinenti(connessione));
+		String miaQuery="SELECT NOMECONTINENTE "+
+							"FROM CONTINENTE "+
+							"ORDER BY NOMECONTINENTE ASC ";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		while(resultSet.next()){
+			String nomeContinente = resultSet.getString(1);
+			continenti.add(nomeContinente);
+		}
+		resultSet.close();
+		st.close();
+		return continenti;
+	}
+	
+	/**
+	 * La lista dei bonus di tutti i continenti (ordinati per ordine alfabetico crescente).
+	 * @param connessione	Connessione al DB
+	 * @return	La lista dei bonus di ogni continente.
+	 * @throws SQLException	Connessione al DB non valida.
+	 */
+	public static synchronized ArrayList<Integer> elencoBonusContinenti(Connection connessione) throws SQLException{
+		ArrayList<Integer> bonus = new ArrayList<Integer>(numeroDiContinenti(connessione));
+		String miaQuery="SELECT BONUS "+
+				"FROM CONTINENTE "+
+				"ORDER BY NOMECONTINENTE ASC ";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		while(resultSet.next()){
+			Integer valore = resultSet.getInt(1);
+			bonus.add(valore);
+		}
+		resultSet.close();
+		st.close();
+		return bonus;
+	}
+	
+	public static synchronized void aggiornaUtente(Connection connessione, String username, Integer idPartita, Integer punteggioGiocatore, Integer posizioneClassifica) throws SQLException{
+		//Preparo la query per il nuovo giocatore
+		String miaQuery = "UPDATE PARTECIPAZIONEPARTITA " +
+				"SET POSIZIONE = ?, PUNTIVINTI = ? "+
+				"WHERE IDPARTITA = ? and NOMEGIOCATORE = ?";
+		PreparedStatement preparedStatement = connessione.prepareStatement(miaQuery);
+		preparedStatement.setInt(1, posizioneClassifica);
+		preparedStatement.setInt(2, punteggioGiocatore);
+		preparedStatement.setInt(3, idPartita);
+		preparedStatement.setString(4, username);
+		//Invio lo statement e lo chiudo
+		preparedStatement.executeUpdate();
+		preparedStatement.close();
+	}
+	
+	public static synchronized float percentualePartiteVinte(Connection connessione, String username) throws SQLException{
+		int totalePartite = totalePartiteGiocate(connessione, username);
+		String miaQuery = "SELECT COUNT(*) FROM PARTECIPAZIONEPARTITA WHERE NOMEGIOCATORE = '"+username+"' AND POSIZIONE = 1";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		resultSet.next();
+		int risultato = resultSet.getInt(1);
+		resultSet.close();
+		st.close();
+		float risultatoPercentuale = (float)risultato/totalePartite;
+		return risultatoPercentuale;
+	}
+	
+	public static synchronized float percentualePartiteSecondo(Connection connessione, String username) throws SQLException{
+		int totalePartite = totalePartiteGiocate(connessione, username);
+		String miaQuery = "SELECT COUNT(*) FROM PARTECIPAZIONEPARTITA WHERE NOMEGIOCATORE = '"+username+"' AND POSIZIONE = 2";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		resultSet.next();
+		int risultato = resultSet.getInt(1);
+		resultSet.close();
+		st.close();
+		float risultatoPercentuale = (float)risultato/totalePartite;
+		return risultatoPercentuale;
+	}
+
+	public static synchronized float percentualePartiteAbbandonate(Connection connessione, String username) throws SQLException{
+		int totalePartite = totalePartiteGiocate(connessione, username);
+		String miaQuery = "SELECT COUNT(*) FROM PARTECIPAZIONEPARTITA WHERE NOMEGIOCATORE = '"+username+"' AND POSIZIONE = -1";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		resultSet.next();
+		int risultato = resultSet.getInt(1);
+		resultSet.close();
+		st.close();
+		float risultatoPercentuale = (float)risultato/totalePartite;
+		return risultatoPercentuale;
+		
+	}
+
+	public static synchronized int totalePartiteGiocate(Connection connessione, String username) throws SQLException{
+		String miaQuery = "SELECT COUNT(*) FROM PARTECIPAZIONEPARTITA WHERE NOMEGIOCATORE = '"+username+"'";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		resultSet.next();
+		int risultato = resultSet.getInt(1);
+		resultSet.close();
+		st.close();
+		return risultato;
+	}
+	
+	public static synchronized int puntiVinti(Connection connessione, String username) throws SQLException{
+		String miaQuery = "SELECT SUM(PUNTIVINTI) FROM PARTECIPAZIONEPARTITA WHERE NOMEGIOCATORE = '"+username+"'";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		resultSet.next();
+		int risultato = resultSet.getInt(1);
+		resultSet.close();
+		st.close();
+		return risultato;
+	}
+	
+	public static synchronized Classifica classificaGenerale(Connection connessione) throws SQLException{
+		//Contiamo il numero di giocatori
+		String miaQuery = "SELECT COUNT(*) FROM GIOCATORE";
+		Statement st = connessione.createStatement();
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		resultSet.next();
+		int numeroRighe = resultSet.getInt(1);
+		resultSet.close();
+		Classifica miaClassifica = new Classifica(numeroRighe);
+		//Ci da la classifica di punteggio in ordine decrescente
+		miaQuery = "SELECT * "+
+				"FROM CLASSIFICAPUNTEGGIO "+
+				"UNION "+
+				"SELECT * "+
+				"FROM FUORICLASSIFICA "+
+				"ORDER BY PUNTI DESC, NOME ASC";
+		ResultSet resultSet2 = st.executeQuery(miaQuery);
+		while(resultSet2.next()){		
+			String nome = resultSet2.getString("NOME");
+			Integer punti = resultSet2.getInt("PUNTI");
+			miaClassifica.aggiungiGiocatore(nome, punti);
+		}
+		resultSet2.close();
+		st.close();
+		return miaClassifica;
+		/*
+		 * CREATE VIEW ClassificaPunteggio (Nome, Punti) AS
+		 *SELECT NOMEGIOCATORE AS NG, Sum(PUNTIVINTI) AS A
+		 *FROM PARTECIPAZIONEPARTITA AS PP JOIN NUMEROPARTITE AS NP
+		 *	ON NOMEGIOCATORE = NP.B
+		 *GROUP BY NOMEGIOCATORE
+		 *ORDER BY A DESC
+		 *
+		 *CREATE VIEW FuoriClassifica (Nome, Punti) AS
+		 *SELECT NOMEGIOCATORE, 0 AS PUNTEGGIO
+		 *FROM GIOCATORE 
+		 *WHERE NOMEGIOCATORE NOT IN 
+		 *	(SELECT NOME 
+		 *	FROM CLASSIFICAPUNTEGGIO) 
+		 */
+	}
+	
+	public static synchronized Integer posizioneInClassifica(Connection connessione, String username) throws SQLException{
+		Classifica miaClassifica = classificaGenerale(connessione);
+		return miaClassifica.getPosizione(username);
+	}
+
+//	###CURIOSITÀ
+//	Integer numero = resultSet.getInt("id");
+//	String valore = resultSet.getString("valore");
+	
+	public static void main(String[] args) throws Exception {
+		Connection connessione = connessioneDb();
+//		String[][] confini = estraiConfini(connessione);
+//		String[][] territori = estraiTerritori(connessione);
+//		Integer numTer = numeroTotaleTerritori(connessione);
+//		
+//		for(int i = 0; i < numTer; i++){
+//			System.out.print("{");
+//			for(int j = 0; j < territori[i].length; j++)
+//				System.out.print(territori[i][j]+", ");
+//			System.out.print("},\n");
+//		}
+		aggiornaMappa(connessione);
+		disconnessioneDb(connessione);
+	}
+	
+//		public static void main(String[] args) throws Exception {
+//			ArrayList<String> giocatori = new ArrayList<String>(6);
+//			String[] gioc = {"as", "sd", "df", "fg", "gh", "hj"};
+//			String[] pasw = {"as", "sd", "df", "fg", "gh", "hj"};
+//			Integer[] punt = {1, 1, 32, 6, 7, 4,};
+//			Integer[] pos = {4,5,1,2,3,6};
+//			for(int i = 0; i < gioc.length; i++){
+//				giocatori.add(gioc[i]);
+//			}
+//			Connection miaConnessione = null;
+//			try{
+//			miaConnessione = connessioneDb();
+//			}
+//			catch(Exception e){
+//				System.err.println("Squirrel ancora aperto");
+//				System.exit(0);
+//			}
+//			for(int i = 0; i < gioc.length; i++){
+//				creaUtente(miaConnessione, gioc[i], pasw[i]);
+//			}
+//			Integer num = creaPartita(miaConnessione, giocatori);
+//			Iterator<String> itGiocatore = giocatori.iterator();
+//			int i = 0;
+//			while(itGiocatore.hasNext()){
+//				aggiornaUtente(miaConnessione, itGiocatore.next(), num, punt[i], pos[i]);
+//				i++;
+//			}
+//			String utente = gioc[0];
+//			System.out.println("L'utente "+utente+" ha: "+puntiVinti(miaConnessione, utente)+" punti.");
+//			System.out.println("L'utente "+utente+" ha vinto il: "+percentualePartiteVinte(miaConnessione, utente)*100+"% delle partite.");
+//			System.out.println("L'utente "+utente+" è arrivato 2° il: "+percentualePartiteSecondo(miaConnessione, utente)*100+"% delle partite.");
+//			System.out.println("L'utente "+utente+" ha abbandonato il: "+percentualePartiteAbbandonate(miaConnessione, utente)*100+"% delle partite.");
+//			System.out.println("L'utente "+utente+" ha partecipato a: "+totalePartiteGiocate(miaConnessione, utente)+" delle partite.");
+//			System.out.println("L'utente "+utente+" si trova: "+posizioneInClassifica(miaConnessione, utente)+"° in classifica.");
+//					
+//			Classifica miaClassifica = classificaGenerale(miaConnessione);
+//			System.out.println(miaClassifica.toString());
+//			
+//			disconnessioneDb(miaConnessione);
+//			return;
+//		}
+/*		
+//		public static void main(String[] args) throws Exception {
+//			Connection miaConnessione = connessioneDb();
+//			String nome = "FEDE";
+//			String password = "PSW";
+//			if(effettuaLogin(miaConnessione, nome, password)){
+//				System.out.println("Accesso OK");
+//			}
+//			else{
+//				System.out.println("NO accesso");
+//			}
+//			disconnessioneDb(miaConnessione);
+//			return;
+//		}
+//		public static void main(String[] args) throws Exception {
+//			Connection miaConnessione = connessioneDb();			
+//			System.out.println("Inizio il download della mappa");
+//			ArrayList<String> continenti = null;
+//			ArrayList<Integer> bonus = null;
+//			ArrayList<String> territori = null;
+//			try{
+//				continenti = elencoContinenti(miaConnessione);
+//				bonus = elencoBonusContinenti(miaConnessione);
+//				territori = elencoTerritori(miaConnessione);
+//			} catch(SQLException e){
+//				e.printStackTrace();
+//			}
+//			System.out.println("Download completato");
+//			Iterator<String> itContinenti = continenti.iterator();
+//			Iterator<Integer> itBonus = bonus.iterator();
+//			Iterator<String> itTerritori = territori.iterator();
+//			while(itContinenti.hasNext() && itBonus.hasNext()){
+//				System.out.printf("Continente: %s \t Bonus: %d\n",itContinenti.next(), itBonus.next());
+//			}
+//			System.out.printf("###Territori###");
+//			while(itTerritori.hasNext()){
+//				String territorio = itTerritori.next();
+//				System.out.printf("\nTerritorio: %s \t Confina: ",territorio);
+//				ArrayList<String> confini = elencoConfini(miaConnessione, territorio);
+//				Iterator<String> itConfini = confini.iterator();
+//				while(itConfini.hasNext()){
+//					System.out.printf("%s; ",itConfini.next());
+//				}
+//			}
+//			
+//			ArrayList<String> mio = new ArrayList<String>(10);
+//			System.out.println(mio.size());
+//			return;
+//			String utente;
+//			String password;
+//			BufferedReader stream = new BufferedReader(new InputStreamReader(System.in));
+//			System.out.println("Inserisci nome "+confina.length);
+//			utente = stream.readLine();
+//			System.out.println("Inserisci password");
+//			password = stream.readLine();
+//			if(creaUtente(miaConnessione, utente, password)){
+//				System.out.println("Utente registrato con successo");
+//			}
+//			else{
+//				System.out.println("Utente già esistente - impossibile effettuare la registrazione");
+//			}
+			
+//			for(int i = 0; i<continenti.length; i++){
+//				listaContinenti.add(new Continente(continenti[i], bonus[i]));
+//				for(int j = 0; j<territori[i].length; j++){
+//					//Creiamo lo stato dandogli nome e password
+//					Territorio territorioTemporaneo = new Territorio(territori[i][j], continenti[i]);
+//					listaTerritori.add(territorioTemporaneo);
+//				}
+//			}
+//			//Ciclo che definisce tutti i confini
+//			Territorio territorioTemporaneo = null;
+//			for(int i = 0; i<continenti.length; i++){	//Sfogliamo tutti i continenti
+//				for(int j = 0; j<territori[i].length; j++){	//Sfogliamo tutti gli stati
+//					for(int k=0; k<confina[i].length; k++){
+//						territorioTemporaneo = trovaTerritorio(territori[i][j]);
+//						listaContinenti.get(i).getTerritori().get(j).getTerritoriConfinanti().add(territorioTemporaneo);
+//					}
+//				}
+//			}	
+			
+			
+//		}*/
+		/**
+		 * Si occupa di aggiornare il database cancellando le vecchie informazioni della mappa e inserendo i nuovi dati
+		 * @param connessione	La connessione al DB da aggiornare
+		 * @throws SQLException	Impossibile aggiornare la mappa, informazioni inserite incoerenti.
+		 */
+		private static synchronized void aggiornaMappa(Connection connessione) throws SQLException{
+			cancellaMappaDB(connessione);
+			inserisciContinenti(connessione);
+			inserisciTerritori(connessione);
+			inserisciConfini(connessione);
+		}
+		
+		/**
+		 * Ripulisce le tabelle contenti le informazioni della mappa
+		 * @param connessione	La connessione al DB da aggiornare
+		 * @throws SQLException	Impossibile aggiornare la mappa, informazioni inserite incoerenti.
+		 */
+		private static synchronized void cancellaMappaDB(Connection connessione) throws SQLException{
+			String miaQuery = "DELETE FROM CONTINENTE WHERE 1=1";
+			PreparedStatement preparedStatement = connessione.prepareStatement(miaQuery);
+			preparedStatement.executeUpdate();
+			miaQuery = "DELETE FROM TERRITORIO WHERE 1=1";
+			preparedStatement = connessione.prepareStatement(miaQuery);
+			preparedStatement.executeUpdate();
+			miaQuery = "DELETE FROM CONFINE WHERE 1=1";
+			preparedStatement = connessione.prepareStatement(miaQuery);
+			preparedStatement.executeUpdate();
+			preparedStatement.close();
+		}
+		
+		/**
+		 * Popola la tabella Continente inserendo i nomi e i bonus.
+		 * @param connessione	La connessione al DB da aggiornare
+		 * @throws SQLException	Impossibile aggiornare la mappa, informazioni inserite incoerenti.
+		 */
+		private static synchronized void inserisciContinenti(Connection connessione) throws SQLException{
+			String miaQuery = "INSERT INTO CONTINENTE (NOMECONTINENTE, BONUS) "+
+								"VALUES (?, ?)";
+			PreparedStatement preparedStatement = connessione.prepareStatement(miaQuery);
+			for(int i = 0; i < continenti.length; i++){
+				preparedStatement.setString(1, continenti[i]);
+				preparedStatement.setInt(2, bonus[i]);
+				preparedStatement.executeUpdate();
+			}
+			preparedStatement.close();
+		}
+		
+		
+		public static synchronized String[] estraiContinenti (Connection connessione) throws SQLException{
+			Integer numeroRighe = numeroDiContinenti(connessione);
+			String miaQuery = "SELECT NOMECONTINENTE "+
+					"FROM CONTINENTE "+
+					"ORDER BY NOMECONTINENTE ASC";
+			Statement st = connessione.createStatement();
+			ResultSet resultSet2 = st.executeQuery(miaQuery);
+			String[] continenti = new String[numeroRighe];
+			for(int i = 0; i < numeroRighe; i++){
+				resultSet2.next();
+				String nome = resultSet2.getString(1);
+				continenti[i] = nome;
+			}
+			resultSet2.close();
+			st.close();
+			return continenti;
+		}
+		
+		public static synchronized Integer[] estraiBonus (Connection connessione) throws SQLException{
+			Integer numeroRighe = numeroDiContinenti(connessione); 
+			
+			//Ci da la classifica di punteggio in ordine decrescente
+			String miaQuery = "SELECT BONUS "+
+					"FROM CONTINENTE "+
+					"ORDER BY NOMECONTINENTE ASC";
+			Statement st = connessione.createStatement();
+			ResultSet resultSet2 = st.executeQuery(miaQuery);
+			for(int i = 0; i < numeroRighe; i++){
+				resultSet2.next();
+				Integer valore = resultSet2.getInt(1);
+				bonus[i] = valore;
+			}
+			resultSet2.close();
+			st.close();
+			return bonus;
+		}
+		
+		//cambia password
+		
+		private static Integer numeroMassimoTerritori (Connection connessione) throws SQLException{
+			String miaQuery = "SELECT MAX(NUMERO) "+
+					"FROM NUMEROTERRITORI";
+			Statement st = connessione.createStatement();
+			ResultSet resultSet = st.executeQuery(miaQuery);
+			resultSet.next();
+			int risultato = resultSet.getInt(1);
+			resultSet.close();
+			st.close();
+			return risultato;
+		}
+		
+		public static synchronized String[][] estraiTerritori (Connection connessione) throws SQLException{
+			String[] continenti = estraiContinenti(connessione);
+			Integer maxTerritori = numeroMassimoTerritori(connessione);
+			String[][] territori = new String[continenti.length][maxTerritori];
+			String miaQuery = "SELECT NOMETERRITORIO FROM TERRITORIO  "+
+					"WHERE NOMECONTINENTE = ?";
+			PreparedStatement preparedStatement = connessione.prepareStatement(miaQuery);
+			for(int i = 0; i < continenti.length; i++){
+				preparedStatement.setString(1, continenti[i]);
+				ResultSet rs = preparedStatement.executeQuery();
+				int j = 0;
+				while(rs.next()){
+					territori[i][j] = rs.getString(1);
+					System.out.println(territori[i][j]);
+					j++;
+				}
+			}
+			preparedStatement.close();
+			return territori;
+		}
+		
+		/**
+		 * Popola la tabella Territorio inserendo i nomi dei territori e i relativi raggruppamenti di appartenenza.
+		 * @param connessione	La connessione al DB da aggiornare
+		 * @throws SQLException	Impossibile aggiornare la mappa, informazioni inserite incoerenti.
+		 */
+		private static synchronized void inserisciTerritori(Connection connessione) throws SQLException{
+			String miaQuery = "INSERT INTO TERRITORIO (NOMETERRITORIO, NOMECONTINENTE) "+
+								"VALUES (?, ?)";
+			PreparedStatement preparedStatement = connessione.prepareStatement(miaQuery);
+			for(int i = 0; i < continenti.length; i++){
+				for(int j = 0; j< territori[i].length; j++){
+					preparedStatement.setString(1, territori[i][j]);
+					preparedStatement.setString(2, continenti[i]);
+					preparedStatement.executeUpdate();
+				}
+			}
+			preparedStatement.close();
+		}
+		
+		private static synchronized Integer numeroMassimoConfini(Connection connessione) throws SQLException{
+			String miaQuery = "SELECT MAX(NUMERO) "+
+			"FROM NUMEROCONFINI";
+			Statement st = connessione.createStatement();
+			ResultSet resultSet = st.executeQuery(miaQuery);
+			resultSet.next();
+			int risultato = resultSet.getInt(1);
+			resultSet.close();
+			st.close();
+			return risultato;
+			
+		}
+		
+		private static synchronized Integer numeroTotaleTerritori(Connection connessione) throws SQLException{
+			String miaQuery = "SELECT SUM(NUMERO) "+
+			"FROM NUMEROTERRITORI";
+			Statement st = connessione.createStatement();
+			ResultSet resultSet = st.executeQuery(miaQuery);
+			resultSet.next();
+			int risultato = resultSet.getInt(1);
+			resultSet.close();
+			st.close();
+			return risultato;
+		}
+		
+		public static synchronized String[] estraiTuttiTerritori (Connection connessione) throws SQLException{
+			Integer numeroRighe = numeroTotaleTerritori(connessione);
+			String miaQuery = "SELECT NOMETERRITORIO1 "+
+					"FROM CONFINE "+
+					"GROUP BY NOMETERRITORIO1 "+
+					"ORDER BY NOMETERRITORIO1 ASC";
+			Statement st = connessione.createStatement();
+			ResultSet resultSet2 = st.executeQuery(miaQuery);
+			String territori[] = new String[numeroRighe];
+			for(int i = 0; i < numeroRighe; i++){
+				resultSet2.next();
+				String nome = resultSet2.getString(1);
+				territori[i] = nome;
+			}
+			resultSet2.close();
+			st.close();
+			return territori;
+		}
+		
+		public static synchronized String[][] estraiConfini (Connection connessione) throws SQLException{
+			String[] tuttiTerritori = estraiTuttiTerritori(connessione);
+			Integer maxConfini = numeroMassimoConfini(connessione);
+			String [][] confini = new String[tuttiTerritori.length][maxConfini];
+			for(int i = 0; i < tuttiTerritori.length; i++){
+				ArrayList<String> confiniStato;
+				confiniStato = elencoConfini(connessione, tuttiTerritori[i]);
+				Iterator<String> itConfini = confiniStato.iterator();
+				int j = 0;
+				while(itConfini.hasNext()){
+					confini[i][j] = itConfini.next();
+					j++;
+				}
+			}
+			return confini;
+		}
+		
+		/**
+		 * Popola la tabella Confine inserendo i confini di ogni stato.
+		 * @param connessione	La connessione al DB da aggiornare
+		 * @throws SQLException	Impossibile aggiornare la mappa, informazioni inserite incoerenti.
+		 */
+		private static synchronized void inserisciConfini(Connection connessione) throws SQLException{
+			String miaQuery = "INSERT INTO CONFINE (NOMETERRITORIO1, NOMETERRITORIO2) "+
+								"VALUES (?, ?)";
+			PreparedStatement preparedStatement = connessione.prepareStatement(miaQuery);
+			int contatore = 0;
+			for(int i = 0; i < continenti.length; i++){
+				for(int j = 0; j < territori[i].length; j++){
+					for(int k = 0; k < confina[contatore].length; k++){
+						preparedStatement.setString(1, territori[i][j]);
+						preparedStatement.setString(2, confina[contatore][k]);
+						preparedStatement.executeUpdate();
+					}
+					contatore++;
+				}
+			}
+			preparedStatement.close();
+		}
+			
+
+/*	System.out.println(miaQuery);
+			
+			//Creo lo statement
+			
+			Statement st = connessione.createStatement();
+			//Eseguo una query di create
+			
+			//st.executeUpdate("DROP TABLE prova");
+			st.executeUpdate(miaQuery);
+			miaQuery="INSERT INTO prova "+
+				"(id, valore) "+
+				"VALUES (?,?)";
+			PreparedStatement preparedStatement = connessione.prepareStatement(miaQuery);
+			for(int i=1; i<=100; i++){
+				preparedStatement.setInt(1, i);
+				preparedStatement.setString(2, "valore test "+i);
+				preparedStatement.executeUpdate();
+			}
+			preparedStatement.close();
+			
+			//st.executeUpdate(miaQuery);
+			ResultSet resultSet = st.executeQuery("SELECT count(*) FROM prova");
+			resultSet.next();	//Ci posizioniamo sulla prima riga
+			
+			Integer valoreCount = resultSet.getInt(1);
+			System.out.println("Risultato count: "+valoreCount);
+			
+			miaQuery="SELECT id, valore "+
+					"FROM prova ";
+			resultSet = st.executeQuery(miaQuery);
+			while(resultSet.next()){
+				Integer numero = resultSet.getInt("id");
+				String valore = resultSet.getString("valore");
+				//System.out.println("Risultato num: "+numero+" - valore: '"+valore+"'");
+				System.out.printf("Risultato num: %d - valore: '%s'\n", numero, valore);
+			}
+			
+			resultSet.close();
+			st.close();
+			connessione.close();
+		}
+		*/
+
+		/**
+		 * I raggruppamenti della mappa
+		 */
+		private final static String[] continenti = {"Nord America", "Sud America", "Europa", "Africa", "Asia", "Oceania"};
+
+		/**
+		 * Il bonus collegato al possesso di ogni stato di un determinato continente
+		 */
+		private final static Integer[] bonus = {5, 2, 5, 3, 7, 2};
+		
+		/**
+		 * Elenco dei territori per ogni continente
+		 */
+		private final static String[][] territori = {
+			{"Alaska", "Territori del Nord Ovest", "Groenlandia", "Alberta", "Ontario", "Quebec", "Stati Uniti Occidentali", "Stati Uniti Orientali", "America Centrale"},
+			{"Venezuela", "Perù", "Brasile", "Argentina"},
+			{"Islanda", "Scandinavia", "Gran Bretagna", "Europa Settentrionale", "Europa Occidentale", "Europa Meridionale", "Ucraina"},
+			{"Africa del Nord", "Egitto", "Congo", "Africa Orientale", "Africa del Sud", "Madagascar"},
+			{"Urali", "Siberia", "Jacuzia", "Cita", "Kamchatka", "Giappone", "Mongolia", "Afghanistan", "Medio Oriente", "India", "Cina", "Siam"},
+			{"Indonesia", "Nuova Guinea", "Australia Orientale", "Australia Occidentale"}
+		};
+		
+		/**
+		 * Confini di ogni territorio -- Gli stati sono aumentati di 1 rispetto allo stato
+		 */
+		private final static String[][] confina = {
+				//Nord America
+				{"Territori del Nord Ovest", "Alberta", "Kamchatka"},
+				{"Alaska", "Groenlandia", "Alberta", "Ontario"},
+				{"Islanda", "Territori del Nord Ovest", "Ontario", "Quebec"},
+				{"Alaska", "Territori del Nord Ovest", "Ontario", "Stati Uniti Occidentali"},
+				{"Groenlandia", "Territori del Nord Ovest", "Alberta", "Stati Uniti Occidentali", "Stati Uniti Orientali", "Quebec"},
+				{"Groenlandia", "Ontario", "Stati Uniti Orientali"},
+				{"Alberta", "Ontario", "Stati Uniti Orientali", "America Centrale"},
+				{"Ontario", "Quebec", "Stati Uniti Occidentali", "America Centrale"},
+				{"Stati Uniti Occidentali", "Stati Uniti Orientali", "Venezuela"},
+				//Sud America
+				{"America Centrale", "Perù", "Brasile"},
+				{"Venezuela", "Brasile", "Argentina"},
+				{"Venezuela", "Perù", "Argentina", "Africa del Nord"},
+				{"Perù", "Brasile", "Australia Orientale"},
+				//Europa
+				{"Groenlandia", "Scandinavia", "Gran Bretagna"},
+				{"Islanda", "Gran Bretagna", "Europa Settentrionale", "Ucraina"},
+				{"Islanda", "Scandinavia", "Europa Settentrionale", "Europa Occidentale"},
+				{"Scandinavia", "Gran Bretagna", "Europa Occidentale", "Europa Meridionale", "Ucraina"},
+				{"Gran Bretagna", "Europa Settentrionale", "Europa Meridionale", "Africa del Nord"},
+				{"Europa Settentrionale", "Europa Occidentale", "Ucraina", "Africa del Nord", "Egitto", "Medio Oriente"},
+				{"Scandinavia", "Europa Settentrionale", "Europa Meridionale", "Urali", "Afghanistan", "Medio Oriente"},
+				//Africa
+				{"Egitto", "Congo", "Africa Orientale","Brasile", "Europa Occidentale", "Europa Meridionale"},
+				{"Africa del Nord", "Africa Orientale", "Medio Oriente", "Europa Meridionale"},
+				{"Africa del Nord", "Africa Orientale", "Africa del Sud"},
+				{"Africa del Nord", "Egitto", "Congo", "Africa del Sud", "Madagascar"},
+				{"Congo", "Africa Orientale", "Madagascar"},
+				{"Africa Orientale", "Africa del Sud",},
+				//Asia
+				{"Siberia", "Afghanistan", "Cina", "Ucraina"},
+				{"Urali", "Jacuzia", "Cita", "Mongolia", "Cina"},
+				{"Siberia", "Cita", "Kamchatka"},
+				{"Siberia", "Jacuzia", "Kamchatka", "Mongolia"},
+				{ "Jacuzia", "Cita", "Giappone", "Mongolia", "Alaska"},
+				{"Kamchatka", "Mongolia"},
+				{ "Siberia", "Cita", "Kamchatka", "Giappone", "Cina"},
+				{"Urali", "Medio Oriente", "Cina", "Ucraina"},
+				{"Afghanistan", "India", "Cina", "Europa Meridionale", "Ucraina", "Egitto"},
+				{"Medio Oriente", "Cina", "Siam"},
+				{"Urali", "Siberia", "Mongolia", "Afghanistan", "Medio Oriente", "India", "Siam"},
+				{"India", "Cina", "Indonesia"},
+				//Oceania
+				{"Siam", "Nuova Guinea", "Australia Occidentale"},
+				{"Indonesia", "Australia Orientale", "Australia Occidentale"},
+				{"Nuova Guinea", "Australia Occidentale", "Argentina"},
+				{"Indonesia", "Nuova Guinea", "Australia Orientale"}
+		};
+}

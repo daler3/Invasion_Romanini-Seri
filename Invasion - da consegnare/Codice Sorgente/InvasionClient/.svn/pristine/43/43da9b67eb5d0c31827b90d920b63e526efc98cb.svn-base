@@ -1,0 +1,503 @@
+package comunicazione;
+
+import interfacceRemote.AcceptInterface;
+import interfacceRemote.ClientComunicazioneInterfaccia;
+import interfacceRemote.ServerComunicazioneInterfaccia;
+
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
+import java.rmi.*;
+import java.util.ArrayList;
+
+import mappa.Mappa;
+import mappa.Territorio;
+import classiCondivise.BeanGiocatore;
+import classiCondivise.BeanTavolo;
+import classiCondivise.Classifica;
+import classiCondivise.Colori;
+import client.Ambasciatore;
+import exceptionCondivise.GiocatoreNonTrovatoException;
+import exceptionCondivise.ProblemaAvvioTavoloException;
+import exceptionCondivise.TavoloInesistenteException;
+import exceptionCondivise.TerritorioNonTrovatoException;
+import exceptionCondivise.UnitaInsufficientiException;
+
+/**
+ *Oggetto per la comunicazione RMI lato client.
+ *
+ */
+public class ClientComunicazione extends UnicastRemoteObject implements ClientComunicazioneInterfaccia, Client2Server {
+
+	/**
+	 * Default serial version UID.
+	 */
+	private static final long serialVersionUID = 1L;
+	private static final String host = "127.0.0.1";
+	private static final String url = "rmi://"+host+"/Hello";
+	
+	/**
+	 * Riferimento all'interfaccia remota del server.
+	 */
+	private ServerComunicazioneInterfaccia interfacciaServer; 
+	
+	/**
+	 * Ricevimento all'interfaccia del gestore delle Accept (lato Server).
+	 */
+	private AcceptInterface stub = null; 
+	
+	
+	/**
+	 * Riferimento all'ambasciatore, che mi permetterà di comunicare con i metodi di client.
+	 */
+	private Ambasciatore ambasciatore;
+	
+	
+	/**
+	 * Costruttore. 
+	 * Prende l'istanza di ambasciatore (Singleton) e gli setta sè stesso come interfaccia di comunicazione. 
+	 * @throws RemoteException
+	 */
+	public ClientComunicazione() throws RemoteException {
+		super();
+		this.ambasciatore = Ambasciatore.getInstance();
+		ambasciatore.setInterfacciaComunicazione(this);
+	}
+	
+
+	
+	
+	/**
+	 * Richiesta di login dell'utente.
+	 * Il client prova a effettuare il login tramite Rmi, chiamando il gestore delle Accept (lato Server)
+	 * @param username	username dell'utente
+	 * @param password	password dell'utente
+	 * @return il BeanGiocatore con le info dell'utente se il login è andato a buon fine; null altrimenti
+	 * @see Client2Server
+	 * 
+	 */
+	@Override
+	public BeanGiocatore effettuaLogin(String username, String password){
+		if (System.getSecurityManager() == null)
+			System.setSecurityManager(new SecurityManager());
+		Registry registry;
+		try {
+			registry = LocateRegistry.getRegistry(host);
+			AcceptInterface stub = (AcceptInterface) registry.lookup(url); 		
+			//lo loggo
+			this.interfacciaServer = stub.inizioConnessione(this);
+			return this.interfacciaServer.eseguiLogin (username, password); 
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		} catch (NotBoundException e) {
+			gestisciErroreConnessioneServer();
+		}
+		return null; 
+	}
+		
+	
+	/**
+	 * Richiesta di registrazione da parte di un utente.
+	 * Il client prova a effettuare la registrazione tramite Rmi, chiamando il gestore delle Accept (lato Server).
+	 * Se la registrazione va a buon fine, l'utente, al termine dell'operazione, sarà loggato.
+	 * @param username	username dell'utente
+	 * @param password	password dell'utente
+	 * @return il BeanGiocatore con le info dell'utente se la registrazione è andata a buon fine; null altrimenti
+	 * @throws RemoteException
+	 * @see Client2Server
+	 */
+	@Override
+	public BeanGiocatore effettuaRegistrazione(String username, String password){
+		if (System.getSecurityManager() == null)
+			System.setSecurityManager(new SecurityManager());
+		Registry registry;
+		try {
+			registry = LocateRegistry.getRegistry(host);
+			AcceptInterface stub = (AcceptInterface) registry.lookup(url); 		
+			//lo loggo
+			this.interfacciaServer = stub.inizioConnessione(this);
+			return this.interfacciaServer.eseguiRegistrazione(username, password); 
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		} catch (NotBoundException e) {
+			gestisciErroreConnessioneServer();
+		}
+		return null; 
+	}
+	
+	/**
+	 * Metodo per cambiare la password. Chiede un cambiamento di password passando per l'interfaccia remota del server.
+	 * @param vecchiaPassword - la vecchia password
+	 * @param nuovaPassword - la nuova password
+	 * @return true - se il cambio di password è andato a buon fine; false - altrimenti
+	 * @see Client2Server
+	 */
+	@Override
+	public boolean cambiaPassword(String vecchiaPassword, String nuovaPassword) {
+		boolean esito = false;
+		try {
+			esito = this.interfacciaServer.cambiaPassword(vecchiaPassword, nuovaPassword);
+			return esito;
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+		return esito;
+	}
+	
+	
+	/**
+	 * Richiede la classifica generale del gioco, comunicando con l'interfaccia remota.
+	 * @return la classifica generale del gioco
+	 * @see Client2Server.
+	 */
+	@Override
+	public Classifica chiediClassifica() {
+		Classifica classificaAttuale;
+		try {
+			classificaAttuale = this.interfacciaServer.ottieniClassifica();
+			return classificaAttuale;
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+		return null;
+	}
+	
+	
+	/**
+	 * Richiesta di ottenere le informazioni riguardanti un utente specifico.
+	 * @param nomeUtente - il nome dell'utente di cui se vogliono le info
+	 * @return le info riguardanti l'utente richiesto sotto forma di BeanGiocatore.
+	 * @throws GiocatoreNonTrovatoException 
+	 * @see Client2Server
+	 */
+	@Override
+	public BeanGiocatore ottieniInfoUtente(String usernameUtente) throws GiocatoreNonTrovatoException {
+		BeanGiocatore infoUtente = null;
+		try {
+			infoUtente = this.interfacciaServer.ottieniInfoUtente(usernameUtente);
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+		return infoUtente;
+	}
+	
+	/**
+	 * Metodo per richiedere la lista dei Tavoli Aperti
+	 * @return - la lista con le info dei tavoli aperti (id e numero giocatori)
+	 * @see Client2Server
+	 */
+	@Override
+	public ArrayList<BeanTavolo> richiediListaTavoliAperti(){
+		ArrayList<BeanTavolo> infoTavoliAperti = null;
+		try {
+			infoTavoliAperti = this.interfacciaServer.richiediListaTavoliAperti();
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+		return infoTavoliAperti;
+	}
+	
+	/**
+	 * Comando di creare un nuovo tavolo (a cui il creatore si aggiungerà)
+	 * @return - l'id del tavolo creato
+	 * @see Client2Server
+	 */
+	@Override
+	public Integer creaTavolo() {
+		Integer idNuovoTavolo = null;
+		try {
+			idNuovoTavolo = this.interfacciaServer.creaTavolo();
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+		return idNuovoTavolo;
+	}
+	
+	/**
+	 * Metodo per aggiungersi a un tavolo. 
+	 * Se l'aggiunta va a buon fine cambia lo stato attuale in "InTavolo."
+	 * @param idtavolo					L'Id del tavolo a cui il giocatore si vuole aggiungere
+	 * @return la lista dei nomi dei giocatori connessi al tavolo se l'aggiunta è andata a buon fine; null altrimenti
+	 * @throws TavoloInesistenteException 
+	 * @see Client2Server
+	 */
+	@Override
+	public ArrayList<String> joinTavolo(Integer idTavolo) throws TavoloInesistenteException {
+		ArrayList<String> nomiGiocatori = null; 
+		try {
+			nomiGiocatori = this.interfacciaServer.joinTavolo(idTavolo);
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+		return nomiGiocatori;
+	}
+	
+	/**
+	 *Comando di abbandonare un tavolo. Fa abbandonare il tavolo al client
+	 *@see Client2Server
+	 */
+	@Override
+	public void abbandonaTavolo() {
+		try {
+			this.interfacciaServer.abbandonaTavolo();
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+	}
+
+	
+	/**
+	 * Comando di avviare il tavolo a cui ha preso parte.
+	 * @param idTavolo - l'id del tavolo che il client ha richiesto di avviare 
+	 * @return true - se il tavolo verrà avviato; false - altrimenti
+	 * @throws ProblemaAvvioTavoloException 
+	 * @see Client2Server
+	 */
+	@Override
+	public boolean avviaTavolo(Integer idTavolo) throws ProblemaAvvioTavoloException{
+		boolean esitoAvvio = false;
+		try {
+			esitoAvvio = this.interfacciaServer.avviaTavolo(idTavolo);  //chiamo l'interfaccia remota lato server
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+		return esitoAvvio; 
+	}
+		
+	
+	/**
+	 * Metodo per passare al client il bean con le proprie info
+	 * @param mieInfo - Bean con le info da inviare al Client.
+	 * @throws RemoteException
+	 * @see ClientComunicazioneInterfaccia
+	 */
+	@Override
+	public void riceviMieInfo(BeanGiocatore mieInfo) throws RemoteException{
+		this.ambasciatore.riceviMieInfo(mieInfo);
+	}
+	
+	/**
+	 * Metodo per passare al client la lista aggiornata dei nomi dei giocatori con cui è attualmente seduto a un tavolo.
+	 * @param nomiGiocatoriSeduti - la lista dei nomi dei giocatori attualmente seduti al tavolo con l'utente
+	 * @throws RemoteException
+	 * @see ClientComunicazioneInterfaccia
+	 */
+	@Override
+	public void cambiamentiTavolo(ArrayList<String> nomiGiocatoriSeduti) throws RemoteException{
+		this.ambasciatore.cambiamentiTavolo(nomiGiocatoriSeduti);
+	}
+	
+	/**
+	 * Metodo per passare al client le info riguardanti i tavoli aperti
+	 * @param infoTavoliAperti - lista di BeanTavoli contenenti le informazioni sui tavoli attualmente aperti (id e numero giocatori attualmente seduti)
+	 * @throws RemoteException
+	 * @see ClientComunicazioneInterfaccia
+	 */
+	@Override
+	public void riceviInfoTavoli(ArrayList<BeanTavolo> infoTavoliAperti) throws RemoteException{
+		this.ambasciatore.riceviInfoTavoli(infoTavoliAperti);
+	}
+	
+	
+	@Override
+	public void riceviComunicazioneInizioPartita() {
+		this.ambasciatore.avviaPartita();
+		
+	}
+
+	@Override
+	public void scegliColore(Integer timer, ArrayList<Colori> coloriDisponibili) {
+		this.ambasciatore.scegliColorePartita(timer, coloriDisponibili);
+	}
+	
+	@Override
+	public void sceltaColoreEffettuata(Colori colore){
+		try {
+			this.interfacciaServer.sceltaColoreEffettuata(colore);
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+	}
+	
+
+	@Override
+	public void riceviOrdinePartita(ArrayList<BeanGiocatore> listaInfoGiocatori,
+			ArrayList<Colori> ordineColori) {
+		this.ambasciatore.riceviOrdinePartita(listaInfoGiocatori, ordineColori);	
+	}
+	
+	@Override
+	public void riceviMappa(Mappa mappa) throws RemoteException {
+		this.ambasciatore.riceviMappa(mappa);
+	}
+
+	@Override
+	public void riceviTerritoriPosizionaArmate(
+			Integer numeroArmateDaPosizionare, Integer tempoPosizionaArmate,
+			Mappa mappaPartita) {
+		this.ambasciatore.riceviTerritoriPosizionaArmate(numeroArmateDaPosizionare, tempoPosizionaArmate, mappaPartita);		
+	}
+	
+	
+
+	//DA CLIENT A SERVER
+	@Override
+	public void sceltaArmateInizialeEffettuata(String comandoPosizionamento){
+		try {
+			this.interfacciaServer.sceltaArmateInizialeEffettuata(comandoPosizionamento);
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+	}
+	
+	
+	@Override
+	public void riceviComunicazioneNuovoTurno(Colori colore, String username)
+			throws RemoteException {
+		this.ambasciatore.riceviComunicazioneNuovoTurno(colore, username);
+	}
+
+
+
+	@Override
+	public void riceviArmateInizioTurno(Integer numeroArmate, Integer tempo)
+			throws RemoteException {
+		this.ambasciatore.riceviArmateInizioTurno(numeroArmate, tempo);
+	}
+
+
+
+	@Override
+	public void riceviComunicazioneAttesaMossa(Integer tempo) throws RemoteException {
+		this.ambasciatore.comunicazioneInAttesaMossa(tempo);
+	}
+	
+	@Override
+	public void passaTurno(){
+		try {
+			this.interfacciaServer.passaTurno();
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+	}
+	
+	
+	@Override
+	public void riceviComunicazioneAttacco(Integer tempoDifesa, Territorio territorioAttaccante, Territorio territorioAttaccato, 
+			ArrayList<Integer> risultatoDadiAttacco, ArrayList<Integer> risultatoDadiDifesa, Integer [] risultati, boolean conquistato)
+					throws RemoteException {
+		this.ambasciatore.riceviComunicazioneAttacco(tempoDifesa, territorioAttaccante, territorioAttaccato, risultatoDadiAttacco, risultatoDadiDifesa, risultati, conquistato);
+	}
+
+
+
+
+	
+	
+	@Override
+	public void comandoSpostaArmate(Integer numeroArmateDaSpostare, String origine, String destinazione) throws TerritorioNonTrovatoException{
+		try {
+			this.interfacciaServer.comandoSpostaArmate(numeroArmateDaSpostare, origine, destinazione);
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+	}
+	
+	@Override
+	public void comandoAttacco(Integer numeroUnitaAttaccanti, String tAttaccato, String tAttaccante) throws UnitaInsufficientiException{
+		try {
+			this.interfacciaServer.comandoAttacco(numeroUnitaAttaccanti, tAttaccato, tAttaccante);
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+	}
+	
+	
+	@Override
+	public void abbandonaPartita(){
+		try {
+			this.interfacciaServer.abbandonaPartita();
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+	}
+	
+	
+	@Override
+	public void riceviComunicazioneSconfitta(String giocatoreSconfitto)
+			throws RemoteException {
+		this.ambasciatore.riceviComunicazioneSconfitta(giocatoreSconfitto);
+	}
+	
+	
+	@Override
+	public void riceviComunicazioneRitirata(String giocatoreRitirato) throws RemoteException{
+		this.ambasciatore.riceviComunicazioneRitirata(giocatoreRitirato);
+	}
+	
+	public void riceviClassificaFinale(ArrayList<String> classificaFinale, Integer punteggioPrimo, Integer punteggioSecondo) throws RemoteException{
+		this.ambasciatore.riceviClassificaFinale(classificaFinale, punteggioPrimo, punteggioSecondo);
+	}
+
+	
+	
+	
+
+	
+	
+	
+	
+	
+	
+	
+
+
+
+	@Override
+	public void sonoVivo() throws RemoteException{
+		return;
+	}
+
+
+
+
+	
+
+	
+	@Override
+	public boolean effettuaLogout() {
+		boolean esitoLogout = false;
+		try {
+			esitoLogout = this.interfacciaServer.eseguiLogout();
+			return esitoLogout;
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+		return esitoLogout;
+	}
+	
+	
+	
+	private void gestisciErroreConnessioneServer(){
+		this.ambasciatore.erroreDaServer();
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+			
+}

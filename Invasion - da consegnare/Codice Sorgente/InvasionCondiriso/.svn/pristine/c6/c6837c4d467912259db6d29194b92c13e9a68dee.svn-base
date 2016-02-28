@@ -1,0 +1,246 @@
+package classiCondivise;
+
+import javax.swing.text.AbstractDocument.BranchElement;
+
+public class CreareMessaggio {
+	private static final String escape = "#";
+	private static final String dotComma = ";";
+	private static final String at = "@";
+	
+	private static final String esitoPositivo = "OK";
+	private static final String esitoNegativo = "KO";
+	
+	/**
+	 * Pulsce il messaggio prima di essere inviato.
+	 * Qualsiasi informazione prima di essere messa nella stringa del socket deve essere pulita con questa funzione.
+	 * @param nome	Parametro da pulire.
+	 * @return		Il parametro pulito.
+	 */
+	public static String preparaInserimetoParametro(String nome){
+		String nomeModificato = "";		
+		for(int i = 0; i < nome.length() ; i++){
+			if(nome.charAt(i) == escape.charAt(0)){
+				nomeModificato = nomeModificato.concat(escape+escape);
+			}
+			else if(nome.charAt(i) == dotComma.charAt(0)){
+				nomeModificato = nomeModificato.concat(escape+dotComma);
+			}
+			else{
+				String temp = ""+nome.charAt(i);
+				nomeModificato = nomeModificato.concat(temp);
+			}
+		}
+		return nomeModificato;
+	}
+	
+	/**
+	 * Rimuove il comando dalla stringa.
+	 * @param stringaCompleta	Il messaggio completo.
+	 * @return					La stringa senza comando.
+	 */
+	public static String rimuoviComando(String stringaCompleta){
+		Integer posizione = stringaCompleta.indexOf(at);
+		String stringaPulita = stringaCompleta.substring(posizione+1, stringaCompleta.length());
+		return stringaPulita;
+	}
+	
+	/**
+	 * Ci da il comando della stringa.
+	 * @param stringaCompleta	La stringa completa.
+	 * @return	Il comando della stringa.
+	 */
+	public static String estraiComando(String stringaCompleta){
+		Integer posizione = stringaCompleta.indexOf(at);
+		String comando = stringaCompleta.substring(0, posizione);
+		return comando;
+	}
+	
+	/**
+	 * Dalla stringa pulita estrae la prima parte del messaggio.
+	 * La parte rimossa deve essere decriptata.
+	 * @param stringaPulita	La stringa pulita.
+	 * @return	La prima parte della stringa.
+	 */
+	private static String estraiPrimaParte(String stringaPulita){
+		Integer posizione = posizioneSeparatore(stringaPulita);
+		if(posizione == -1){
+			posizione = stringaPulita.length();
+		}
+		String temp = stringaPulita.substring(0, posizione);
+		return temp;
+	}
+	
+	/**
+	 * Dalla stringa pulita estrae la seconda parte del messaggio.
+	 * La parte estratta deve essere decriptata.
+	 * @param stringaPulita	La stringa pulita.
+	 * @return	La seconda parte della stringa.
+	 */
+	public static String estraiSecondaParte(String stringaPulita){
+		Integer posizione = posizioneSeparatore(stringaPulita)+1;
+		if(posizione == 0){
+			posizione = stringaPulita.length();
+		}
+		String temp = stringaPulita.substring(posizione, stringaPulita.length());
+		return temp;
+	}
+	
+	/**
+	 * Ci da la posizione del separatore dotComma.
+	 * @param stringaPulita	La stringa senza comando.
+	 * @return	La posizione del comando. -1 Se non c'è il separatore.
+	 */
+	private static Integer posizioneSeparatore(String stringaPulita){
+		String stringaAppoggio = stringaPulita.replaceAll(escape+escape, "--");
+		stringaAppoggio = stringaAppoggio.replaceAll(escape+dotComma, "--");
+		return stringaAppoggio.indexOf(dotComma);
+	}
+	
+	/**
+	 * Estrae il parametro originale
+	 * @param parametro	Il parametro da estrarre.
+	 * @return	Il parametro originale.
+	 */
+	private static String estraiParametro(String parametro){
+		String parametroModificato = "";
+		parametroModificato = parametro.replace(escape+escape, escape);
+		parametroModificato = parametroModificato.replace(escape+dotComma, dotComma);
+		return parametroModificato;
+	}
+	
+	/**
+	 * Estrae un Bean dalla stringa inviata.
+	 * @param stringaPulita	La stringa inviata senza il comando.
+	 * @return	Il bean associato alla stringa.
+	 */
+	public static BeanGiocatore estraiBeanGiocatore(String stringaPulita){
+		//Estraiamo il primo parametro
+		String username = estraiStringa(stringaPulita);
+		stringaPulita = estraiSecondaParte(stringaPulita);
+
+		Integer punteggio = estraiInteger(stringaPulita);
+		stringaPulita = estraiSecondaParte(stringaPulita);
+
+		Integer posizioneClassifica = estraiInteger(stringaPulita);
+		stringaPulita = estraiSecondaParte(stringaPulita);
+		
+		Integer numeroPartite = estraiInteger(stringaPulita);
+		stringaPulita = estraiSecondaParte(stringaPulita);
+		
+		float percVinte = estraiFloat(stringaPulita);
+		stringaPulita = estraiSecondaParte(stringaPulita);
+		
+		float percSecondo = estraiFloat(stringaPulita);
+		stringaPulita = estraiSecondaParte(stringaPulita);
+		
+		float percAbbandono = estraiFloat(stringaPulita);
+		stringaPulita = estraiSecondaParte(stringaPulita);
+		
+		boolean connesso = estraiBoolean(stringaPulita);
+		
+		return new BeanGiocatore(username, punteggio, posizioneClassifica, numeroPartite, percVinte, percSecondo, percAbbandono, connesso);
+	}
+	
+	public static BeanTavolo estraiBeanTavolo(String stringaPulita){
+		Integer idTavolo = estraiInteger(stringaPulita);
+		stringaPulita = estraiSecondaParte(stringaPulita);
+
+		Integer numeroUtenti = estraiInteger(stringaPulita);
+		stringaPulita = estraiSecondaParte(stringaPulita);
+		
+		return new BeanTavolo(idTavolo, numeroUtenti);
+	}
+	
+	/**
+	 * Estrae una stringa dal messaggio.
+	 * @param stringaPulita	La stringa senza il comando.
+	 * @return	La stringa estratta.
+	 */
+	public static String estraiStringa (String stringaPulita){
+		return estraiParametro(estraiPrimaParte(stringaPulita));
+	}
+	
+	/**
+	 * Estrae un valore Integer dalla stringa letta.
+	 * @param stringaPulita	La stringa senza il comando.
+	 * @return	L'Integer letto.
+	 */
+	public static Integer estraiInteger (String stringaPulita){
+		return Integer.parseInt(estraiPrimaParte(stringaPulita));
+	}
+	
+	/**
+	 * Estrae un valore float dalla stringa letta.
+	 * @param stringaPulita	La stringa senza il comando.
+	 * @return	Il float letto.
+	 */
+	public static float estraiFloat (String stringaPulita){
+		return Float.parseFloat(estraiPrimaParte(stringaPulita));
+	}
+	
+	/**
+	 * Se viene letto TRUE ritorna true; false altrimenti
+	 * @param stringaPulita	La stringa senza comando.
+	 * @return	Il valore boolean.
+	 */
+	public static boolean estraiBoolean (String stringaPulita){
+		if(estraiPrimaParte(stringaPulita).toUpperCase().equals("TRUE"))
+			return true;
+		return false;
+	}
+	
+	/**
+	 * Genera un messaggio con responso positivo
+	 * @param messaggioAllegato		Messaggio da allegare.
+	 * @return	Il messaggio pronto ad essere inviato.
+	 */
+	public static String responsoPositivo(String messaggioAllegato){
+		return esitoPositivo+at+messaggioAllegato;
+	}
+	
+	/**
+	 * Genera un messaggio con responso negativo.
+	 * @param messaggioAllegato	Messaggio da allegare.
+	 * @return	Il messaggio pronto ad essere inviato.
+	 */
+	public static String responsoNegativo(String messaggioAllegato) {
+		return esitoNegativo+at+messaggioAllegato;
+	}
+	
+
+//	public static void main(String[] args) {
+//		BufferedReader io = new BufferedReader(new InputStreamReader(System.in));
+//		try {
+//			String nome = io.readLine();
+//			String psw = io.readLine();
+//			String insulto = io.readLine();
+//			
+//			String criptazione = "login@"+preparaInserimetoParametro(nome)+";"+preparaInserimetoParametro(psw)+";"+preparaInserimetoParametro(insulto);
+//			System.out.printf("Nome originale: %s\t Nome modificato: %s\n", nome, criptazione);
+//			//Estraiamo il comando
+//			String comando = estraiComando(criptazione);
+//			//Puliamo la stringa
+//			String stringaPulita = rimuoviComando(criptazione);
+//			//Estraiamo il primo parametro
+//			String primoPar = estraiParametro(estraiPrimaParte(stringaPulita));
+//			//Ci posizioniamo dopo il separatore
+//			stringaPulita = estraiSecondaParte(stringaPulita);
+//			//Estraiamo il secondo parametro.
+//			String secondoParam = estraiParametro(estraiPrimaParte(stringaPulita));
+//			//Ci posizioniamo dopo il separatore
+//			stringaPulita = estraiSecondaParte(stringaPulita);
+//			//Estraiamo il terzo parametro.
+//			String terzoPar = estraiParametro(estraiPrimaParte(stringaPulita));
+//			//Ci posizioniamo dopo il separatore
+//			stringaPulita = estraiSecondaParte(stringaPulita);
+//			//Estraiamo il quarto parametro.
+//			String quartoPar = estraiParametro(estraiPrimaParte(stringaPulita));
+//			
+//			System.out.println("Decriptato\nComando: "+comando+"\tNome: "+primoPar+"\tPassword: "+secondoParam+"\tInsulto: "+terzoPar);
+//			System.out.println("E se cerco di leggere altro ottengo: "+quartoPar);
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
+//
+//	}
+}

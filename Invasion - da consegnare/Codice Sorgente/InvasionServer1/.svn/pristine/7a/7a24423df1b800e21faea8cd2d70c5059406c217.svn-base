@@ -1,0 +1,24 @@
+package server_daler;
+
+import java.sql.SQLException;
+import java.util.ArrayList;
+
+import classiCondivise.BeanGiocatore;
+import classiCondivise.Classifica;
+import exceptionCondivise.GiocatoreNonTrovatoException;
+
+public interface ControllerServer {
+	
+	public Classifica ottieniClassifica() throws SQLException;
+	
+	public BeanGiocatore ottieniInfoUtente(String username) throws GiocatoreNonTrovatoException;
+	
+	public ArrayList<String> ottieniListaGiocatori();
+	
+	public ArrayList<String> ottieniListaRegistrati() throws SQLException;
+	
+	public int totalePartiteGiocate() throws SQLException;
+	
+	
+
+}

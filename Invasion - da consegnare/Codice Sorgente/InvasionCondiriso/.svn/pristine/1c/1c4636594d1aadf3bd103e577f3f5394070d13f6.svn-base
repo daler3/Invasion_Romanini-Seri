@@ -1,0 +1,7 @@
+package interfacceRemote;
+
+import java.rmi.Remote;
+
+public interface ServerComunicazioneInterfaccia extends Remote{
+
+}

@@ -1,0 +1,13 @@
+package server_daler;
+
+import java.util.ArrayList;
+
+public class Server {
+	
+	private static final int numeroMinimoGiocatoriPartita=3;
+	
+	
+	ArrayList<GiocatoreConnesso> utentiConnessi; 
+	
+
+}

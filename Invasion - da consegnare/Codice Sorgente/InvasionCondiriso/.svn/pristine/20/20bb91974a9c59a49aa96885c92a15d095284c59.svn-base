@@ -1,0 +1,5 @@
+package classiCondivise;
+
+public enum StatiUtente {
+	NONCONNESSO, LIMBO, INTAVOLO, INPARTITA
+}

@@ -1,0 +1,91 @@
+package socket;
+
+import interfacciaComunicazione.Server2Client;
+
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Iterator;
+
+import server.AlloccoDormiente;
+import server.Giocatore;
+import server_daler.GiocatoreConnesso;
+
+public class DemoneSocket implements Runnable {
+
+	private static final int port = 4445;
+	private boolean continuaCiclo = true;
+	
+	@Override
+	public void run() {
+		ServerSocket serverSocket = null;
+		Socket clientSocket = null;
+		Interprete comunicazione = null;
+		Thread thread = null;
+		
+        try {
+        	//Inizializzo il server socket
+            serverSocket = new ServerSocket(port);
+        } catch (IOException e) {
+            System.err.println("Non posso fare listen sulla porta: "+port);
+            System.exit(1);
+        }
+        
+        System.out.println("Mi metto in ascolto");
+    	continuaCiclo = true;
+    	ArrayList<Thread> tasklist = new ArrayList<Thread>();
+    	Iterator<Thread> iteratore = null;
+        try {
+			while(continuaCiclo){
+				//Restiamo in attesa di un Client
+	        	clientSocket = serverSocket.accept();
+	        	if(continuaCiclo){
+	        		//Creo il giocatore
+	        		GiocatoreConnesso giocatore = new GiocatoreConnesso();
+	        		//Creo l'interprete del lettore
+	        		Server2Client mioInterprete = new Interprete(clientSocket, giocatore);
+	        		//Passo l'interfaccia di comunicazione al giocatore
+	        		giocatore.assegnaInterfacciaComunicazione(interfaccia);
+		            
+		            thread = new Thread(task);
+		            thread.start();
+		            System.out.println("Giocatore accettato");
+		            //Inserisco il thread nella lista
+		            tasklist.add(thread);
+		            //Elimino tutti i thread terminati dalla lista
+		            iteratore = tasklist.iterator();
+	        		while(iteratore.hasNext()){
+	        			//Rimuovo i thread morti
+	        			thread = iteratore.next();
+	        			if(!thread.isAlive()){
+	        				iteratore.remove();
+	        			}
+	        		}
+	        	}else{
+	        		//Rifiuto la connessione
+	        		clientSocket.close();
+	        		//lancio un interrupt a tutti i thread
+	        		iteratore = tasklist.iterator();
+	        		while(iteratore.hasNext()){
+	        			thread = iteratore.next();
+	        			if(thread.isAlive()){
+	        				thread.interrupt();
+	        			}
+	        		}
+	        	}
+        	}
+            
+        } catch (IOException e) {
+            System.err.println("Accept fallita.");
+            System.exit(1);
+        }finally{
+        	if(!serverSocket.isClosed()){
+				try { serverSocket.close();	} catch (IOException e) {e.printStackTrace();}
+			}
+        }
+        System.out.println("Server terminato");
+
+	}
+
+}

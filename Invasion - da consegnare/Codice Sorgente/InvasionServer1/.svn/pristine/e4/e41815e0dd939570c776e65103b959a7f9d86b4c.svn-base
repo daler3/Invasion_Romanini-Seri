@@ -1,0 +1,178 @@
+package socket;
+
+import java.util.ArrayList;
+
+import classiCondivise.Colori;
+import interfacciaComunicazione.Server2Client;
+
+public class Interprete implements Server2Client {
+
+	public static final String customString = "default";
+	private String stringaLetta = customString;
+	
+	public Interprete(){
+		super();
+		
+		Thread mioLettore = new Thread();
+	}
+	
+	public String interpreta(String stringaLetta){
+		String risposta = null;
+		return null;
+	}
+	
+	public synchronized String inviaComando(Integer secondiAttesa) throws InterruptedException{
+		//TODO gestire l'invio del comando
+		
+		//Attendiamo la risposta dell'utente
+		if(stringaLetta.equals(customString)){
+			wait(secondiAttesa*1000);
+		}
+		//Ci salviamo la risposta, ripristiniamo la stringa di default e ritorniamo quello che abbiamo letto
+		String risposta = stringaLetta;
+		this.stringaLetta = customString;
+		return risposta;
+	}
+	
+	public String getStringaLetta() {
+		return stringaLetta;
+	}
+
+	public void setStringaLetta(String stringaLetta) {
+		this.stringaLetta = stringaLetta;
+	}
+	
+	//TODO Creare pacchettatore
+	
+	public void aggiornaStringa(String rispostaClient){
+		//Aggiorna la stringa e risveglia il thread in attesa
+		stringaLetta = rispostaClient;
+		notifyAll();
+	}
+
+	@Override
+	public void TavoloCreato(String nomeGiocatoreCreatore, String IdTavoloCreato) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void JoinTavolo(String nomeGiocatoreAggiunto, String IdTavolo) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void RimossoTavoloAperto(String IdTavolo) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void PassaTavoloOpenToClosed(String IdTavolo) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void PartiTimerTavoloAperto(String idTavolo, Integer secondi) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void PartiTimerTurnoPartita(String idPartita, Integer secondi) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void tuoTurno() {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void cambiaTurno(String nomeGiocatore) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void ordinePartita(ArrayList<String> nomiGiocatori) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void inviaColoreGiocatorePartita(String coloreGiocatore) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void inviaBonusTurno(String colore, Integer bonus) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void inviaBonusContinente(String colore, String nomeContinente,
+			Integer bonus) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void aggiuntaUnita(String colore, String nomeTerritorio,
+			Integer numeroUnitaAggiunte) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void rimossaUnita(String colore, String nomeTerritorio,
+			Integer numeroUnitaRimosse) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void assegnaArmateInizioPartita(Integer numeroArmate) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void assegnaArmateTurno(Integer numeroArmate) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public ArrayList<Integer> difenditi(String nomeTerritorioAttaccante,
+			ArrayList<Integer> dadiAttaccanti) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void risultatoCombattimento(Integer numeroArmatePerse,
+			Integer numeroArmateDistrutte) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public void risultatoPartita(ArrayList<Integer> punteggiFinali) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public Colori scegliColore(ArrayList<Colori> coloriDisponibili) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+}

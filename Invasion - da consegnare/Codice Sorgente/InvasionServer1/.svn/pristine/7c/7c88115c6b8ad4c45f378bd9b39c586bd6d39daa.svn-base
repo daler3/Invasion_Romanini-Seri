@@ -1,0 +1,11 @@
+package server_daler;
+
+public class StartInvasionServer {
+	
+	
+	public static void main(String[] args) {
+		
+		
+	}
+
+}

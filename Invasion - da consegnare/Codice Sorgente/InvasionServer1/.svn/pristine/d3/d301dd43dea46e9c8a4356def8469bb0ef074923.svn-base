@@ -1,0 +1,4 @@
+package socketTest;
+
+public interface InterfacciaComunicazione {
+}

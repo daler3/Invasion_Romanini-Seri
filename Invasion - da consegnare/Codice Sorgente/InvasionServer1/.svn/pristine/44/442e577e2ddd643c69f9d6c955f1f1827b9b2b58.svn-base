@@ -1,0 +1,12 @@
+package interfacciaGUI;
+
+public interface ControllerTavolo {
+
+	/**
+	 * Fa la richiesta di entrare nel tavolo selezionato
+	 * @param idTavolo	Tavolo in cui si vuole entrare
+	 * @return	Esito richiesta accesso
+	 */
+	public boolean entraNelTavolo(Integer idTavolo);
+	
+}

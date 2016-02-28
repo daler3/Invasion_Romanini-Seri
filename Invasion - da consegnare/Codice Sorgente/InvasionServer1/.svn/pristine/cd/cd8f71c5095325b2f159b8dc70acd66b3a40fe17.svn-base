@@ -1,0 +1,67 @@
+package provaRmi;
+
+import interfacciaComunicazione.Server2Client;
+
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
+
+import server_daler.GiocatoreConnesso;
+import server_daler.*;
+
+
+/**
+ * Classe comunicazione da server a client. Questa è nel server e associata a ogni giocatore
+ * @author daniele
+ *
+ */
+
+public class ServerComunicazione extends UnicastRemoteObject implements ServerComunicazioneInterfaccia, Server2Client, Runnable {
+
+	
+	private static final long serialVersionUID = 2L;
+	
+	private String name;
+	private String password; 
+	private ClientComunicazioneInterfaccia client;
+	private AcceptClass serverAcc = null; 
+	private GiocatoreConnesso mioGiocatore; 
+	private Thread serverThread;
+	
+	
+	public ServerComunicazione(ClientComunicazioneInterfaccia client){
+		this.client = client; 
+		this.mioGiocatore = new GiocatoreConnesso(this);
+	}
+	
+	
+	
+	
+//	public ServerComunicazione(ClientComunicazioneInterfaccia client, String name, String password, AcceptClass serverAcc) throws RemoteException{
+//		this.client=client; 
+//		this.name=name; 
+//		this.password=password; 
+//		this.serverAcc=serverAcc; 
+//		//creo il ThreadPlayer...\\TODO: mettici i parametri
+//		this.mioGiocatore = new GiocatoreConnesso(name, this);
+//	}
+//	
+//
+//	public void startThreadPlayer(){
+//		//creo istanza di threadPlayer
+//		this.serverThread = new Thread(this.threadGiocatore);
+//		serverThread.start();
+//	}
+//	
+//	public void rimuovi(){
+//		//chiamo metodi nella comunicazione per sloggare
+//		
+//	}
+//	
+//	//passo al threadPlayer l'id della partita a cui mi voglio a cui mi voglio aggiungere 
+//	public void joinPartita(){
+//		
+//	}
+
+	
+
+}

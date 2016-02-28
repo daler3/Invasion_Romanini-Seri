@@ -1,0 +1,11 @@
+package interfacceRemote;
+
+import java.rmi.*;
+
+
+public interface AcceptInterface extends Remote {
+	//public ServerComunicazioneInterfaccia login (ClientComunicazioneInterfaccia client2, String name, String password) throws RemoteException;
+	
+	public ServerComunicazioneInterfaccia inizioConnessione(ClientComunicazioneInterfaccia client) throws RemoteException;
+
+}

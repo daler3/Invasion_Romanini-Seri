@@ -1,0 +1,116 @@
+package classiCondivise;
+
+public class BeanGiocatore {
+	
+	//praticamente quando si connette tiro giu le info dal db, e le riaggiorno a fine connessione
+	//meglio che continuare a chiedere a db.. prendo da qui le info con gli utenti
+	
+	//sono anche nel client --> glieli passerei dentro la partita, in modo da vedere con chi sta giocando
+	//è iu probabile che richieda cose mentre sta giocando
+	
+	//avra un boolean --> connesso true/false
+	
+	//accessibile a tutti
+	
+	//nome
+	
+	//visualizza punteggio
+	//visualizza posizione in classifica
+	//visualizza partecipazione a partite
+	
+	private String nomeUtente; 
+	
+	private int punteggio; 
+	
+	private int posizioneClassifica; 
+	
+	private int numeroPartitePartecipate; 
+	
+	private int percentualePartiteVinte; 
+	
+	private boolean connesso;
+
+	
+	/**
+	 * Costruttore
+	 * @param nomeUtente
+	 * @param punteggio
+	 * @param posizioneClassifica
+	 * @param numeroPartitePartecipate
+	 * @param percentualePartiteVinte
+	 * @param connesso
+	 */
+	public BeanGiocatore(String nomeUtente, int punteggio,
+			int posizioneClassifica, int numeroPartitePartecipate,
+			int percentualePartiteVinte, boolean connesso) {
+		super();
+		this.nomeUtente = nomeUtente;
+		this.punteggio = punteggio;
+		this.posizioneClassifica = posizioneClassifica;
+		this.numeroPartitePartecipate = numeroPartitePartecipate;
+		this.percentualePartiteVinte = percentualePartiteVinte;
+		this.connesso = connesso;
+	}
+
+
+	public String getNomeUtente() {
+		return nomeUtente;
+	}
+
+
+	public void setNomeUtente(String nomeUtente) {
+		this.nomeUtente = nomeUtente;
+	}
+
+
+	public int getPunteggio() {
+		return punteggio;
+	}
+
+
+	public void setPunteggio(int punteggio) {
+		this.punteggio = punteggio;
+	}
+
+
+	public int getPosizioneClassifica() {
+		return posizioneClassifica;
+	}
+
+
+	public void setPosizioneClassifica(int posizioneClassifica) {
+		this.posizioneClassifica = posizioneClassifica;
+	}
+
+
+	public int getNumeroPartitePartecipate() {
+		return numeroPartitePartecipate;
+	}
+
+
+	public void setNumeroPartitePartecipate(int numeroPartitePartecipate) {
+		this.numeroPartitePartecipate = numeroPartitePartecipate;
+	}
+
+
+	public int getPercentualePartiteVinte() {
+		return percentualePartiteVinte;
+	}
+
+
+	public void setPercentualePartiteVinte(int percentualePartiteVinte) {
+		this.percentualePartiteVinte = percentualePartiteVinte;
+	}
+
+
+	public boolean isConnesso() {
+		return connesso;
+	}
+
+
+	public void setConnesso(boolean connesso) {
+		this.connesso = connesso;
+	} 
+		
+
+}

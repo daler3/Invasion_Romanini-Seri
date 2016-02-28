@@ -1,0 +1,92 @@
+package socket;
+
+import interfacciaComunicazione.Server2Client;
+
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Iterator;
+
+import server.GiocatoreConnesso;
+
+public class DemoneSocket implements Runnable {
+
+	private static final int port = 4445;
+	private boolean continuaCiclo = true;
+	
+	@Override
+	public void run() {
+		ServerSocket serverSocket = null;
+		Socket clientSocket = null;
+		InterpreteServer comunicazione = null;
+		
+        try {
+        	//Inizializzo il server socket
+            serverSocket = new ServerSocket(port);
+        } catch (IOException e) {
+            System.err.println("Non posso fare listen sulla porta: "+port);
+            System.exit(1);
+        }
+        
+        System.out.println("Mi metto in ascolto");
+    	continuaCiclo = true;
+    	ArrayList<InterpreteServer> tasklist = new ArrayList<InterpreteServer>();
+    	Iterator<InterpreteServer> iteratore = null;
+        try {
+			while(continuaCiclo){
+				//Restiamo in attesa di un Client
+	        	clientSocket = serverSocket.accept();
+	        	if(continuaCiclo){
+	        		//Creo il giocatore
+	        		GiocatoreConnesso giocatore = new GiocatoreConnesso();
+	        		//Creo l'interprete del lettore
+	        		InterpreteServer mioInterprete = new InterpreteServer(clientSocket, giocatore);
+	        		//Passo l'interfaccia di comunicazione al giocatore
+	        		giocatore.assegnaInterfacciaComunicazione(mioInterprete); //la metterei direttamente i interprete
+	        		//Fine creazione collegamento
+		            System.out.println("Giocatore accettato");
+		            
+		            //Inserisco l'interprete nella lista
+		            tasklist.add(mioInterprete);
+		            
+		            //Elimino tutti i thread terminati dalla lista
+		            iteratore = tasklist.iterator();
+	        		while(iteratore.hasNext()){
+	        			//Rimuovo i Lettori morti
+	        			comunicazione = iteratore.next();
+	        			if(!comunicazione.isAlive()){	//Controlliamo tramite interprete se il lettore è vivo
+	        				iteratore.remove();
+	        			}
+	        		}
+	        	}else{
+	        		//Rifiuto la connessione
+	        		clientSocket.close();
+	        		//lancio un interrupt a tutti i Lettori per chiuderli
+	        		iteratore = tasklist.iterator();
+	        		while(iteratore.hasNext()){
+	        			comunicazione = iteratore.next();
+	        			if(comunicazione.isAlive()){
+	        				comunicazione.killLettore();
+	        			}
+	        		}
+	        	}
+        	}
+            
+        } catch (IOException e) {
+            System.err.println("Accept fallita.");
+            System.exit(1);
+        }finally{
+        	if(!serverSocket.isClosed()){
+				try { serverSocket.close();	} catch (IOException e) {e.printStackTrace();}
+			}
+        }
+        System.out.println("Server terminato");
+
+	}
+
+	public void ferma() {
+		this.continuaCiclo = false;
+	}
+
+}

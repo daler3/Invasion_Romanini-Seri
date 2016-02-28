@@ -1,0 +1,216 @@
+package server_daler;
+
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Iterator;
+
+/**
+ * Classe che rappresenta il Tavolo Aperto, in attesa di essere Chiuso e cominciare quindi una nuova partita
+ *
+ */
+public class TavoloAperto {
+	
+//	/**
+//	 * Il tempo prefissato che manca alla chiusura del tavolo cioè all'inizio della partita, quando è stato raggiunto il numero minimo di giocatori
+//	 */
+//	protected static final int tempoAllaChiusura = 60; 
+	
+	/**
+	 * Numero massimo di giocatori in una partita
+	 */
+	protected static final int maxPlayer = 6;
+	
+	/**
+	 * Numero minimo di giocatori per poter iniziare una partita
+	 */
+	protected static final int minPlayer=3;
+	
+	/**
+	 * Id del Tavolo.
+	 */
+	private Integer idTavolo;
+
+		
+	/**
+	 * Lista di giocatori connessi al Tavolo
+	 */
+	private ArrayList<GiocatoreConnesso> giocatoriInTavolo;
+	
+	/**
+	 * Nome del creatore del tavolo
+	 */
+	private String usernameCreatore; 
+	
+	
+//	/**
+//	 * Costruttore della classe TavoloAperto.
+//	 * @param idTavolo - l'id del Tavolo che viene creato
+//	 */
+//	public TavoloAperto(Integer idTavolo, String usernameCreatore){
+//		this.giocatoriInTavolo = new ArrayList<GiocatoreConnesso>(maxPlayer);
+//		this.idTavolo = idTavolo; 
+//		this.usernameCreatore = usernameCreatore; 
+//	}
+	
+	
+	/**
+	 * Costruttore della classe TavoloAperto. 
+	 * Se un utente ha creato il tavolo chiamo questo costruttore, e aggiungo direttamente il creatore a questo tavolo.
+	 * @param idTavolo - l'id del Tavolo che viene creato 
+	 * @param creatoreTavolo - colui che ha creato il tavolo. 
+	 */
+	public TavoloAperto(Integer idTavolo, GiocatoreConnesso creatoreTavolo){
+		this.giocatoriInTavolo = new ArrayList<GiocatoreConnesso>(maxPlayer);
+		this.idTavolo = idTavolo;
+		this.usernameCreatore = creatoreTavolo.getUsername();
+		aggiungiGiocatore(creatoreTavolo); 
+	}
+	
+	
+	/**
+	 * Getter per la lista dei giocatori connessi al tavolo
+	 * @return la lista dei giocatori presenti nel tavolo
+	 */
+	public ArrayList<GiocatoreConnesso> getGiocatoriInTavolo() {
+		return giocatoriInTavolo;
+	}
+	
+	/**
+	 * Aggiunge un giocatore al tavolo
+	 * Sync per evitare inconsistenze nella lista dei giocatori. Servo una richiesta per volta
+	 * @param giocatore - il giocatore da aggiungere al tavolo
+	 * @return true - se il giocatore è stato aggiunto correttamente al tavolo; false - se il giocatore non è potuto essere aggiunto al tavolo
+	 */
+//	public boolean aggiungiGiocatore(GiocatoreConnesso giocatore){
+//		return this.giocatoriInTavolo.add(giocatore);
+//	}
+	public synchronized boolean aggiungiGiocatore(GiocatoreConnesso giocatore){
+		if(this.giocatoriInTavolo.size() == maxPlayer){
+			return false;
+		}
+		//aggiungo alla lista dei giocatori nel tavolo il giocatore che si e' aggiunto
+		boolean aggiunta =  this.giocatoriInTavolo.add(giocatore); //aggiungo alla fine
+		//comunico agli altri giocatori nel tavolo l'aggiunta del giocatore
+		comunicaCambiamenti(giocatore);
+		//ritorno l'esito dell'aggiunta (al giocatore che si è appena aggiunto)
+		return aggiunta; 
+	}
+	
+//	/**
+//	 * Comunico a coloro che sono attualmente al tavolo (a parte a quello appena connesso) che un nuovo giocatroe si è connesso
+//	 * @param giocatore - il giocatore che si è appena aggiunto un tavolo
+//	 */
+//	public void comunicoAggiunta(GiocatoreConnesso giocatore){
+//		Iterator<GiocatoreConnesso> itGioc = this.giocatoriInTavolo.iterator();
+//		GiocatoreConnesso gioc;
+//		while(itGioc.hasNext()){
+//			gioc = itGioc.next();
+//			if(gioc.getUsername() == giocatore.getUsername())
+//				continue;
+//			gioc.giocatoreAggiuntoATavolo(gioc.getUsername()); //comunico a tutti quelli presenti nel tavolo che un nuovo giocatore si è connesso
+//		}
+//	}
+	
+	/**
+	 * Rimuove un giocatore dal tavolo
+	 * Sync per evitare inconsistenze nella lista dei giocatori. Servo una richiesta per volta.
+	 * @param giocatoreRimosso - il giocatore da rimuovere dal tavolo
+	 * 
+	 */
+//	public boolean rimuoviGiocatore(GiocatoreConnesso giocatore){
+//		return this.giocatoriInTavolo.remove(giocatore);
+//	}
+	public synchronized void rimuoviGiocatore(GiocatoreConnesso giocatoreRimosso){
+		//rimuovo dalla lista dei giocatori nel tavolo il giocatore che si è rimosso
+		this.giocatoriInTavolo.remove(giocatoreRimosso);
+		if(this.giocatoriInTavolo.size() == 0){ //se non ci sono più giocatori devo rimuovere il tavolo
+			Server mioServer = Server.getInstance();
+			mioServer.rimuoviTavoloAperto(this);
+			return;
+		}
+		if(giocatoreRimosso.getUsername() == this.usernameCreatore){ //vuol dire che ho rimosso il creatore, devo eleggerne uno nuovo
+			//eleggo il primo utente connesso dopo il creatore
+			Integer i = (this.giocatoriInTavolo.size())-1; //posizione del nuovo creatore
+			GiocatoreConnesso nuovoCreatore = this.giocatoriInTavolo.get(i);
+			this.usernameCreatore = nuovoCreatore.getUsername();
+		}
+		//comunico agli altri giocatori nel tavolo la rimozione del giocatore, e l'eventuale elezione di un nuovo creatore
+		comunicaCambiamenti(giocatoreRimosso);
+		//ritorno l'esito della rimozione (al giocatore che si è rimosso)
+	}
+	
+//	/**
+//	 * Comunico a coloro i quali sono seduti al tavoli che un giocatore ha abbandonato il tavolo
+//	 * @param giocatore - il giocatore da rimuovere dal tavolo
+//	 */
+//	public void comunicaRimozione(GiocatoreConnesso giocatore){
+//		Iterator<GiocatoreConnesso> itGioc = this.giocatoriInTavolo.iterator();
+//		GiocatoreConnesso gioc;
+//		while(itGioc.hasNext()){ //comunico a coloro che sono nel tavolo
+//			gioc = itGioc.next();
+//			gioc.giocatoreRimossoDaTavolo(gioc.getUsername());
+//		}
+//	}
+//	
+	
+	/**
+	 * Comunico a coloro i quali sono seduti al tavolo che è avvenuto un cambiamento.
+	 * Invio quindi ai giocatori seduti il tavolo aggiornato.
+	 */
+	public void comunicaCambiamenti(){
+		Iterator<GiocatoreConnesso> itGioc = this.giocatoriInTavolo.iterator();
+		GiocatoreConnesso gioc;
+		while(itGioc.hasNext()){ //comunico a coloro che sono nel tavolo
+			gioc = itGioc.next();
+			gioc.cambiamentiTavolo(this); 
+		}
+	}
+	
+	/**
+	 * Comunico a coloro i quali sono seduti al tavolo (a meno del giocatore escluso) che è avvenuto un cambiamento.
+	 * Invio quindi ai giocatori seduti (a meno del giocatore escluso) il tavolo aggiornato.
+	 * @param giocatoreEscluso - il giocatore escluso dalla comunicazione
+	 */
+	public void comunicaCambiamenti(GiocatoreConnesso giocatoreEscluso){
+		Iterator<GiocatoreConnesso> itGioc = this.giocatoriInTavolo.iterator();
+		GiocatoreConnesso gioc;
+		while(itGioc.hasNext()){ //comunico a coloro che sono nel tavolo
+			gioc = itGioc.next();
+			if(gioc.getUsername() == giocatoreEscluso.getUsername()) //se l'elemento corrente non è il giocatore escluso, allora gli comunico il cambiamento
+				gioc.cambiamentiTavolo(this); 
+		}
+	}
+	
+	/**
+	 * Richiesto da un utente per avviare il tavolo.
+	 * Sync perchè non possono arrivare due richieste contemporaneamente.
+	 * @param usernameRichiedente - nome dell'utente che richiede di avviare il tavolo
+	 * @returntrue - se il tavolo è avviato; false - altrimenti
+	 */
+	public synchronized boolean avviaTavolo(String usernameRichiedente){
+		if (!usernameRichiedente.equals(usernameCreatore)){
+			return false; //se non sono il creatore del tavolo, non posso chiedere di avviarlo
+		}
+		if (this.giocatoriInTavolo.size() < TavoloAperto.minPlayer){
+			return false; //se ci sono meno che 3 giocatori non è possibile avviare il tavolo
+		}
+		//prendo l'istanza del server
+		Server mioServer = Server.getInstance();
+		try {
+			mioServer.inizializzaPartita(this);
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return false; //c'è stato un problema col Db, non ho potuto avviare la partita
+		} 
+		return true; //l'avvio del tavolo è andato a buon fine
+	}
+
+	/**
+	 * Getter per l'id del Tavolo
+	 * @return l'id del tavolo
+	 */
+	public Integer getIdTavolo() {
+		return idTavolo;
+	}
+
+}

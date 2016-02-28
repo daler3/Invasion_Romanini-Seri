@@ -1,0 +1,15 @@
+package interfacciaGUI;
+
+import java.util.ArrayList;
+
+public interface ViewTavolo {
+
+	public void aggiornaUtenti(ArrayList<String> utenti);
+	
+	/**
+	 * Da server a client, dice di avviare la partita
+	 * @param controllerPartita
+	 */
+	public void avviaPartita(ControllerPartita controllerPartita);
+	
+}

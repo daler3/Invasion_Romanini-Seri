@@ -1,0 +1,57 @@
+package client;
+
+import classiCondivise.BeanGiocatore;
+import classiCondivise.Classifica;
+import interfacciaGUI.ControllerAccountStatistiche;
+import classiCondivise.Classifica;
+
+public class AccountEStatistiche implements ControllerAccountStatistiche{
+
+	private Ambasciatore ambasciatore;
+	
+	/**
+	 * Costruttore
+	 */
+	public AccountEStatistiche() {
+		this.ambasciatore = Ambasciatore.getInstance();
+	}
+
+	@Override
+	public boolean cambiaPassword(String vecchiaPassword, String nuovaPassword) {
+		boolean esito = this.ambasciatore.cambiaPassword(vecchiaPassword, nuovaPassword);
+		return esito; 
+	}
+
+	@Override
+	public Classifica visualizzaClassifica() {
+		Classifica classifica = this.ambasciatore.ottieniClassifica();
+		return classifica; 
+	}
+
+	@Override
+	public BeanGiocatore visualizzaInfoGiocatore(String nomeGiocatore) {
+		BeanGiocatore infoGiocatore = this.ambasciatore.ottieniInfoUtente(nomeGiocatore);
+		return infoGiocatore;
+	}
+
+	@Override
+	public BeanGiocatore visualizzaMieInfo() {
+		BeanGiocatore mieInfo = this.ambasciatore.getMieInfo();
+		return mieInfo; 
+	}
+
+//	@Override
+//	public String ottieniNome() {
+//		String mioNome = ambasciatore.getMieInfo().getNomeUtente();
+//		return mioNome;
+//	}
+
+	@Override
+	public boolean logout() {
+		boolean esitoLogout = this.ambasciatore.eseguiLogout();
+		return esitoLogout;
+	}
+	
+	
+
+}

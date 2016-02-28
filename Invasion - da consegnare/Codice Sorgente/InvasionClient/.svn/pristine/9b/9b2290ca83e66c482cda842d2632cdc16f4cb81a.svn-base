@@ -1,0 +1,98 @@
+package oldGui;
+
+import guiClient.immagini.IconLoader;
+import interfacciaGUI.ControllerLimbo;
+
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.JLabel;
+
+import java.awt.Container;
+import java.awt.Dimension;
+import java.awt.GridBagLayout;
+import java.awt.GridBagConstraints;
+import java.awt.Insets;
+import java.awt.Color;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+
+import javax.swing.SwingConstants;
+import javax.swing.Icon;
+
+import classiCondivise.Colori;
+
+public class PanelPartita extends JPanel {
+
+	final static int numPlayer = 6;
+	final int[] r = {Colori.VERDE.getR(), Colori.BLU.getR(), Colori.GIALLO.getR(), Colori.NERO.getR(), Colori.ROSSO.getR(), Colori.VIOLA.getR()};
+	final int[] g = {Colori.VERDE.getG(), Colori.BLU.getG(), Colori.GIALLO.getG(), Colori.NERO.getG(), Colori.ROSSO.getG(), Colori.VIOLA.getG()};
+	final int[] b = {Colori.VERDE.getB(), Colori.BLU.getB(), Colori.GIALLO.getB(), Colori.NERO.getB(), Colori.ROSSO.getB(), Colori.VIOLA.getB()};
+	ControllerLimbo giocatore;
+	JPanel pnlGiocatori;
+	JPanel pnlGiocatore1;
+	JPanel pnlGiocatore2;
+	JPanel pnlGiocatore3;
+	JPanel pnlGiocatore4;
+	JPanel pnlGiocatore5;
+	JPanel pnlGiocatore6;
+	
+	public PanelPartita(ControllerLimbo giocatore) {
+		this.giocatore = giocatore;
+		setPreferredSize(new Dimension(1000, 1000));
+		GridBagLayout gridBagLayout = new GridBagLayout();
+		gridBagLayout.columnWidths = new int[]{120, 10, 120, 10, 120};
+		gridBagLayout.rowHeights = new int[]{121, 434, 121, 10};
+		gridBagLayout.columnWeights = new double[]{0.0, 1.0, 0.0, 1.0, 0.0};
+		gridBagLayout.rowWeights = new double[]{0.0, 1.0, 0.0, 1.0};
+		setLayout(gridBagLayout);
+		
+		//Ciclo per inserire i giocatori
+		inserisciGiocatori();
+
+		//Cartina
+		JPanel panelMappa = new PannelloMappa();
+		panelMappa.setLayout(null);
+		
+		GridBagConstraints gbc_panelMappa = new GridBagConstraints();
+		gbc_panelMappa.fill = GridBagConstraints.BOTH;
+		gbc_panelMappa.gridwidth = 3;
+		gbc_panelMappa.insets = new Insets(0, 0, 5, 5);
+		gbc_panelMappa.gridx = 1;
+		gbc_panelMappa.gridy = 1;
+		add(panelMappa, gbc_panelMappa);
+		
+	}
+	
+	
+	public void inserisciGiocatori(){
+		//Giocatore 1
+		Integer numeroGiocatore = 0;
+		for(int i = 0; i < 2; i++){	//Ciclo per le righe
+			for(int j = 0; j < 3; j++){	//Ciclo per le colonne
+				JPanel pnlGiocatori = new JPanel();
+				pnlGiocatori.setLayout(null);
+				JLabel lblUser = new JLabel(giocatore.visualizzaMieInfo().getNomeUtente()+(numeroGiocatore+1));
+				lblUser.setHorizontalAlignment(SwingConstants.CENTER);
+				lblUser.setBounds(0, 0, 115, 31);
+				pnlGiocatori.add(lblUser);
+				GridBagConstraints gbc_pnlGiocatore1 = new GridBagConstraints();
+				gbc_pnlGiocatore1.fill = GridBagConstraints.BOTH;
+				gbc_pnlGiocatore1.insets = new Insets(0, 0, 5, 5);
+				gbc_pnlGiocatore1.gridx = j*2;
+				gbc_pnlGiocatore1.gridy = i*2;
+				add(pnlGiocatori, gbc_pnlGiocatore1);
+				JPanel pnlCarro = new JPanel();
+				pnlCarro.setBackground(new Color(r[numeroGiocatore], g[numeroGiocatore], b[numeroGiocatore]));
+				pnlCarro.setBounds(0, 53, 115, 63);
+				pnlGiocatori.add(pnlCarro);
+				pnlCarro.setLayout(null);
+				JLabel lblArmata = new JLabel(IconLoader.imageIcon("carroarmatox100.png"));
+				lblArmata.setBounds(0, 0, 115, 63);
+				pnlCarro.add(lblArmata);
+				numeroGiocatore++;
+			}
+		}
+	}
+}
+
+

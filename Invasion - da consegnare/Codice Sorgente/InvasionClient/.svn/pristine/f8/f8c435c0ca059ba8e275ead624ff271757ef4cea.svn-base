@@ -1,0 +1,179 @@
+package client;
+
+import interfacciaGUI.ControllerGiocatore;
+import classiCondivise.Colori;
+import classiCondivise.StatiUtente;
+/**
+ * Contiene le informazioni del giocatore
+ * @author timmy
+ *
+ */
+public class Giocatore implements ControllerGiocatore{
+	
+	private String nome = null;
+	private Colori colore = null;
+	private Boolean mioTurno = false;
+	private StatiUtente mioStato = null;
+	private Tavolo tavolo = null;
+	private Partita miaPartita = null;
+	private SalaPartita sala = null;
+	
+	public Giocatore(String nome){
+		this.nome = nome;
+		this.mioStato = StatiUtente.LIMBO;
+	}
+	
+	/**
+	 * Usciamo dal tavolo, creiamo una nuova partita e ci mettiamo nello stato INPARTITA
+	 * @param idPartita
+	 */
+	public void iniziaAGiocare(Integer idPartita){
+		//TODO: 
+		miaPartita = sala.StartPartita(tavolo, idPartita);
+		tavolo = null;
+		setMioStato(StatiUtente.INPARTITA);
+	}
+	
+	/**
+	 * Creiamo un nuovo tavolo e ci uniamo a quel tavolo
+	 */
+	public void creaTavolo(){
+		Integer id = 1;
+		//TODO Comunicare al server il voler creare il tavolo - id me lo comunica il server
+		this.tavolo = sala.aggiungiTavolo(this, id);
+		setMioStato(StatiUtente.INTAVOLO);
+	}
+
+	/**
+	 * Ci uniamo ad un tavolo già esistente
+	 * @param tavolo Il tavolo a cui unirci
+	 * @return Esito del tentativo
+	 */
+	public boolean joinTavolo(Tavolo tavolo){
+		//TODO: Comunicare l'intenzione di unirci ad un nuovo tavolo e in caso di risposta affermativa da parte server continuiamo
+		try {
+			tavolo.joinTavolo(this);
+			setMioStato(StatiUtente.INTAVOLO);
+			return true;
+		} catch (Exception e) {
+			//TODO Aggiungere eccezioni personalizzate
+			//TODO Tavolo non aggiornato, farsi inviare le nuove informazioni
+			e.printStackTrace();
+		}
+		//this.tavolo = sala.aggiungiTavolo(this, id);
+		return false;
+	}
+	
+	public boolean joinTavolo(Integer idTavolo){
+		return joinTavolo(sala.cercaTavolo(idTavolo));
+	}
+	
+	/**
+	 * Abbandoniamo la partita in cui siamo attualmente
+	 */
+	public void abbandonaTavolo(){
+		//TODO: Comunicare di uscire dal tavolo
+		sala.esciDalTavolo(this, tavolo);
+		postPartita();
+	}
+	
+	/**
+	 * Abbandoniamo la partita in cui siamo attualmente
+	 */
+	public void abbandonaPartita(){
+		//TODO: Comunicare di uscire dalla partita
+		sala.esciDallaPartita(this, miaPartita);
+		postPartita();
+	}
+
+	public void voglioPassareIlTurno(){
+		//Comunico al server di passare il turno
+	}
+
+	//TODO NON VA QUI - in teoria va nell'ambasciatore
+	public void passaTurno(Giocatore giocatoreAttuale, Giocatore giocatoreFuturo){
+		//TODO viene chiamata ogni volta che il server mi comunica che è stato passato un turno
+		try {
+			miaPartita.passaTurno(giocatoreAttuale, giocatoreFuturo);
+			if(this.nome.equals(giocatoreFuturo.getNome())){
+				giocaTuoTurno();
+			}
+		} catch (Exception e) {
+			//TODO Aggiungere eccezione personalizzata
+			//TODO Gestire l'eccezione aggiornando le info utente
+			e.printStackTrace();
+		}
+	}
+	
+	public void giocaTuoTurno(){
+		//TODO Gestire la notifica che è il nostro turno
+	}
+	
+	
+	private void postPartita(){
+		this.colore = null;
+		this.miaPartita = null;
+		this.tavolo = null;
+		this.mioTurno = false;
+		setMioStato(StatiUtente.LIMBO);
+	}
+	
+	public String getNome() {
+		return nome;
+	}
+
+	public void setColore(Colori coloreScelto){
+		this.colore = coloreScelto;
+	}
+
+	public Boolean isMioTurno() {
+		return mioTurno;
+	}
+
+	public void setMioTurno(Boolean mioTurno) {
+		this.mioTurno = mioTurno;
+	}
+
+	public Colori getColore() {
+		return colore;
+	}
+
+	public StatiUtente getMioStato() {
+		return mioStato;
+	}
+
+	public void setMioStato(StatiUtente mioStato) {
+		this.mioStato = mioStato;
+	}
+
+	@Override
+	public boolean entraNelTavolo(Integer idTavolo){
+		return joinTavolo(idTavolo);
+	}
+	
+	@Override
+	public boolean creaNuovoTavolo(){
+		try {
+			creaTavolo();
+			return true;
+		} catch (Exception e) {
+			return false;
+		}
+	}
+	
+	@Override
+	public void abbandonaMioTavolo(){
+		abbandonaTavolo();
+	}
+	
+	@Override
+	public void abbandonaMiaPartita(){
+		abbandonaPartita();
+	}
+
+	@Override
+	public String ottieniNome() {
+		return getNome();
+	}
+	
+}

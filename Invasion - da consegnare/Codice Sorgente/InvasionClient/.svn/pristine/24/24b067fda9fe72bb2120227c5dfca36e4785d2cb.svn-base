@@ -1,0 +1,9 @@
+package interfacciaGUI;
+import classiCondivise.BeanGiocatore;
+import java.util.*;
+
+public interface ControllerPartita {
+
+	
+
+}

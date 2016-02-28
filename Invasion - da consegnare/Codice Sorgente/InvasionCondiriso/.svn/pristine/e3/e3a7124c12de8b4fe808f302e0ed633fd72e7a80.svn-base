@@ -1,0 +1,10 @@
+package interfacceRemote;
+
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+
+import classiCondivise.BeanGiocatore;
+
+public interface ServerComunicazioneInterfaccia extends Remote{
+	public BeanGiocatore eseguiLogin(String username, String password) throws RemoteException;
+}

@@ -1,0 +1,21 @@
+package oldClient;
+
+public interface ViewTavoloInterface {
+
+	/**
+	 * Mostra il timeout della partita che sta per iniziare
+	 * @param numeroDiSecondi	Numero di secondi all'inizio della partita
+	 */
+	public void mostraTimeoutInizioPartita(Integer numeroDiSecondi);
+	
+	/**
+	 * Aggiorna il timeout della partita che sta per iniziare (Ad esempio si è unito un nuovo giocatore)
+	 * @param numeroDiSecondi	Numero di secondi all'inizio della partita
+	 */
+	public void riavviaTimeout(Integer numeroDiSecondi);
+	
+	/**
+	 * Spegne il timout - Non ci sono abbastanza giocatori per iniziare a giocare
+	 */
+	public void disabilitaTimeout();
+}

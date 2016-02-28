@@ -1,0 +1,13 @@
+package server_daler;
+
+import provaRmi.AcceptClass;
+
+public class StartServer {
+
+	public static void main(String[] args) {
+		Server mioServer = Server.getInstance();
+		AcceptClass demoneRmi = new AcceptClass();
+		
+	}
+
+}

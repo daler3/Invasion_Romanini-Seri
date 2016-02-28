@@ -1,0 +1,99 @@
+package client;
+
+import interfacciaGUI.ControllerGiocatore;
+import interfacciaGUI.ControllerLoginInterface;
+
+import java.util.ArrayList;
+
+public class ClientStart implements ControllerLoginInterface {
+	private Giocatore giocatore = null;
+	
+	public ClientStart(){
+		super();
+	}
+	
+	/**
+	 * Effettua il login
+	 * @param username Username del giocatore
+	 * @param password Password del giocatore
+	 * @return Esito dell'operazione
+	 */
+	private boolean login(String username, String password){
+		boolean esitoComunicazione = true;
+		//TODO Spedire informazioni login al server
+		if(responsoPositivo(esitoComunicazione)){
+			this.giocatore = new Giocatore(username);
+		}
+		return esitoComunicazione;
+	}
+	
+	
+	private boolean registazione(String username, String password){
+		boolean esitoComunicazione = true;
+		//TODO Spedire informazioni registrazioni al server
+		if(responsoPositivo(esitoComunicazione)){
+			this.giocatore = new Giocatore(username);
+		}
+		return esitoComunicazione;
+	}
+	
+	public Giocatore getGiocatore(){
+		return this.giocatore;
+	}
+	
+	@Override
+	public ControllerGiocatore effettuaLogin(String username, String password) {
+		if(login(username, password))
+			return getGiocatore();
+		return null;
+	}
+
+
+	@Override
+	public ControllerGiocatore effettuaRegistrazione(String username, String password) {
+		if(registazione(username, password))
+			return getGiocatore();
+		return null;
+	}
+	
+	private boolean responsoPositivo(boolean responso){
+		return responso;
+	}
+	
+	
+	
+	
+//	
+//	/**
+//	 * Usciamo dal tavolo, creiamo una nuova partita e ci mettiamo nello stato INPARTITA
+//	 * @param idPartita
+//	 */
+//	public void iniziaAGiocare(Integer idPartita){
+//		giocatore.iniziaAGiocare(idPartita);
+//	}
+//	
+//	/**
+//	 * Abbandona il tavolo in cui siamo seduti
+//	 */
+//	public void abbandonaTavolo(){
+//		//TODO Comunicare al server l'intenzione di abbandonare il tavolo
+//		giocatore.abbandonaMioTavolo();
+//	}
+//	
+//	/**
+//	 * Abbandona la partita che stiamo giocando
+//	 */
+//	public void abbandonaPartita(){
+//		//TODO Comunicare al server l'intenzione di abbandonare la partita
+//		giocatore.abbandonaMiaPartita();
+//	}
+//	
+//	public ArrayList<Integer> lanciaDadi(Integer numeroDadi){
+//		//TODO Comunica al server di lanciare i dadi
+//		//TODO Attendiamo il risultato del lancio
+//		return null;
+//	}
+//	
+//	//TODO Mettere tutti i metodi di attacca e difendi (O in Giocatore???)
+//	
+}

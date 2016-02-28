@@ -1,0 +1,55 @@
+package server_daler;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+
+import classiCondivise.BeanTavolo;
+import classiCondivise.CreareMessaggio;
+
+public class testListe {
+
+	public static void main(String[] args) {
+		ArrayList<Integer> tuaLista = new ArrayList<Integer>(3);
+		
+		for(Integer i = 0; i <5; i ++){
+			tuaLista.add(0, i);
+		}
+		
+		Iterator<Integer> mioIt = tuaLista.iterator();
+		while(mioIt.hasNext()){
+			System.out.println(mioIt.next().toString());
+		}
+		
+		
+		//ArrayList<Integer> tuaLista = new ArrayList<Integer>(3);
+		
+		
+		
+		Collections.shuffle(tuaLista);
+		//Collections.shuffle(tuaLista);
+		System.out.println("Seconda lista:  ");
+		Iterator<Integer> tuoIt = tuaLista.iterator();
+		while(tuoIt.hasNext()){
+			System.out.println(tuoIt.next().toString());
+		}
+		
+		
+//		Integer idTavolo = null;
+//		Integer numP = 10;
+//		
+//		BeanTavolo mioBean = new BeanTavolo(idTavolo, numP);
+//		
+//		
+//		
+//		String m = mioBean.toString();
+//		
+//		System.out.println("Ciao "+m);
+//		
+//		BeanTavolo mioBean2 = CreareMessaggio.estraiBeanTavolo(m);
+//		
+//		System.out.println("Ciao2 "+mioBean2.toString());
+		
+	}
+
+}

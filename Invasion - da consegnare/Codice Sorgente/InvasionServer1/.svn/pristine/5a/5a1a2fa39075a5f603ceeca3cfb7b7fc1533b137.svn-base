@@ -1,0 +1,33 @@
+package provaRmi;
+
+import java.rmi.RemoteException;
+
+
+
+public class ClientStartUp {
+	
+	private final static String username = "user";
+	private final static String password = "ciao";
+	
+	
+	
+	public static void main(String[] args){
+		MyPlayerClass myclient=null; 
+		try {
+			myclient = new MyPlayerClass();
+		} catch (RemoteException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		try {
+			myclient.eseguiLogin(username, password);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	
+
+}

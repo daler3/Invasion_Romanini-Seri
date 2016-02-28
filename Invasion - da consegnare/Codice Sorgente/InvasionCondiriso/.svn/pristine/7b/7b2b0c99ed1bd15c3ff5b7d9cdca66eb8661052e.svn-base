@@ -1,0 +1,153 @@
+package interfacceRemote;
+
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+import java.util.ArrayList;
+
+import mappa.Mappa;
+import mappa.Territorio;
+import classiCondivise.BeanGiocatore;
+import classiCondivise.BeanTavolo;
+import classiCondivise.Colori;
+
+/**
+ * Interfaccia remota per la comunicazione RMI lato Client. <br>
+ * Sono presenti tutti i metodi per ricevere comunicazioni dal Server
+ */
+public interface ClientComunicazioneInterfaccia extends Remote {
+	
+	/**
+	 * Metodo per passare al client il bean con le proprie info
+	 * @param mieInfo - Bean con le info da inviare al Client.
+	 * @throws RemoteException
+	 */
+	public void riceviMieInfo(BeanGiocatore mieInfo) throws RemoteException;
+	
+	/**
+	 * Metodo per passare al client la lista aggiornata dei nomi dei giocatori con cui è attualmente seduto a un tavolo.
+	 * @param nomiGiocatoriSeduti - la lista dei nomi dei giocatori attualmente seduti al tavolo con l'utente
+	 * @throws RemoteException
+	 */
+	public void cambiamentiTavolo(ArrayList<String> nomiGiocatoriSeduti) throws RemoteException;
+	
+	/**
+	 * Metodo per passare al client le info riguardanti i tavoli aperti
+	 * @param infoTavoliAperti - lista di BeanTavoli contenenti le informazioni sui tavoli attualmente aperti (id e numero giocatori attualmente seduti)
+	 * @throws RemoteException
+	 */
+	public void riceviInfoTavoli(ArrayList<BeanTavolo> infoTavoliAperti) throws RemoteException;
+	
+	/**
+	 * Ricezione della comunicazione di inizio di una partita da parte del Server
+	 * @throws RemoteException
+	 */
+	public void riceviComunicazioneInizioPartita() throws RemoteException;
+	
+	/**
+	 * Ricezione della comunicazione di scelta del colore da parte della partita.
+	 * @param timer				- tempo a disposizione per la scelta
+	 * @param coloriDisponibili	- colori disponibili per la scelta
+	 * @throws RemoteException
+	 */
+	public void scegliColore(Integer timer, ArrayList<Colori> coloriDisponibili) throws RemoteException;
+	
+	/**
+	 * Ricezione dell'ordine di gioco della partita con i rispettivi colori dei giocatori.
+	 * @param listaInfoGiocatori - la lista con le informazioni dei giocatori (in ordine di gioco).
+	 * @param ordineColori - i colori scelti dai giocatori in ordine di gioco
+	 * @throws RemoteException
+	 */
+	public void riceviOrdinePartita(ArrayList<BeanGiocatore> listaInfoGiocatori, ArrayList<Colori> ordineColori) throws RemoteException;
+	
+	
+	/**
+	 * Ricezione della mappa aggiornata della partita
+	 * @param mappa - la mappa della partita
+	 * @throws RemoteException
+	 */
+	public void riceviMappa (Mappa mappa) throws RemoteException;
+	
+	
+	/**
+	 * Ricezione delle armate da posizionare a inizio partita.
+	 * @param mappaPartita				la mappa aggiornata della partita
+	 * @param numeroArmateDaPosizionare	il numero di armate che il giocatore deve posizionare 
+	 * @param tempoPosizionaArmate		il tempo a disposizione per posizionare le armate
+	 * @param mappaPartita				la mappa della partita aggiornata
+	 * @throws RemoteException
+	 */
+	public void riceviTerritoriPosizionaArmate(Integer numeroArmateDaPosizionare, Integer tempoPosizionaArmate,
+				Mappa mappaPartita) throws RemoteException;
+	
+
+	/**
+	 * Ricezione della comunicazione di un nuovo turno a inizio partita
+	 * @param colore	il colore del giocatore di cui è il turno
+	 * @param username 	lo username del giocatore di cui è il turno
+	 * @throws RemoteException
+	 */
+	public void riceviComunicazioneNuovoTurno(Colori colore, String username) throws RemoteException;
+
+	
+	/**
+	 * Ricezione delle armate bonus a inizio turno.
+	 * @param numeroArmate	 numero di armate che il giocatore può posizionare
+	 * @param tempo			 tempo a disposizione per modificare le armate
+	 * @throws RemoteException
+	 */
+	public void riceviArmateInizioTurno(Integer numeroArmate, Integer tempo) throws RemoteException;
+
+	/**
+	 * Ricezione della comunicazione di attesa di una nuova mossada parte della partita
+	 * @param tempo	il tempo a disposizione del client per effettuare una nuova mossa.
+	 * @throws RemoteException
+	 */
+	public void riceviComunicazioneAttesaMossa(Integer tempo) throws RemoteException;
+	
+	/**
+	 * 
+	 * Ricezione della comunicazione di un attacco avvenuto dalla partita
+	 * @param tempoDifesa				il tempo disponibile per la difesa
+	 * @param territorioAttaccato		territorio attaccato
+	 * @param territorioAttaccante		territorio attaccante
+	 * @param risultatoDadiAttacco		lista con i risultato dei dadi dell'attacco
+	 * @param risultatoDadiDifesa		lista con i risultati dei dadi della difesa
+	 * @param risultati					in posizione 0 il numero di armate sconfitte, in posizione 1 il numero di armate perse (dal punto di vista dell'attaccante)
+	 * @param conquistato				true se il territorio è stato conquistato, false altrimenti
+	 * @throws RemoteException
+	 */
+	public void riceviComunicazioneAttacco(Integer tempoDifesa, Territorio territorioAttaccante, Territorio territorioAttaccato, 
+			ArrayList<Integer> risultatoDadiAttacco, ArrayList<Integer> risultatoDadiDifesa, Integer [] risultati, boolean conquistato) throws RemoteException;
+	
+	/**
+	 * Ricezione della comunicazione della sconfitta di un giocatore durante una partita
+	 * @param giocatoreSconfitto	Il nome del giocatore sconfitto.
+	 * @throws RemoteException
+	 */
+	public void riceviComunicazioneSconfitta(String giocatoreSconfitto) throws RemoteException;
+	
+	/**
+	 * Ricezione della comunicazione della ritirata di un giocatore durante una partita
+	 * @param giocatoreRitirato		Il nome del giocatore ritirato
+	 * @throws RemoteException
+	 */
+	public void riceviComunicazioneRitirata(String giocatoreRitirato) throws RemoteException;
+	
+	/**
+	 * Ricezione della classifica finale di una partita
+	 * @param classificaFinale		la classifica finale di una partita
+	 * @param punteggioPrimo		il punteggio totalizzato dal primo classificato
+	 * @param punteggioSecondo		il punteggio totalizzato dal secondo classificato
+	 * @throws RemoteException
+	 */
+	public void riceviClassificaFinale(ArrayList<String> classificaFinale, Integer punteggioPrimo, Integer punteggioSecondo) throws RemoteException;
+	
+	
+	/**
+	 * Metodo chiamato dalla classe corrispondente al client lato server per capire se esso è ancora connesso
+	 * @throws RemoteException - se propaga un'eccezione remota, significa che il client non è più connesso
+	 */
+	public void sonoVivo() throws RemoteException;
+	
+	
+}

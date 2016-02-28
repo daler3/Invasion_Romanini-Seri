@@ -1,0 +1,400 @@
+package guiClient;
+
+import interfacciaGUI.ControllerPartita;
+import interfacciaGUI.ViewPartita;
+
+import java.awt.GridBagConstraints;
+import java.awt.Insets;
+import java.awt.Rectangle;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
+import java.util.ArrayList;
+import java.util.Hashtable;
+import java.util.Iterator;
+
+import guiClient.immagini.IconLoader;
+
+import javax.swing.ImageIcon;
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.JLabel;
+import javax.swing.JButton;
+
+import java.awt.Color;
+
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.JSlider;
+
+import java.awt.Font;
+
+import javax.swing.UIManager;
+
+import mappa.Mappa;
+import classiCondivise.BeanGiocatore;
+import classiCondivise.Colori;
+
+public class PanelPartita extends JPanel implements ViewPartita{
+	private final static int x[] = {12, 82, 70, 173, 226, 252, 82, 183, 105, 173, 173, 252, 206, 453, 560, 453, 532, 375, 453, 350, 411, 411, 323, 361, 421, 509, 519, 628, 721, 667, 571, 594, 651, 721, 702, 712, 770, 816, 806, 702, 758, 841};
+	private final static int y[] = {45, 55, 104, 104, 104, 12, 168, 180, 258, 310, 364, 349, 454, 493, 493, 429, 393, 310, 321, 226, 243, 167, 136, 94, 45, 55, 258, 272, 310, 226, 187, 69, 12, 12, 94, 168, 45, 156, 363, 401, 488, 454};
+	private final static int w[] = {73, 158, 108, 62, 73, 120, 96, 96, 96, 106, 80, 96, 73, 108, 62, 80, 62, 86, 86, 86, 86, 86, 86, 62, 86, 86, 119, 96, 73, 127, 96, 73, 73, 73, 73, 108, 120, 73, 73, 108, 86, 73};
+	private final static int h[] = {99, 50, 64, 90, 90, 112, 78, 90, 78, 50, 78, 132, 151, 112, 83, 71, 107, 120, 50, 99, 64, 64, 95, 50, 123, 210, 132, 132, 99, 78, 83, 125, 151, 99, 90, 71, 123, 99, 99, 99, 99, 133};
+	private final static String territori[] = {"Alaska", "Territori del Nord Ovest", "Alberta", "Ontario", "Quebec", "Groenlandia", "Stati Uniti Occidentali", "Stati Uniti Orientali", "America Centrale", "Venezuela", "Africa del Sud", "Madagascar", "Congo", "Africa Orientale", "Africa del Nord", "Egitto", "Europa Occidentale", "Europa Meridionale", "Europa Settentrionale", "Gran Bretagna", "Medio Oriente", "India", "Siam", "Cina", "Afghanistan", "Urali", "Siberia", "Jacuzia", "Čita", "Mongolia", "Nuova Guinea", "Indonesia", "Australia Occidentale", "Australia Orientale"};
+	
+	private Mappa miaMappa;
+	
+	private final static String testo1 = "Seleziona Territorio1";
+	private final static String testo2 = "Seleziona Territorio2";
+	private final static String testoSpostare = "Numero Armate Da Spostare";
+	
+	private ControllerPartita controller;
+	final JPanel p = this;
+	/**
+	 * Lo stato del pannello: false -> invisibile; true -> visibile
+	 */
+	final boolean stato = false;
+	
+	private final ArrayList<String> mieiTerritori = new ArrayList<String>(0);
+	private ArrayList<JButton> bottoniStati = new ArrayList<JButton>(territori.length);
+	private ArrayList<JLabel> labelPossessore = new ArrayList<JLabel>(territori.length);
+	
+	private ArrayList<JLabel> lblPosizionamento;
+	private ArrayList<JTextField> txtPosizionamento;
+	
+	private int tempoTotale = 0;
+	private int tempoTrascorso = 0;
+	private JTextField txtNumeroArmateDa;
+	
+	
+	public PanelPartita(ControllerPartita partita) {
+		this.controller = partita;
+		setBackground(new Color(255, 255, 255));
+		setLayout(null);
+		
+		JPanel pnlBottoni = new JPanel();
+		pnlBottoni.setBounds(0, 0, 926, 686);
+		pnlBottoni.setOpaque(false);
+		add(pnlBottoni);
+		pnlBottoni.setLayout(null);
+		
+		disegnaBottoni(pnlBottoni);
+		
+		JButton button_7 = new JButton();
+		button_7.setOpaque(false);
+		button_7.setForeground(UIManager.getColor("OptionPane.questionDialog.titlePane.foreground"));
+		button_7.setFont(new Font("Dialog", Font.BOLD, 14));
+		button_7.setContentAreaFilled(false);
+		button_7.setBorderPainted(false);
+		button_7.setActionCommand("Alaska");
+		button_7.setBounds(82, 55, 158, 56);
+		pnlBottoni.add(button_7);
+		
+		JPanel panel_3 = new JPanel();
+		panel_3.setBackground(new Color(204, 153, 102));
+		panel_3.setBounds(0, 618, 926, 68);
+		pnlBottoni.add(panel_3);
+		panel_3.setLayout(null);
+		
+		JButton btnClassifica = new JButton("Abbandona Partita");
+		btnClassifica.setBounds(12, 9, 168, 18);
+		panel_3.add(btnClassifica);
+		
+		JButton button_8 = new JButton("Classifica");
+		button_8.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+			}
+		});
+		button_8.setBounds(12, 38, 168, 18);
+		panel_3.add(button_8);
+		
+		JLabel lblCronaca = new JLabel("Cronaca");
+		lblCronaca.setHorizontalAlignment(SwingConstants.CENTER);
+		lblCronaca.setBounds(378, 14, 536, 42);
+		panel_3.add(lblCronaca);
+		
+		JButton button_9 = new JButton("Classifica");
+		button_9.setBounds(192, 9, 168, 18);
+		panel_3.add(button_9);
+		
+		JButton button_10 = new JButton("Classifica");
+		button_10.setBounds(192, 38, 168, 18);
+		panel_3.add(button_10);
+		
+		JLabel lblLabelmappa = new JLabel(IconLoader.imageIcon("RiskMap3.png"));
+		lblLabelmappa.setBackground(new Color(255, 255, 255));
+		lblLabelmappa.setBounds(0, 0, 926, 628);
+		add(lblLabelmappa);
+		
+		JPanel panel = new JPanel();
+		panel.setBackground(new Color(204, 153, 102));
+		panel.setBounds(926, 0, 414, 686);
+		add(panel);
+		panel.setLayout(null);
+		
+		JButton btnAttaccaattacca = new JButton("Attacca");
+		btnAttaccaattacca.setBounds(12, 636, 87, 25);
+		panel.add(btnAttaccaattacca);
+		
+		JButton button = new JButton("Sposta - Passa");
+		button.setBounds(111, 636, 192, 25);
+		panel.add(button);
+		
+		JButton button_1 = new JButton("Passa");
+		button_1.setBounds(315, 636, 87, 25);
+		panel.add(button_1);
+		
+		JButton btnCancellaT1 = new JButton("CancellaT1");
+		btnCancellaT1.setBounds(285, 345, 117, 50);
+		panel.add(btnCancellaT1);
+		
+		JButton btnCancellaT2 = new JButton("CancellaT2");
+		btnCancellaT2.setBounds(285, 407, 117, 51);
+		panel.add(btnCancellaT2);
+		
+		JPanel panel_1 = new JPanel();
+		panel_1.setBackground(new Color(255, 51, 0));
+		panel_1.setBounds(12, 345, 265, 50);
+		panel.add(panel_1);
+		panel_1.setLayout(null);
+		
+		JLabel lblTerritorio = new JLabel("Territorio1");
+		lblTerritorio.setBounds(0, 0, 265, 50);
+		panel_1.add(lblTerritorio);
+		lblTerritorio.setBackground(new Color(204, 51, 51));
+		lblTerritorio.setHorizontalAlignment(SwingConstants.CENTER);
+		
+		JPanel panel_2 = new JPanel();
+		panel_2.setBackground(new Color(102, 204, 255));
+		panel_2.setBounds(12, 407, 265, 50);
+		panel.add(panel_2);
+		panel_2.setLayout(null);
+		
+		JLabel txtTerr2 = new JLabel("Territorio2");
+		txtTerr2.setBounds(0, 0, 265, 50);
+		panel_2.add(txtTerr2);
+		txtTerr2.setHorizontalAlignment(SwingConstants.CENTER);
+		
+		JLabel lblArmateattaccanti = new JLabel("ArmateAttaccanti");
+		lblArmateattaccanti.setHorizontalAlignment(SwingConstants.CENTER);
+		lblArmateattaccanti.setBounds(12, 470, 390, 25);
+		panel.add(lblArmateattaccanti);
+		
+		JSlider slider = new JSlider();
+		slider.setBounds(12, 496, 390, 16);
+		slider.setMinimum(0);
+		slider.setMaximum(3);
+		panel.add(slider);
+		
+		JLabel label = new JLabel("Armate da spostare");
+		label.setHorizontalAlignment(SwingConstants.CENTER);
+		label.setBounds(12, 543, 390, 33);
+		panel.add(label);
+		
+		txtNumeroArmateDa = new JTextField();
+		txtNumeroArmateDa.setBackground(new Color(255, 255, 255));
+		txtNumeroArmateDa.setHorizontalAlignment(SwingConstants.CENTER);
+		txtNumeroArmateDa.setText(testoSpostare);
+		txtNumeroArmateDa.addFocusListener(new FocusListener(){
+	        @Override
+	        public void focusGained(FocusEvent e){
+	            if(txtNumeroArmateDa.getText().equals(testoSpostare)){
+	            	txtNumeroArmateDa.setText("");
+	            }
+	        }
+			@Override
+			public void focusLost(FocusEvent arg0) {
+				if(txtNumeroArmateDa.getText().isEmpty()){
+	            	txtNumeroArmateDa.setText(testoSpostare);
+	            }
+			}
+	    });
+		txtNumeroArmateDa.setBounds(12, 588, 390, 19);
+		panel.add(txtNumeroArmateDa);
+		txtNumeroArmateDa.setColumns(10);
+		
+		JLabel num0 = new JLabel("0");
+		num0.setHorizontalAlignment(SwingConstants.CENTER);
+		num0.setBounds(12, 516, 24, 15);
+		panel.add(num0);
+		
+		JLabel num1 = new JLabel("1");
+		num1.setHorizontalAlignment(SwingConstants.CENTER);
+		num1.setBounds(131, 516, 24, 15);
+		panel.add(num1);
+		
+		JLabel num2 = new JLabel("2");
+		num2.setHorizontalAlignment(SwingConstants.CENTER);
+		num2.setBounds(255, 516, 24, 15);
+		panel.add(num2);
+		
+		JLabel num3 = new JLabel("3");
+		num3.setHorizontalAlignment(SwingConstants.CENTER);
+		num3.setBounds(390, 516, 12, 15);
+		panel.add(num3);
+		
+		JLabel lblDadiAttacco = new JLabel("Dadi Attacco");
+		lblDadiAttacco.setHorizontalAlignment(SwingConstants.CENTER);
+		lblDadiAttacco.setBounds(12, 262, 143, 15);
+		panel.add(lblDadiAttacco);
+		
+		JLabel label_1 = new JLabel("Dadi Difesa");
+		label_1.setHorizontalAlignment(SwingConstants.CENTER);
+		label_1.setBounds(12, 295, 143, 15);
+		panel.add(label_1);
+		
+		JLabel lblValoreAttacco = new JLabel("- - -");
+		lblValoreAttacco.setHorizontalAlignment(SwingConstants.CENTER);
+		lblValoreAttacco.setBounds(220, 262, 123, 15);
+		panel.add(lblValoreAttacco);
+		
+		JLabel lblValoreDifesa = new JLabel("- -");
+		lblValoreDifesa.setHorizontalAlignment(SwingConstants.CENTER);
+		lblValoreDifesa.setBounds(220, 295, 123, 15);
+		panel.add(lblValoreDifesa);
+		
+		JButton btnDifenditi = new JButton("Difenditi");
+		btnDifenditi.setBounds(12, 216, 390, 33);
+		panel.add(btnDifenditi);
+		
+		JButton btnNewButton = new JButton("Player 1");
+		btnNewButton.setBounds(12, 12, 186, 44);
+		panel.add(btnNewButton);
+		
+		JButton button_2 = new JButton("Player 2");
+		button_2.setBounds(216, 12, 186, 44);
+		panel.add(button_2);
+		
+		JButton button_3 = new JButton("Player 3");
+		button_3.setBounds(12, 68, 186, 44);
+		panel.add(button_3);
+		
+		JButton button_4 = new JButton("Player 4");
+		button_4.setBounds(216, 68, 186, 44);
+		panel.add(button_4);
+		
+		JButton button_5 = new JButton("Player 5");
+		button_5.setBounds(12, 124, 186, 44);
+		panel.add(button_5);
+		
+		JButton button_6 = new JButton("Player 6");
+		button_6.setBounds(216, 124, 186, 44);
+		panel.add(button_6);
+		
+		JLabel lblNewLabel = new JLabel("Turno di: ");
+		lblNewLabel.setHorizontalAlignment(SwingConstants.CENTER);
+		lblNewLabel.setBounds(12, 180, 390, 15);
+		panel.add(lblNewLabel);
+		
+		//Inizialmente la nascondiamo
+		LoginSwing.getInstance().setVisible(false);
+	}
+	
+	public void mostraPosizionaArmate(JPanel panel){
+		Iterator<String> itTerritori = this.mieiTerritori.iterator();
+		int i = 0;
+		String territorio;
+		//Ciclo di posizionamento territorio
+		while(itTerritori.hasNext()){
+			//Label territorio
+			territorio = itTerritori.next();
+			JLabel label = new JLabel(territorio);
+			GridBagConstraints gbc_label = new GridBagConstraints();
+			gbc_label.fill = GridBagConstraints.HORIZONTAL;
+			gbc_label.insets = new Insets(0, 0, 5, 5);
+			gbc_label.gridx = 0;
+			gbc_label.gridy = 3+i;
+			panel.add(label, gbc_label);
+			//TextBox numero armate
+			JTextField txtArmateterr = new JTextField();
+			txtArmateterr.setText("0");
+			GridBagConstraints gbc_txtArmateterr = new GridBagConstraints();
+			gbc_txtArmateterr.fill = GridBagConstraints.HORIZONTAL;
+			gbc_txtArmateterr.anchor = GridBagConstraints.NORTH;
+			gbc_txtArmateterr.insets = new Insets(0, 0, 5, 0);
+			gbc_txtArmateterr.gridx = 1;
+			gbc_txtArmateterr.gridy = 3+i;
+			txtArmateterr.setColumns(10);
+			panel.add(txtArmateterr, gbc_txtArmateterr);
+			//Aggiungiamo tutto a due ArrayList
+			this.lblPosizionamento.add(label);
+			this.txtPosizionamento.add(txtArmateterr);
+			i++;
+		}
+	}
+		
+	
+	private void disegnaBottoni(JPanel pnlBottoni){
+		for(int i = 0; i < territori.length; i++){
+			JButton btnAlaska = new JButton();
+			btnAlaska.setForeground(new Color(0, 51, 0));
+			btnAlaska.setFont(new Font("Dialog", Font.BOLD, 14));
+			btnAlaska.setOpaque(false);
+			btnAlaska.setContentAreaFilled(false);
+			btnAlaska.setBorderPainted(false);
+			btnAlaska.setActionCommand(territori[i]);
+			btnAlaska.setBounds(x[i], y[i], w[i], h[i]);
+			pnlBottoni.add(btnAlaska);
+			JLabel lblTerritorio = new JLabel(territori[i]);
+			lblTerritorio.setBounds(12, 45, 88, 20);
+			bottoniStati.add(btnAlaska);
+			pnlBottoni.add(lblTerritorio);
+			//TODO mettere le armate correttamente
+			JLabel lblArmateTerritorio = new JLabel("3");
+			lblArmateTerritorio.setBackground(new Color(0,0,0));
+			//TODO colorare correttamente
+			lblArmateTerritorio.setForeground(new Color(255,255,255));
+			lblArmateTerritorio.setHorizontalAlignment(SwingConstants.CENTER);
+			lblArmateTerritorio.setOpaque(true);
+			lblArmateTerritorio.setBounds(12, 65, 20, 20);
+			labelPossessore.add(lblArmateTerritorio);
+			pnlBottoni.add(lblArmateTerritorio);
+		}	
+	}
+	
+	@Override
+	public void comunicaMappa(Mappa mappaComunicata) {
+		//Aggiorniamo la nostra mappa
+		this.miaMappa = mappaComunicata;
+		//TODO Estraiamo le infomazioni dalla mappa ricevuta e aggiorniamo le informazioni
+		
+	}
+
+	@Override
+	public Colori scegliColore(Integer timer,
+			ArrayList<Colori> coloriDisponibili) {
+		JFrame frameClassifica = new FrameColori(timer, coloriDisponibili, controller);
+		frameClassifica.setTitle("Scegli colore - utente: "+controller.visualizzaMieInfo().getNomeUtente());
+        frameClassifica.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frameClassifica.pack();
+        frameClassifica.setVisible(true);
+        int i = 0;
+        while(controller.getColoreScelto() == null && i < timer){
+        	try {
+				Thread.sleep(500);
+				i++;
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+        }
+        System.out.println("Ho scelto: "+controller.getColoreScelto());
+        return controller.getColoreScelto();
+	}
+
+	@Override
+	public void riceviOrdinePartita(
+			ArrayList<BeanGiocatore> listaInfoGiocatori,
+			ArrayList<Colori> ordineColori) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void riceviTerritoriPosizionaArmate(
+			Integer numeroArmateDaPosizionare, Integer tempoPosizionaArmate,
+			Mappa mappaPartita) {
+		// TODO Auto-generated method stub
+		
+	}
+}

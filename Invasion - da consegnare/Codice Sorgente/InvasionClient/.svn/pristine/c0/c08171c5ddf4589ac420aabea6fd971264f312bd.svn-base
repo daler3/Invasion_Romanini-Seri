@@ -1,0 +1,255 @@
+package client;
+
+import java.util.ArrayList;
+
+import comunicazione.Client2Server;
+import classiCondivise.BeanGiocatore;
+import classiCondivise.Classifica;
+import classiCondivise.StatiUtente;
+
+public class Ambasciatore {
+	
+	/**
+	 * Istanza del Server. 
+	 * Se è null creo una nuova istanza 
+	 */
+	private static Ambasciatore INSTANCE = null; 
+	
+	private StatiUtente stato;
+	private BeanGiocatore mieInfo;
+	private Client2Server interfacciaComunicazione;
+	private Tavolo tavolo = null;
+	private Partita miaPartita = null;
+	private SalaPartita sala = null;
+	
+	private Ambasciatore() {
+		this.stato = StatiUtente.NONCONNESSO;
+		//this.interfacciaComunicazione = comunicazione;
+	}
+	
+	
+	/**
+	 * Metodo per crea un'istanza della classe Server, se essa ancora non esiste.
+	 */
+	private synchronized static void createInstance() {
+		if(INSTANCE==null)
+			INSTANCE = new Ambasciatore();
+	}
+	
+	/**
+	 * Metodo per ottenere un riferimento alla classe Server
+	 * @return l'unica istanza della classe Server
+	 */
+	public static Ambasciatore getInstance(){
+		if(INSTANCE == null)
+			createInstance();
+		return INSTANCE; 
+	}
+	
+	public void setInterfacciaComunicazione(Client2Server comunicazione){
+		this.interfacciaComunicazione = comunicazione;
+	}
+	
+	
+	
+	/**
+	 * Login dell'utente
+	 * @param username
+	 * @param password
+	 * @return	true - se il login è andato a buon fine; false - altrimenti.
+	 */
+	public boolean login(String username, String password){
+		BeanGiocatore bean = interfacciaComunicazione.effettuaLogin(username, password);
+		//System.out.println("Bean arrivato al Ambasciatore: "+bean.toString());
+		this.mieInfo = bean;
+		if(this.mieInfo == null){
+			System.out.println("Credenziali errate");
+			return false;
+		}
+		else{
+			System.out.println("Login OK");
+			return true;
+		}
+	}
+//		else{
+//			System.out.println("Bean non riconosciuto");
+//			//Login fallito
+//			return false;
+//		}
+//		if(bean == null){
+//			System.out.println("Bean non riconosciuto");
+//			//Login fallito
+//			return false;
+//		}
+//		else{
+//			this.mieInfo = bean;
+//			return true;
+//		}
+	
+	/**
+	 * Registrazione dell'utente.
+	 * @param username
+	 * @param password
+	 * Se la registrazione è andata a buon fine, al termine dell'operazione l'utente sarà loggato.
+	 * @return true - se la registrazione è andata a buon fine; false - altrimenti
+	 */
+	public boolean registrazione(String username, String password){
+		BeanGiocatore bean = this.interfacciaComunicazione.effettuaRegistrazione(username, password);
+		this.mieInfo = bean;
+		if(this.mieInfo == null){
+			System.out.println("Registrazione Fallita");
+			return false;
+		}
+		else{
+			System.out.println("Bean arrivato al Ambasciatore: "+bean.toString());
+			return true;
+		}
+	}
+	
+	/**
+	 * Da Client a Server
+	 * Metodo per cambiare la password
+	 * @param vecchiaPassword - la vecchia password
+	 * @param nuovaPassword - la nuova password
+	 * @return true - se il cambio di password è andato a buon fine; false - altrimenti
+	 */
+	public boolean cambiaPassword(String vecchiaPassword, String nuovaPassword){
+		return this.interfacciaComunicazione.cambiaPassword(vecchiaPassword, nuovaPassword);
+	}
+	
+	
+	/**
+	 * Metodo per ottenere le informazioni riguardanti un utente specifico
+	 * @param nomeUtente - il nome dell'utente di cui se vogliono le info
+	 * @return le info riguardanti l'utente richiesto
+	 */
+	public BeanGiocatore ottieniInfoUtente (String nomeUtente){
+		return this.interfacciaComunicazione.chiediStatistiche(nomeUtente);
+	}
+	
+	
+	/**
+	 * Metodo per ottenere la classifica generale del gioco su richiesta del client
+	 * @return la classifica generale
+	 */
+	public Classifica ottieniClassifica(){
+		return this.interfacciaComunicazione.chiediClassifica();
+	}
+	
+	
+	/**
+	 * 
+	 * @param mieInfo
+	 */
+	public void aggiornaMieInfo(BeanGiocatore mieInfo){
+		this.mieInfo = mieInfo;
+	}
+	
+	
+	/**
+	 * Metodo per la disconnessione sia volontaria che involantaria del client
+	 * Chiamerà il metodo disconnetti() in GiocatoreConnesso() che permette di disconnettere il giocatore dal gioco, con le relative conseguenze.
+	 */
+	public void disconnetti(){
+		//Comunichiamo al server di volerci disconnettere
+		if(this.interfacciaComunicazione.effettuaLogout(this.mieInfo.getNomeUtente())){
+			//Cio mettiamo nello stato di disconnessi
+			this.stato = StatiUtente.NONCONNESSO;
+		}
+	}
+		//TODO errore killa tutto
+	
+	
+	/**
+	 * Metodo per aggiungersi a un tavolo
+	 * @param idTavolo - id del tavolo a cui ci si vuole aggiungere
+	 * @return true - se l'aggiunta p andata a buon fine; false - altrimenti.
+	 */
+//	public boolean joinTavolo(Integer idTavolo){
+//		boolean esitoPositivo = this.interfacciaComunicazione.joinTavolo(idTavolo);
+//		if(esitoPositivo){
+//			this.sala.aggiungiTavolo(, id)
+//		}
+//	}
+	
+//	/**
+//	 * Da Client a Server
+//	 * Metodo per abbandonare un tavolo. 
+//	 * Chiamerà il metodo abbandonaTavolo() in GiocatoreConnesso.
+//	 */
+//	public void abbandonaTavolo();
+	
+	/**
+//	 * Da Server a Client
+//	 * Comunica a clients nel tavolo l'aggiunta gi nuovo giocatore al tavolo.
+//	 * @param username - username del giocatore che si è appena aggiunto al tavolo
+//	 */
+//	public void giocatoreAggiuntoATavolo(String username);
+//	
+//	
+//	/**
+//	 * Da Server a Client
+//	 * Comunica a clients nel tavolo la rimozione di un altro giocatrore. 
+//	 * @param username - l'username dell'utente da rimuovere dal tavolo
+//	 */
+//	public void giocatoreRimossoDaTavolo(String username);
+	
+	
+//	/**
+//	 * Da Server a Client
+//	 * Comunica al client un cambiamento nel tavolo a cui è seduto.
+//	 * @param tavolo - il tavolo aggiornato da comunicare
+//	 */
+//	public void comunicaCambiamentiTavolo(TavoloAperto tavolo);
+//	
+//	
+//	/**
+//	 * Da Server a Client. 
+//	 * Comunica all'utente connesso la lista dei tavoli aperti
+//	 * @param tavoliAperti - la lista dei tavoli aperti
+//	 */
+//	public void comunicaListaTavoli(ArrayList<TavoloAperto> tavoliAperti);
+//	
+//	/**
+//	 * Da Client a Server
+//	 * Comando di creare un nuovo tavolo, a cui il giocatore creatore si aggiungerà
+//	 * @return - l'id del Tavolo creato
+//	 */
+//	public Integer creaTavolo();
+//	
+//	
+//	/**
+//	 * Da Client a Server
+//	 * Comando del client di avviare il tavolo a cui ha preso parte 
+//	 * @param idTavolo - l'id del tavolo che chiedo di avviare
+//	 * @return true - se il tavolo verrà avviato; false - altrimenti
+//	 */
+//	public boolean avviaTavolo(Integer idTavolo);
+//	
+//	
+//	
+//	/**
+//	 * DA QUI IN POI FACCIO I METODI RIGUARDANTI PARTITA
+//	 * 
+//	 * 
+//	 */
+//	
+//	/**
+//	 * Da Server a Client
+//	 * Comando per dire al client che una partita a cui prenderà parte inizia
+//	 * @param idPartita - id della partita appena iniziata
+//	 * @param infoGiocatoriPartita - le info degli utenti che stanno prendendo parte alla partita
+//	 */
+//	public void iniziaPartita(Integer idPartita, ArrayList<BeanGiocatore> infoGiocatoriPartita);
+//	
+//	
+//	/**
+//	 * Da Client a Server
+//	 * Metodo per abbandonare la partita. 
+//	 * Chiamerà il metodo abbandonaPartita() in GiocatoreConnesso.
+//	 */
+//	public void abbandonaPartita();
+//
+//}
+	
+}

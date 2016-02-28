@@ -1,0 +1,9 @@
+package exceptionCondivise;
+
+public class ProblemaAvvioTavoloException extends Exception {
+
+	@Override
+	public String toString() {
+		return "ProblemaAvvioTavoloException";
+	}
+}

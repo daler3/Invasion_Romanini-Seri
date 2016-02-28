@@ -1,0 +1,162 @@
+package mappa;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+/**
+ * Rappresenta la mappa di gioco
+ * @author timmy
+ *
+ */
+public class Mappa {
+
+	/**
+	 * I continenti iniziali
+	 */
+	private final static String[] continenti = {"Nord America", "Sud America", "Europa", "Africa", "Asia", "Oceania"};
+
+	/**
+	 * Il bonus collegato al possesso di ogni stato di un determinato continente
+	 */
+	private final static Integer[] bonus = {5, 2, 5, 3, 7, 2};
+	
+	/**
+	 * Elenco dei territori per ogni continente
+	 */
+	private final static String[][] territori = {
+		{"Alaska", "Territori del Nord Ovest", "Groenlandia", "Alberta", "Ontario", "Quebec", "Stati Uniti Occidentali", "Stati Uniti Orientali", "America Centrale"},
+		{"Venezuela", "Perù", "Brasile", "Argentina"},
+		{"Islanda", "Scandinavia", "Gran Bretagna", "Europa Settentrionale", "Europa Occidentale", "Europa Meridionale", "Ucraina"},
+		{"Africa del Nord", "Egitto", "Congo", "Africa Orientale", "Africa del Sud", "Madagascar"},
+		{"Urali", "Siberia", "Jacuzia", "Cita", "Kamchatka", "Giappone", "Mongolia", "Afghanistan", "Medio Oriente", "India", "Cina", "Siam"},
+		{"Indonesia", "Nuova Guinea", "Australia Orientale", "Australia Occidentale"}
+	};
+	
+	/**
+	 * Confini di ogni territorio -- Gli stati sono aumentati di 1 rispetto allo stato
+	 */
+	private final static String[][] confina = {
+			//Nord America
+			{"Territori del Nord Ovest", "Alberta", "Kamchatka"},
+			{"Alaska", "Groenlandia", "Alberta", "Ontario"},
+			{"Islanda", "Territori del Nord Ovest", "Ontario", "Quebec"},
+			{"Alaska", "Territori del Nord Ovest", "Ontario", "Stati Uniti Occidentali"},
+			{"Groenlandia", "Territori del Nord Ovest", "Alberta", "Stati Uniti Occidentali", "Stati Uniti Orientali", "Quebec"},
+			{"Groenlandia", "Ontario", "Stati Uniti Orientali"},
+			{"Alberta", "Ontario", "Stati Uniti Orientali", "America Centrale"},
+			{"Ontario", "Quebec", "Stati Uniti Occidentali", "America Centrale"},
+			{"Stati Uniti Occidentali", "Stati Uniti Orientali", "Venezuela"},
+			//Sud America
+			{"America Centrale", "Perù", "Brasile"},
+			{"Venezuela", "Brasile", "Argentina"},
+			{"Venezuela", "Perù", "Argentina", "Africa del Nord"},
+			{"Perù", "Brasile"},
+			//Europa
+			{"Groenlandia", "Scandinavia", "Gran Bretagna"},
+			{"Islanda", "Gran Bretagna", "Europa Settentrionale", "Ucraina"},
+			{"Islanda", "Scandinavia", "Europa Settentrionale", "Europa Occidentale"},
+			{"Scandinavia", "Gran Bretagna", "Europa Occidentale", "Europa Meridionale", "Ucraina"},
+			{"Gran Bretagna", "Europa Settentrionale", "Europa Meridionale", "Africa del Nord"},
+			{"Europa Settentrionale", "Europa Occidentale", "Ucraina", "Africa del Nord", "Egitto", "Medio Oriente"},
+			{"Scandinavia", "Europa Settentrionale", "Europa Meridionale", "Urali", "Afghanistan", "Medio Oriente"},
+			//Africa
+			{"Egitto", "Congo", "Africa Orientale","Brasile", "Europa Occidentale", "Europa Meridionale"},
+			{"Africa del Nord", "Africa Orientale", "Medio Oriente", "Europa Meridionale"},
+			{"Africa del Nord", "Africa Orientale", "Africa del Sud"},
+			{"Africa del Nord", "Egitto", "Congo", "Africa del Sud", "Madagascar"},
+			{"Congo", "Africa Orientale", "Madagascar"},
+			{"Africa Orientale", "Africa del Sud",},
+			//Asia
+			{"Siberia", "Afghanistan", "Cina", "Ucraina"},
+			{"Urali", "Jacuzia", "Cita", "Mongolia", "Cina"},
+			{"Siberia", "Cita", "Kamchatka"},
+			{"Siberia", "Jacuzia", "Kamchatka", "Mongolia"},
+			{ "Jacuzia", "Cita", "Giappone", "Mongolia", "Alaska"},
+			{"Kamchatka", "Mongolia"},
+			{ "Siberia", "Cita", "Kamchatka", "Giappone", "Cina"},
+			{"Urali", "Medio Oriente", "Cina", "Ucraina"},
+			{"Afghanistan", "India", "Cina", "Europa Meridionale", "Ucraina", "Egitto"},
+			{"Medio Oriente", "Cina", "Siam"},
+			{"Urali", "Siberia", "Mongolia", "Afghanistan", "Medio Oriente", "India", "Siam"},
+			{"India", "Cina", "Indonesia"},
+			//Oceania
+			{"Siam", "Nuova Guinea", "Australia Occidentale"},
+			{"Indonesia", "Australia Orientale", "Australia Occidentale"},
+			{"Nuova Guinea", "Australia Occidentale"},
+			{"Indonesia", "Nuova Guinea", "Australia Orientale"}
+	};
+	
+	private ArrayList<Continente> listaContinenti = null;
+	private ArrayList<Territorio> listaTerritori = null;
+	
+	/**
+	 * Costruttore mappa
+	 * Definisce anche i confini dei territori
+	 * Assegna anche i bonus ai vari continenti
+	 */
+	public Mappa(){
+		this.listaContinenti = new ArrayList<Continente>(continenti.length);
+		this.listaTerritori = new ArrayList<Territorio>(territori.length);
+		//Ciclo che crea tutti i continenti e i territori
+		for(int i = 0; i<continenti.length; i++){
+			listaContinenti.add(new Continente(continenti[i], bonus[i]));
+			for(int j = 0; j<territori[i].length; j++){
+				//Creiamo lo stato dandogli nome e password
+				Territorio territorioTemporaneo = new Territorio(territori[i][j], continenti[i]);
+				listaTerritori.add(territorioTemporaneo);
+			}
+		}
+		//Ciclo che definisce tutti i confini
+		Territorio territorioTemporaneo = null;
+		for(int i = 0; i<continenti.length; i++){	//Sfogliamo tutti i continenti
+			for(int j = 0; j<territori[i].length; j++){	//Sfogliamo tutti gli stati
+				for(int k=0; k<confina[i].length; k++){
+					territorioTemporaneo = trovaTerritorio(territori[i][j]);
+					listaContinenti.get(i).getTerritori().get(j).getTerritoriConfinanti().add(territorioTemporaneo);
+				}
+			}
+		}	
+	}
+	
+	/**
+	 * Cerca il territorio con il nome passato come parametro
+	 * @param nome Il nome del territorio ricercato.
+	 * @return il territorio che è stato trovato - null se non viene trovato 
+	 */
+	public Territorio trovaTerritorio(String nome){
+		Territorio territorioTrovato = null;
+		Iterator<Continente> itContinente = this.listaContinenti.iterator();
+		while(itContinente.hasNext()){
+			territorioTrovato = itContinente.next().trovaTerritorio(nome);
+			if(!territorioTrovato.equals(null))	//Se non è null il risultato della ricerca ci torna il valore trovato
+				return territorioTrovato;
+		}
+	//TODO: Lanciare un errore se non viene trovato il territorio
+	return null;
+	}
+
+	/**
+	 * La lista dei territori presenti nella mappa
+	 * @return I territori presenti nella mappa. (Ogni modifica è permanente)
+	 */
+	public ArrayList<Territorio> getListaTerritori() {
+		return this.listaTerritori;
+	}
+	
+	/**
+	 * Ci da una copia dei continenti (I continenti, una volta inizializzati sono immutabili)
+	 * @return La copia dei continenti presenti in mappa (Ogni modifica è solo locale)
+	 */
+	public ArrayList<Continente> getListaContinenti() {
+		return (ArrayList<Continente>) this.listaContinenti.clone();
+	}
+	
+	
+	/**
+	public ArrayList<Territorio> ClonaListaTerritori() {
+		return (ArrayList<Territorio>) (this.listaTerritori.clone());
+	}	
+	*/
+	
+	
+	
+}

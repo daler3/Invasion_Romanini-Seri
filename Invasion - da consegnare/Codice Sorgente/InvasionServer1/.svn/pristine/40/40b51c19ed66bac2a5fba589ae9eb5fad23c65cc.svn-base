@@ -1,0 +1,76 @@
+package client;
+
+import java.util.ArrayList;
+
+public class Tavolo {
+	final static int giocatoriMassimi = 6;
+	private ArrayList<Giocatore> elencoGiocatori;
+	private Integer idTavolo;
+	
+	/**
+	 * Creiamo localmente il tavolo e ci aggiungiamo alla lista
+	 * @param creatoreTavolo Il nome del creatore del tavolo
+	 * @param idTavolo ID numerico che viene incrementato dinamicamente
+	 */
+	public Tavolo(Giocatore creatoreTavolo , Integer idTavolo){
+		elencoGiocatori = new ArrayList<Giocatore>(giocatoriMassimi);
+		elencoGiocatori.add(creatoreTavolo);
+		this.idTavolo = idTavolo;
+	}
+	/**
+	 * Ci aggiunge all'elenco dei giocatori
+	 * @param giocatore
+	 * @return true se veniamo aggiunti, altrimenti false
+	 * @throws Exception 
+	 */
+	public void joinTavolo(Giocatore giocatore) throws Exception{
+		//TODO Aggiungere eccezioni personalizzate
+		if(isFull()){
+			throw new Exception("Tavolo pieno - Impossibile aggiungere nuovo giocatore");
+		}
+		else if(isInTavolo(giocatore)){
+			throw new Exception("Sono già dentro - NON devo aggiornare");	//Lo stato me lo aggiorna chi mi ci ha messo
+		}
+		else{
+			elencoGiocatori.add(giocatore);
+		}
+	}
+	/**
+	 * Numero di giocatori connessi
+	 * @return il numero dei giocatori connessi
+	 */
+	public Integer numeroGiocatori(){
+		return this.elencoGiocatori.size();
+	}
+	
+	/**
+	 * Ci rimuove dal tavolo
+	 * @param giocatore
+	 */
+	public void abbandonaTavolo(Giocatore giocatore){
+		elencoGiocatori.remove(giocatore);
+	}
+	public Integer getIdTavolo() {
+		return idTavolo;
+	}
+	public ArrayList<Giocatore> getElencoGiocatori() {
+		return (ArrayList<Giocatore>) elencoGiocatori.clone();
+	}
+	
+	/**
+	 * Ci dice se il tavolo è pieno e non si possono aggiungere nuovi giocatori
+	 * @return true: il tavolo è pieno - false: si può ancora accedere al tavolo
+	 */
+	public boolean isFull(){
+		if(elencoGiocatori.size() >= giocatoriMassimi)
+			return true;
+		return false;
+	}
+	
+	private boolean isInTavolo(Giocatore giocatore){
+		return elencoGiocatori.contains(giocatore);
+	}
+	
+	
+	
+}

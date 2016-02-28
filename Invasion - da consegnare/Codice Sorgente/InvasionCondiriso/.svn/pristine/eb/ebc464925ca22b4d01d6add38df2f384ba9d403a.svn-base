@@ -1,0 +1,50 @@
+package interfacceRemote;
+
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+import java.util.ArrayList;
+
+import mappa.Mappa;
+import classiCondivise.BeanGiocatore;
+import classiCondivise.BeanTavolo;
+import classiCondivise.Colori;
+
+/**
+ * Interfaccia remota per la comunicazione RMI lato Client
+ *
+ */
+public interface ClientComunicazioneInterfaccia extends Remote {
+	
+	/**
+	 * Metodo per passare al client il bean con le proprie info
+	 * @param mieInfo - Bean con le info da inviare al Client.
+	 * @throws RemoteException
+	 */
+	public void riceviMieInfo(BeanGiocatore mieInfo) throws RemoteException;
+	
+	/**
+	 * Metodo per passare al client la lista aggiornata dei nomi dei giocatori con cui è attualmente seduto a un tavolo.
+	 * @param nomiGiocatoriSeduti - la lista dei nomi dei giocatori attualmente seduti al tavolo con l'utente
+	 * @throws RemoteException
+	 */
+	public void cambiamentiTavolo(ArrayList<String> nomiGiocatoriSeduti) throws RemoteException;
+	
+	/**
+	 * Metodo per passare al client le info riguardanti i tavoli aperti
+	 * @param infoTavoliAperti - lista di BeanTavoli contenenti le informazioni sui tavoli attualmente aperti (id e numero giocatori attualmente seduti)
+	 * @throws RemoteException
+	 */
+	public void riceviInfoTavoli(ArrayList<BeanTavolo> infoTavoliAperti) throws RemoteException;
+	
+	
+	public void riceviComunicazioneInizioPartita();
+	
+	public Colori scegliColore(Integer timer, ArrayList<Colori> coloriDisponibili);
+	
+	public void riceviOrdinePartita(ArrayList<BeanGiocatore> listaInfoGiocatori, ArrayList<Colori> ordineColori);
+	
+	public void riceviTerritoriPosizionaArmate(Integer numeroArmateDaPosizionare, Integer tempoPosizionaArmate,
+				Mappa mappaPartita);
+	
+	
+}

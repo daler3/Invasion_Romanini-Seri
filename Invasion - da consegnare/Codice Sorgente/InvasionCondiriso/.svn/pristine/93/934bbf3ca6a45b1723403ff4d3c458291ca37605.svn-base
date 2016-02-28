@@ -1,0 +1,24 @@
+package classiCondivise;
+
+public enum ArmateGiocatori {
+	TRE(3, 40),
+	QUATTRO(4, 35),
+	CINQUE(5, 30),
+	SEI(6, 25);
+	
+	private Integer numeroArmate;
+	private Integer giocatori;
+	
+	private ArmateGiocatori(Integer giocatori, Integer armate) {
+		this.giocatori = giocatori;
+		this.numeroArmate = armate;
+	}
+	
+	public Integer getGiocatori() {
+		return giocatori;
+	}
+	
+	public Integer getNumeroArmate() {
+		return numeroArmate;
+	}
+}

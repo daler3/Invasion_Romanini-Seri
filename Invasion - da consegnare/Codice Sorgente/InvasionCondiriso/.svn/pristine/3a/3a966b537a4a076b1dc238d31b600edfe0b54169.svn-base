@@ -1,0 +1,14 @@
+package interfacceRemote;
+
+import java.rmi.Remote;
+
+import classiCondivise.BeanGiocatore;
+
+/**
+ * Interfaccia remota per la comunicazione RMI lato Client
+ *
+ */
+public interface ClientComunicazioneInterfaccia extends Remote {
+	
+	
+}

@@ -1,0 +1,13 @@
+package interfacciaGUI;
+
+public interface ControllerTavolo extends ControllerAccountStatistiche {
+	
+	//lo da il client
+	public ControllerLimbo abbandonaTavolo();
+
+	
+//	//lo da il server
+//	public ControllerPartita avviaPartita(Integer idPartita, ArrayList<BeanGiocatore> partecipanti); 
+	
+	
+}

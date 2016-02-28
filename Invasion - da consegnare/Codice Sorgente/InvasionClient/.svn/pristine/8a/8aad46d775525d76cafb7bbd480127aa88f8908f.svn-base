@@ -1,0 +1,60 @@
+package interfacciaGUI;
+
+import java.util.ArrayList;
+
+import mappa.Mappa;
+import classiCondivise.Colori;
+
+public interface ViewPartita {
+
+	
+	void comunicaScegliColore(ArrayList<Colori> coloriRimanenti);
+	
+	void comunicaMappa(Mappa mappaComunicata);
+	
+//	/**
+//	 * Disabilita tutti i pulsanti per la gestione partita in quanto non è più il nostro turno.
+//	 */
+//	public void disabilitaPulsantiPartita();
+//	
+//	/**
+//	 * Abilita tutti i pulsanti che permettono di posizionare i rinforzi.
+//	 * -Pulsanti selezione stati;
+//	 * -TextBox numero armate
+//	 * -Pulsante posiziona armate
+//	 * -Pulsante posizionaRandom
+//	 * -Pulsante noRinforzi
+//	 */
+//	public void abilitaPulsantiRinforzi();
+//	
+//	/**
+//	 * Abilita i pulsanti per effettuare l'attacco:
+//	 * -Pulsanti selezione stati
+//	 * -Pulsante attacca
+//	 * -Pulsante passaTurno
+//	 */
+//	public void abilitaPulsantiAttacco();
+//	
+//	/**
+//	 * Mostra i pulsanti per la selezione del numero delle armate attaccanti:
+//	 * -Label in cui si chiede di scegliere il numero di armate attaccanti
+//	 * -Toggle Button, in numero pari a armateMassime
+//	 * -Pulsante Annulla
+//	 * @param armateMassime	Il massimo numero di armate che possono attaccare
+//	 */
+//	public void sceltaArmateAttaccenti(Integer armateMassime);
+//	
+//	/**
+//	 * Fa apparire un popup che permette di lanciare i dadi per la difesa
+//	 */
+//	public void popupDifesa();
+//	
+//	/**
+//	 * Fa apparire un popup con il numero selezionato di dadi che danno il valore selezionato.
+//	 * @param numeroDadi	Dadi da far apparire
+//	 * @param valoreDadi	Risultato da mostrare
+//	 */
+//	public void popupDadi(Integer numeroDadi, int[] valoreDadi);
+//}
+	
+}

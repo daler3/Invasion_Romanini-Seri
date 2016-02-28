@@ -1,0 +1,26 @@
+package interfacciaGUI;
+/**
+ * Tutti i metodi che si hanno a disposizione prima di effettuare il login
+ * @author timmy
+ *
+ */
+public interface ControllerLoginInterface {
+
+	/**
+	 * Effettua il login con lo username e la password inviate.
+	 * @param username	Username con cui fare il login
+	 * @param password	Password con cui fare il login
+	 * @return	Esito del login: -true: login riuscito; -false: login fallito.
+	 */
+	public ControllerGiocatore effettuaLogin(String username, String password);
+	
+	/**
+	 * Effettua la registrazioni con lo username e la password inviate.
+	 * @param username	Username con cui fare la registrazione.
+	 * @param password	Password con cui fare la registrazione.
+	 * @return	Esito della registrazione: -true: registrazione e login effettuati; false: registrazione fallita.
+	 */
+	public ControllerGiocatore effettuaRegistrazione(String username, String password);
+	
+	
+}

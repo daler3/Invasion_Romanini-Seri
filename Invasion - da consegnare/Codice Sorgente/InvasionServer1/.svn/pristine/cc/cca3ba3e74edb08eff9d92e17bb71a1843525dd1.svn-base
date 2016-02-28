@@ -1,0 +1,7 @@
+package provaRmi;
+
+import java.rmi.Remote;
+
+public interface InterfaceForPlayer extends Remote{
+
+}

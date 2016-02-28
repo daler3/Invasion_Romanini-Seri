@@ -1,0 +1,68 @@
+package client;
+
+import java.util.ArrayList;
+
+import interfacciaGUI.ControllerLimbo;
+import interfacciaGUI.ControllerTavolo;
+import interfacciaGUI.ViewLimbo;
+import classiCondivise.BeanTavolo;
+import classiCondivise.Colori;
+import classiCondivise.StatiUtente;
+/**
+ * Contiene le informazioni del giocatore
+ * @author timmy
+ *
+ */
+public class Limbo extends AccountEStatistiche implements ControllerLimbo {
+	
+	
+	private Ambasciatore ambasciatore; 
+	
+	private ViewLimbo vistaLimbo; 
+	
+
+
+
+
+	public Limbo(){
+		super();
+		this.ambasciatore = Ambasciatore.getInstance();
+		this.ambasciatore.setLimbo(this);
+	}
+
+	
+	public void setVistaLimbo(ViewLimbo vistaLimbo) {
+		this.vistaLimbo = vistaLimbo;
+	}
+	
+	
+	@Override
+	public ControllerTavolo entraNelTavolo(Integer idTavolo) {
+		ControllerTavolo nuovoTavolo = this.ambasciatore.joinTavolo(idTavolo);
+		return nuovoTavolo;
+	}
+
+	@Override
+	public ControllerTavolo creaNuovoTavolo() {
+		ControllerTavolo nuovoTavolo =  this.ambasciatore.creaTavolo();	//torna il riferimento al tavolo creato	(con visibilità dell'interfaccia ControllerTavolo
+		return nuovoTavolo;
+	}
+	
+	/**
+	 * Comando da client a server
+	 * @return
+	 */
+	@Override
+	public ArrayList<BeanTavolo> aggiornaTavoli() {
+		ArrayList<BeanTavolo> infoTavoli = this.ambasciatore.richiediListaTavoliAperti();
+		return infoTavoli;
+	}
+	
+	
+	public void riceviInfoTavoli(ArrayList<BeanTavolo> infoTavoliAperti){
+		//comunico alla grafica
+		this.vistaLimbo.aggiornaTavoli(infoTavoliAperti);
+	}
+
+	
+}

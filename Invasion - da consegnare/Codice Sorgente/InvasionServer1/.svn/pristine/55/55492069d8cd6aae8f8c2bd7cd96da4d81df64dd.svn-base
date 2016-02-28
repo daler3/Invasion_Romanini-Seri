@@ -1,0 +1,100 @@
+package server_daler;
+
+import java.util.ArrayList;
+
+import mappa.*;
+import classiCondivise.Colori;
+
+public interface Server2Client {
+	
+	//quando viene creato un tavolo
+	public void TavoloCreato (String nomeGiocatoreCreatore, String IdTavoloCreato);
+	
+	//manda il giocatore che si è aggiunto al tavolo del client
+	public void JoinTavolo (String nomeGiocatoreAggiunto, String IdTavolo);
+	
+	//da RimuoviTavoloAperto
+	public void RimossoTavoloAperto(String IdTavolo); 
+	
+	//questo metodo farà sì che si inizializzi la partita con la mappa compresa. 
+	//dico questo perché l'idea è che la mappa in sè sia condivisa tra client e server
+	public void PassaTavoloOpenToClosed (String IdTavolo);
+	
+	/**
+	 * Se gli facciamo cambiare lo username magari glielo facciamo cambiare solo nel limbo
+	 * in modo che gli altri giocatori non vedano un cambio di username di altri mentre sono in partita
+	 * o a un tavoloaperto
+	 * public void usernameUtenteCambiato (String vecchioUsername, String nuovoUsername); 
+	 */
+	
+	/**
+	 * Metodi che mandano le statistiche server2client
+	 */
+	
+	public void PartiTimerTavoloAperto(String idTavolo, Integer secondi);
+	
+	//magari non passerei nemmeno l'id della partita
+	public void PartiTimerTurnoPartita(String idPartita, Integer secondi);
+	//se ci sono altri timer direi di fare un metodo per ogni timer
+	
+	//metodo per dire al client che è il suo turno in quella partita. Quindi il client sa quello che deve fare
+	public void tuoTurno ();
+	
+	//metodo per dire al client che quel giocatore (non lui) ha finito il suo turno
+	public void cambiaTurno(String nomeGiocatore); 
+	
+	public void ordinePartita(ArrayList<String> nomiGiocatori);
+	
+	//passa i colori secondo l'ordine. Il primo elemento sarà il colore del primo giocatore
+	//potremmo fare anche una classe "colori" (enum) con relativi metodi (sempre che non esista già)
+	//in modo da passare direttamente i colori così il client sa di che colore colorare i suoi 
+	//avatar degli utenti. L'alternativa (appena sotto non commentata) che man mano che 
+	/**
+	 * 	passa i colori secondo l'ordine. Il primo elemento sarà il colore del primo giocatore
+	 *potremmo fare anche una classe "colori" (enum) con relativi metodi (sempre che non esista già)
+	 *in modo da passare direttamente i colori così il client sa di che colore colorare i suoi 
+     *avatar degli utenti. L'alternativa (appena sotto non commentata) che man mano che 
+     *un giocatore sceglie glielo si manda. Quest'ultima soluzione mi sembra migliore
+	 * @param coloriGiocatori
+	 */
+	//public void coloriGiocatoriPartita(ArrayList <String> coloriGiocatori);
+	
+	/**
+	 * Alternativa migliore al metodo inviaColoreGIocatori (vedi sopra)
+	 */
+	public void inviaColoreGiocatorePartita(String coloreGiocatore);
+	
+	public void inviaBonusTurno (String colore,Integer bonus);
+	
+	//invia il bonus continente al giocatore che se l'e' meritato. Ma non so se questo serve
+	public void inviaBonusContinente (String colore, String nomeContinente, Integer bonus);
+	
+	//questo viene chiamato quando è stata aggiunta un unità
+	public void aggiuntaUnita (String colore, String nomeTerritorio, Integer numeroUnitaAggiunte);
+	
+	public void rimossaUnita (String colore, String nomeTerritorio, Integer numeroUnitaRimosse);
+	
+	public void assegnaArmateInizioPartita(Integer numeroArmate);
+	
+	public void assegnaArmateTurno (Integer numeroArmate);
+	
+	//invia il segnale di posizionare le armate. Forse è inutile (incorporato in quelli sopra)
+	//public void posizionaArmate(Integer numeroArmate); 
+	
+	//invia comando di difendersi poichè è stato attaccato. 
+	//Potremmo anche passargli come paramentro
+	//torna il valore dei dadi che ha lanciato il difensore
+	public ArrayList<Integer> difenditi(String nomeTerritorioAttaccante, ArrayList<Integer> dadiAttaccanti); 
+	
+	public void risultatoCombattimento(Integer numeroArmatePerse, Integer numeroArmateDistrutte);
+	
+	public void risultatoPartita (ArrayList<Integer> punteggiFinali);
+	
+	public Colori scegliColore(ArrayList<Colori> coloriDisponibili); 
+	
+	public void comunicaTerritoriPosizioneArmate(ArrayList<Territorio>territoriPosseduti, Integer numeroArmate, Integer timer);
+
+	public boolean attendiMossa(Integer timer);
+	
+	public boolean settaggioArmateInizioTurno(Integer numeroArmate, Integer tempo);
+}

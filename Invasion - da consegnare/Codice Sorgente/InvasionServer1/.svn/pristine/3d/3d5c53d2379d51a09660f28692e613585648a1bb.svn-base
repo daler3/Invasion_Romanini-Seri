@@ -1,0 +1,38 @@
+package server_daler;
+
+import java.io.IOException;
+import java.net.ServerSocket;
+import java.net.Socket;
+
+import server.Giocatore;
+
+public class Lettore implements Runnable {
+
+	private Interprete interprete;
+	private boolean continua;
+	public final static int port = 4445;
+	
+	public Lettore (Interprete interprete){
+		this.interprete = interprete;
+		this.continua = true;
+	}
+	
+	@Override
+	public void run() {
+		ServerSocket serverSocket = null;
+		Socket clientSocket = null;
+		
+        try {
+        	//Inizializzo il server socket
+            serverSocket = new ServerSocket(port);
+        } catch (IOException e) {
+            System.err.println("Non posso fare listen sulla porta: "+port);
+            System.exit(1);
+        }
+		while(continua){
+			interprete.setStringaLetta();
+		}
+
+	}
+
+}

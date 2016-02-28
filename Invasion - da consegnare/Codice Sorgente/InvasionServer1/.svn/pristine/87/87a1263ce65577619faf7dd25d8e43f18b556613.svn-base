@@ -1,0 +1,167 @@
+package interfacciaComunicazione;
+
+import java.util.ArrayList;
+
+import server_daler.GiocatoreConnesso;
+import server_daler.Partita;
+import server_daler.TavoloAperto;
+import mappa.*;
+import classiCondivise.BeanGiocatore;
+import classiCondivise.BeanTavolo;
+import classiCondivise.Colori;
+
+
+/**
+ * Interfaccia di comunicazione da Server a Client
+ * @authors Daniele Romanini - Federico Seri
+ *
+ */
+public interface Server2Client {
+	
+	/**
+	 * Invia il bean con le proprie info
+	 * @param mieInfo - Bean con le info da inviare al Client.
+	 */
+	public void inviaMieInfo(BeanGiocatore mieInfo);
+	
+	
+	/**
+	 * Comunica al client una lista aggiornata dei nomi dei giocatori con cui è attualmente seduto a un tavolo.
+	 * @param nomiGiocatoriSeduti - la lista dei nomi dei giocatori attualmente seduti al tavolo
+	 * @see TavoloAperto
+	 * @see GiocatoreConnesso
+	 */
+	public void comunicaCambiamentiTavolo(ArrayList<String> nomiGiocatoriSeduti);
+	
+	
+	/**
+	 * Comunica all'utente connesso (nel limbo) le info riguardanti i tavoli aperti
+	 * @param infoTavoliAperti - lista contenente le informazioni sui tavoli attualmente aperti (id e numero giocatori attualmente seduti)
+	 *  @see GiocatoreConnesso
+	 */
+	public void comunicaInfoTavoli(ArrayList<BeanTavolo> infoTavoliAperti);
+	
+	
+	
+	//METODI DI PARTITA:
+	
+	
+	/**
+	 * Comunicazione da Server a Client di inizio della partita. 
+	 * @see GiocatoreConnesso
+	 */
+	public void comunicazioneInizioPartita();
+	
+	/**
+	 * Comunica al client di scegliere il colore per la partita e i colori che sono disponibili per la scelta
+	 * @param timer - il tempo a disposizione per la scelta
+	 * @param coloriDisponibili - i colori disponibili per la scelta
+	 * @see Partita
+	 * @see GiocatoreConnesso
+	 * 
+	 */
+	public void scegliColore(Integer timer, ArrayList<Colori> coloriDisponibili); 
+	
+	/**
+	 * Comunica al client l'ordine dei giocatori della partita e i rispettivi colori.
+	 * @param listaInfoGiocatori - la lista con le informazioni dei giocatori (in ordine di gioco).
+	 * @param ordineColori - i colori scelti dai giocatori in ordine di gioco
+	 * @see Partita
+	 * @see GiocatoreConnesso
+	 */
+	public void ordinePartita(ArrayList<BeanGiocatore>listaInfoGiocatori, ArrayList<Colori>ordineColori);
+	
+	/**
+	 * Comunica la mappa della partita da Server a Client
+	 * @param mappa - la mappa della partita
+	 * @see Partita
+	 * @see GiocatoreConnesso
+	 */
+	public void comunicaMappa (Mappa mappa);
+	
+	/**
+	 * Comunica al client la mappa della partita (quindi i territori che possiede), il numero di armate che deve posizionare sulla mappa, e il tempo che ha per posizionarle.
+	 * @param mappaPartita				la mappa aggiornata della partita
+	 * @param numeroArmateDaPosizionare	il numero di armate che il giocatore deve posizionare 
+	 * @param tempoPosizionaArmate		il tempo a disposizione per posizionare le armate
+	 * @see Partita
+	 * @see GiocatoreConnesso
+	 */
+	public void comunicaTerritoriPosizionaArmate(Integer numeroArmateDaPosizionare, Integer tempoPosizionaArmate, Mappa mappaPartita);
+	
+	
+	/**
+	 * Comunica l'inizio di un nuovo turno al client (quando non è lui a dover iniziare il turno)
+	 * @param colore	il colore del giocatore di cui è il turno
+	 * @param username 	lo username del giocatore di cui è il turno
+	 * @see Partita
+	 * @see GiocatoreConnesso
+	 */
+	public void comunicaTurno(Colori colore, String username);
+	
+	
+	/**
+	 * Comunica al client l'inizio del suo turno comunicandogli le armate a disposizione e il tempo che ha per posizionarle
+	 * @param numeroArmate	 numero di armate che il giocatore può posizionare
+	 * @param tempo			 tempo a disposizione per modificare le armate
+	 * @see Partita
+	 * @see GiocatoreConnesso
+	 */
+	public void comunicaArmateInizioTurno(Integer numeroArmate, Integer tempo);
+	
+	
+	/**
+	 * Comunicazione di attesa di una mossa
+	 * @param tempo - il tempo che il giocatore ha per effetuare una mossa
+	 * @see Partita
+	 * @see GiocatoreConnesso
+	 */
+	public void comunicaAttendiMossa(Integer tempo);
+
+	/**
+	 * Comunica un nuovo attacco da Server a Client
+	 * @param numeroUnitaAttaccanti					numero delle unità coinvolte nell'attacco
+	 * @param territorioAttaccato					territorio attaccato
+	 * @param territorioAttaccante					territorio attaccante
+	 * @param risultatoDadiAttacco
+	 * @param risultatoDadiDifesa
+	 * @param risultati
+	 * @param conquistato
+	 * @see Partita
+	 * @see GiocatoreConnesso
+	 */
+	public void comunicaAttacco(Integer tempoDifesa, Territorio territorioAttaccante, Territorio territorioAttaccato, 
+			ArrayList<Integer> risultatoDadiAttacco, ArrayList<Integer> risultatoDadiDifesa, Integer [] risultati, boolean conquistato);
+
+
+	/**
+	 * 	
+	 * Comunicazione dalla partita della sconfitta di un giocatore
+	 * @param giocatorePerdente - il nome del giocatore che ha perso
+	 * @see Partita 
+	 * @see GiocatoreConnesso
+	 */
+	public void comunicaSconfitta(String giocatoreSconfitto);
+	
+	
+	/**
+	 * Comunicazione dalla partita della ritirtata di un giocatore
+	 * @param giocatoreRitirato - il nome del giocatore che si è ritirato
+	 * @see Partita 
+	 * @see GiocatoreConnesso
+	 */
+	public void comunicaRitirata(String giocatoreRitirato);
+	
+	/**
+	 * Comunicazione dalla partita di fine della battaglia. 
+	 * @param classificaFinale 	la classifica finale del partita
+	 * @param punteggioPrimo	il punteggio del primo classificato
+	 * @param punteggioSecondo	il punteggio del secondo classificato
+	 * @see Partita
+	 * @see GiocatoreConnesso
+	 */
+	public void fineDellaPartita(ArrayList<String> classificaFinale, Integer punteggioPrimo, Integer punteggioSecondo);
+
+
+ 
+}

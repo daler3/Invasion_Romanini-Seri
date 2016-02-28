@@ -1,0 +1,171 @@
+package dbManager;
+
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.sql.*;
+
+public class DbManager {
+
+	private static final String DRIVER = "org.apache.derby.jdbc.EmbeddedDriver";
+	private static final String DBNAME = "database";
+	private static final String URL = "jdbc:derby:"+DBNAME, 
+			USER = "admin",
+			PSW = "admin";
+
+	public static Connection connessioneDb() throws InstantiationException, IllegalAccessException, ClassNotFoundException, SQLException{
+		Class.forName(DRIVER).newInstance();
+		return DriverManager.getConnection(URL, USER, PSW);
+	}
+	
+	public static void disconnessioneDb(Connection connessione) throws SQLException{
+		connessione.close();
+	}
+	/**
+	 * Estrae un nuovo id per il giocatore
+	 * @param	connessione La connessione al DB
+	 * @return	ID per il nuovo giocatore
+	 * @throws SQLException	Errore di connessione con il Database
+	 */
+	private static Integer NuovoId(Connection connessione) throws SQLException{
+		//Cerco il nuovo ID
+		Statement st = connessione.createStatement();
+		String miaQuery = "SELECT MAX(IDGIOCATORE)+1 "+
+									"FROM GIOCATORE";
+		ResultSet resultSet = st.executeQuery(miaQuery);
+		resultSet.next();
+		Integer id = resultSet.getInt(1);
+		resultSet.close();
+		st.close();
+		return id;
+	}
+	
+	public static synchronized boolean creaUtente(Connection connessione, String nomeNuovoGiocatore, String passwordNuovoGiocatore) throws SQLException{
+		if(usernameInUso(connessione, nomeNuovoGiocatore)){	//Impossibile creare il nuovo utente
+			return false;
+		}
+		//Estraggo ID e data
+		Integer idNuovoGiocatore = NuovoId(connessione);
+		Timestamp data = new Timestamp(System.currentTimeMillis());
+		//Preparo la query per il nuovo giocatore
+		String miaQuery = "INSERT INTO GIOCATORE (IDGIOCATORE, NOMEGIOCATORE, PASSWORD, DATAREGISTRAZIONE) "+
+						"VALUES (?, ?, ?, ?)";
+		PreparedStatement preparedStatement = connessione.prepareStatement(miaQuery);
+		preparedStatement.setInt(1, idNuovoGiocatore);
+		preparedStatement.setString(2, nomeNuovoGiocatore);
+		preparedStatement.setString(3, passwordNuovoGiocatore);
+		preparedStatement.setTimestamp(4, data);
+		//Invio lo statement e lo chiudo
+		preparedStatement.executeUpdate();
+		preparedStatement.close();
+		return true;
+	}
+	
+	/**
+	 * Prova a cancellare lo username inviato
+	 * @param connessione	La connessione al DB
+	 * @param nomeGiocatore	Il nome del giocatore da cancellare
+	 * @throws SQLException	Problema nell'esecuzione della query
+	 */
+	public static synchronized void cancellaUtente(Connection connessione, String nomeGiocatore) throws SQLException{
+		String miaQuery = "DELETE FROM GIOCATORE "+
+							"WHERE NOMEGIOCATORE = ?";
+		PreparedStatement preparedStatement = connessione.prepareStatement(miaQuery);
+		preparedStatement.setString(1, nomeGiocatore);
+		preparedStatement.executeUpdate();
+		preparedStatement.close();
+	}
+	
+	/**
+	 * Ci informa se lo username è già in uso
+	 * @param connessione	La connessione al DB
+	 * @param nomeUtente	Il nome da controllare
+	 * @return	-true: Utente già esistente;	-false:Utente inesistente;
+	 */
+	public static synchronized boolean usernameInUso(Connection connessione, String nomeUtente){
+		String miaQuery = "SELECT COUNT(*) "+
+							"FROM GIOCATORE "+
+							"WHERE NOMEGIOCATORE = '"+nomeUtente+"'";
+		try {
+			Statement st = connessione.createStatement();
+			ResultSet resultSet = st.executeQuery(miaQuery);
+			resultSet.next();
+			int numero = resultSet.getInt(1);
+			if(numero == 0){
+				return false;
+			}
+		} catch (SQLException e) {
+			System.err.println("Impossibile eseguire query");
+			e.printStackTrace();
+		}
+		return true;
+
+	}
+	
+	
+//	###CURIOSITÀ
+//	Integer numero = resultSet.getInt("id");
+//	String valore = resultSet.getString("valore");
+	
+		public static void main(String[] args) throws Exception {
+			Connection miaConnessione = connessioneDb();
+			String utente;
+			String password;
+			BufferedReader stream = new BufferedReader(new InputStreamReader(System.in));
+			System.out.println("Inserisci nome");
+			utente = stream.readLine();
+			System.out.println("Inserisci password");
+			password = stream.readLine();
+			if(creaUtente(miaConnessione, utente, password)){
+				System.out.println("Utente registrato con successo");
+			}
+			else{
+				System.out.println("Utente già esistente - impossibile effettuare la registrazione");
+			}
+			
+			
+			
+		}
+			
+
+	//System.out.println(miaQuery);
+			
+			//Creo lo statement
+			
+//			Statement st = connessione.createStatement();
+//			//Eseguo una query di create
+//			
+//			//st.executeUpdate("DROP TABLE prova");
+////			st.executeUpdate(miaQuery);
+////			miaQuery="INSERT INTO prova "+
+////				"(id, valore) "+
+////				"VALUES (?,?)";
+////			PreparedStatement preparedStatement = connessione.prepareStatement(miaQuery);
+////			for(int i=1; i<=100; i++){
+////				preparedStatement.setInt(1, i);
+////				preparedStatement.setString(2, "valore test "+i);
+////				preparedStatement.executeUpdate();
+////			}
+////			preparedStatement.close();
+//			
+//			//st.executeUpdate(miaQuery);
+//			ResultSet resultSet = st.executeQuery("SELECT count(*) FROM prova");
+//			resultSet.next();	//Ci posizioniamo sulla prima riga
+//			
+//			Integer valoreCount = resultSet.getInt(1);
+//			System.out.println("Risultato count: "+valoreCount);
+//			
+//			miaQuery="SELECT id, valore "+
+//					"FROM prova ";
+//			resultSet = st.executeQuery(miaQuery);
+//			while(resultSet.next()){
+//				Integer numero = resultSet.getInt("id");
+//				String valore = resultSet.getString("valore");
+//				//System.out.println("Risultato num: "+numero+" - valore: '"+valore+"'");
+//				System.out.printf("Risultato num: %d - valore: '%s'\n", numero, valore);
+//			}
+//			
+//			resultSet.close();
+//			st.close();
+//			connessione.close();
+//		}
+}

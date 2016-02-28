@@ -1,0 +1,8 @@
+package provaRmi;
+
+import java.rmi.Remote;
+
+
+public interface MyInterface extends Remote {
+
+}

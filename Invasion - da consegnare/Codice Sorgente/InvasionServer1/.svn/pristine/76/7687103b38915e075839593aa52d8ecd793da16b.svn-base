@@ -1,0 +1,619 @@
+package server_daler;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Iterator;
+
+import classiCondivise.BeanGiocatore;
+import classiCondivise.BeanTavolo;
+import classiCondivise.Classifica;
+import classiCondivise.StatiUtente;
+import mappa.Mappa;
+
+import org.omg.CosNaming.NamingContextPackage.NotFound; //per Eccezione NotFound
+
+import dbManager.*;
+import eccezioni.GiocatoreNonTrovatoException;
+import eccezioni.TavoloInesistenteException;
+
+
+/**
+ * Classe che gestisce il lato Server del gioco Invasion
+ * Singleton
+ */
+public class Server {
+	
+	/**
+	 * Istanza del Server. 
+	 * Se è null creo una nuova istanza 
+	 */
+	private static Server INSTANCE = null; 
+	
+	/**
+	 * Riferimento al database Manager, per gestire il database
+	 */
+	private DbManager dbmInvasion; 
+	
+	/**
+	 * È la connessione al db.
+	 */
+	private Connection connessioneDb;
+	
+	/**
+	 * Lista di giocatori connessi
+	 */
+	private ArrayList<GiocatoreConnesso> utentiConnessi; 
+	
+	/**
+	 * Lista di tavoli Aperti
+	 */
+	private ArrayList <TavoloAperto> tavoli; 
+	
+	/**
+	 * Liste di partite in corso
+	 */
+	private ArrayList <Partita> partite; 
+	
+	
+	/**
+	 * Costruttore privato
+	 * Crea una nuova istanza della classe DbManager, per gestire il database
+	 */
+	private Server() {
+		this.utentiConnessi = new ArrayList<GiocatoreConnesso>();
+		this.tavoli = new ArrayList<TavoloAperto>();
+		this.partite = new ArrayList<Partita>();
+		this.dbmInvasion = new DbManager();
+		try {
+			this.connessioneDb = dbmInvasion.connessioneDb();  
+		} catch (InstantiationException | IllegalAccessException
+				| ClassNotFoundException | SQLException e) {
+			System.err.println("Impossibile connettersi al Database");
+			e.printStackTrace();
+		}
+	}
+	
+	
+	/**
+	 * Metodo per crea un'istanza della classe Server, se essa ancora non esiste.
+	 */
+	private synchronized static void createInstance() {
+		if(INSTANCE==null)
+			INSTANCE = new Server();
+	}
+	
+	
+	/**
+	 * Metodo per ottenere un riferimento alla classe Server
+	 * @return l'unica istanza della classe Server
+	 */
+	public static Server getInstance(){
+		if(INSTANCE == null)
+			createInstance();
+		return INSTANCE; 
+	}
+	
+
+	/**
+	 * Cerchiamo il nuovo idTavolo
+	 * Sync perchè non vogliamo che la lista venga alterata nella ricerca.
+	 * @return	L'id del nuovo tavolo.
+	 */
+	public synchronized Integer ottieniIdNuovoTavolo(){
+		Iterator<TavoloAperto> itTavoli = this.tavoli.iterator();
+		Integer idNuovoTavolo = 1;
+		TavoloAperto tavolo;
+		while(itTavoli.hasNext()){
+			tavolo = itTavoli.next();
+			if(tavolo.getIdTavolo() > idNuovoTavolo){
+				idNuovoTavolo = tavolo.getIdTavolo();
+			}
+		}
+		return idNuovoTavolo + 1;
+	}
+	
+	/**
+	 * Crea un tavolo su richiesta del client e ritorna l'id del tavolo creato.
+	 * Sync per non alterare la lista dei tavoli.
+	 * @param creatoreTavolo	Il creatore del tavolo che verrà aggiunto subito.
+	 * @return	L'id del nuovo tavolo.
+	 */
+	public synchronized Integer creaTavolo(GiocatoreConnesso creatoreTavolo){
+		TavoloAperto nuovoTavolo = new TavoloAperto(ottieniIdNuovoTavolo(), creatoreTavolo);
+		//Crea la lista di tavoli
+		this.tavoli.add(nuovoTavolo);
+		//Comunichiamo a tutti (tranne noi) il nuovo tavolo creato
+		inviaListaTavoli(creatoreTavolo);
+		return nuovoTavolo.getIdTavolo(); 
+	}
+	
+	
+//	/**
+//	 * Prova ad aggiungere il giocatore alla lista dei giocatori connessi.
+//	 * Il synchronized server per modificare l'arrayList di giocatori connessi.
+//	 * @param giocatoreConnesso	Il GiocatoreConnesso creato alla connessione del client al server.
+//	 * @param username			Lo username inviato per l'identificazione.
+//	 * @param password			La password inviata per l'identificazione.
+//	 * @return					L'esito dell'accesso
+//	 * @throws SQLException		Impossibile effettuare il login.
+//	 */
+//	public synchronized boolean aggiungiGiocatoreConnesso(GiocatoreConnesso giocatoreConnesso,
+//								String username, String password) throws SQLException {
+//		if(giocatoreGiaConnesso(username))
+//			return false;
+//		boolean loginEffettuato = dbmInvasion.loginUtente(connessioneDb, username, password);
+//		if(loginEffettuato){
+//			//Aggiungiamo le informazioni al giocatore appena connesso
+//			riempiBeanGiocatore(giocatoreConnesso, username);
+//			//Aggiungiamo il giocatore ai giocatori connessi
+//			this.utentiConnessi.add(giocatoreConnesso);
+//		}
+//		return loginEffettuato;
+//	}
+	
+	
+	/**
+	 * Prova ad aggiungere il giocatore alla lista dei giocatori connessi.
+	 * Il synchronized serve per modificare l'arrayList di giocatori connessi.
+	 * @param giocatoreConnesso	Il GiocatoreConnesso creato alla connessione del client al server.
+	 * @param username			Lo username inviato per l'identificazione.
+	 * @param password			La password inviata per l'identificazione.
+	 * @return					L'esito dell'accesso
+	 * @throws SQLException		Impossibile effettuare il login.
+	 */
+	public synchronized boolean aggiungiGiocatoreConnesso(GiocatoreConnesso giocatoreConnesso,
+								String username, String password) throws SQLException {
+		if(giocatoreGiaConnesso(username))
+			return false;
+		boolean loginEffettuato = dbmInvasion.loginUtente(connessioneDb, username, password);
+		if(loginEffettuato){
+			//Aggiungiamo le informazioni al giocatore appena connesso
+			riempiBeanGiocatore(giocatoreConnesso, username);
+			//Aggiungiamo il giocatore ai giocatori connessi
+			this.utentiConnessi.add(giocatoreConnesso);
+		}
+		return loginEffettuato;
+	}
+	
+	
+	
+	
+	
+	/**
+	 * Proviamo a registrare il giocatore nel DB.
+	 * @param username	Nome del giocatore che si vuole registrare.
+	 * @param password	Password del giocatore che si vuole registrare.
+	 * @return			Esito registrazione.
+	 * @throws SQLException	Impossibile registrarsi.
+	 */
+	public boolean registraNuovoGiocatore(String username, String password) throws SQLException{
+		return dbmInvasion.registraUtente(connessioneDb, username, password);
+	}
+	
+	
+	/**
+	 * Controlliamo se siamo nella lista dei giocatori connessi.
+	 * Syncronized perchè non vogliamo interferenze nella lettura della lista.
+	 * @param username	Username del giocatore che stiamo cercando
+	 * @return	true: Giocatore già connesso;	false: Giocatore disconnesso;
+	 */
+	private synchronized boolean giocatoreGiaConnesso(String username){
+		Iterator<GiocatoreConnesso> itGiocatori = utentiConnessi.iterator();
+		while(itGiocatori.hasNext()){
+			GiocatoreConnesso giocatore = itGiocatori.next();
+			if(giocatore.getMieInfo().getNomeUtente().equals(username))
+					return true;
+		}
+		return false;
+	}
+	
+//	/**
+//	 * Comunica un cambiamento nella lista dei tavoli a tutti gli utenti.
+//	 * Synchronized per evitare modifiche alla lista dei giocatori connessi.
+//	 */
+//	public synchronized void inviaListaTavoli(){
+//		Iterator<GiocatoreConnesso> itUtenti =  this.utentiConnessi.iterator();
+//		GiocatoreConnesso giocatoreTemp; 
+//		while(itUtenti.hasNext()){
+//			giocatoreTemp = itUtenti.next();
+//			giocatoreTemp.comunicaTavoli(this.tavoli);
+//			//Il messaggio verrà inoltrato al client solo se si trova nel LIMBO
+//		}
+//	}
+	
+	
+	/**
+	 * Comunica le info della lista dei tavoli a tutti gli utenti.
+	 * Synchronized per evitare modifiche alla lista dei giocatori connessi.
+	 */
+	public synchronized void inviaListaTavoli(){
+		Iterator<GiocatoreConnesso> itUtenti =  this.utentiConnessi.iterator();
+		GiocatoreConnesso giocatoreTemp; 
+		//ottengo le info dei tavoli
+		ArrayList<BeanTavolo> infoTavoli = ottieniInfoTavoli();
+		while(itUtenti.hasNext()){
+			giocatoreTemp = itUtenti.next();
+			giocatoreTemp.comunicaBeanTavoli(infoTavoli);
+			//Il messaggio viene inoltrato al client solo se si trova nel LIMBO
+		}
+	}
+	
+	
+	
+	/**
+	 * Comunica un cambiamento nella lista dei tavoli a tutti gli utenti tranne l'escluso.
+	 * Synchronized per evitare modifiche alla lista dei giocatori connessi.
+	 * @param giocatoreEscluso	Giocatore non interessato dalla comunicazione 
+	 */
+	public synchronized void inviaListaTavoli(GiocatoreConnesso giocatoreEscluso){
+		Iterator<GiocatoreConnesso> itUtenti =  this.utentiConnessi.iterator();
+		GiocatoreConnesso giocatoreTemp; 
+		//ottengo le info dei tavoli
+		ArrayList<BeanTavolo> infoTavoli = ottieniInfoTavoli();
+		while(itUtenti.hasNext()){
+			giocatoreTemp = itUtenti.next();
+			if(!giocatoreTemp.getUsername().equals(giocatoreEscluso.getUsername())){
+				giocatoreTemp.comunicaBeanTavoli(infoTavoli); //comunico al client le info
+			}
+			//Il messaggio viene inoltrato al client solo se si trova nel LIMBO
+		}
+	}
+	
+	/**
+	 * Ottiene una lista con le info dei tavoli aperti da inviare al client
+	 * @return - la lista con le info dei tavoli aperti (id e numero giocatori)
+	 */
+	public ArrayList<BeanTavolo> ottieniInfoTavoli(){
+		Iterator<TavoloAperto> itTavoli = this.tavoli.iterator();
+		BeanTavolo infoTemp;
+		//alloco lo spazio per la lista tavoli
+		ArrayList<BeanTavolo> infoTavoli = new ArrayList<BeanTavolo>(this.tavoli.size()); 
+		while(itTavoli.hasNext()){
+			//ottengo le info del singolo tavolo
+			infoTemp = itTavoli.next().ottieniBeanTavolo(); 
+			//aggiungo il tavolo alla lista
+			infoTavoli.add(infoTemp);
+		}
+		return infoTavoli; 
+	}
+	
+	
+	/**
+	 * Viene chiamato al login o alla registrazione per istanziare le informazioni del giocatore
+	 * @param giocatoreConnesso	Giocatore a cui si aggiungono le informazioni.
+	 * @param username			Username del giocatore di cui vogliamo le informazioni.
+	 * @throws SQLException		Problema al DB.
+	 */
+	private void riempiBeanGiocatore(GiocatoreConnesso giocatoreConnesso, String username) throws SQLException{
+		BeanGiocatore mioBean = dbmInvasion.estraiBean(connessioneDb, username);
+		giocatoreConnesso.setMieInfo(mioBean);
+	}
+	
+	
+	/**
+	 * Viene chiamato da un giocatore che intende effettuare un cambio password.
+	 * @param giocatoreConnesso Giocatore che intende cambaire la password
+	 * @param vecchiaPassword	la vecchia password del giocatore
+	 * @param nuovaPassword		la nuova password del giocatore
+	 * @return - true se il cambiamento di password è andato a buon fine; -false altrimenti
+	 * @throws SQLException		Problema al DB
+	 */
+	public boolean cambiaPassword(GiocatoreConnesso giocatoreConnesso, String vecchiaPassword, String nuovaPassword) throws SQLException{
+		String username = giocatoreConnesso.getUsername();
+		return dbmInvasion.cambiaPassword(this.connessioneDb, username, vecchiaPassword, nuovaPassword);
+	}
+	
+	/**
+	 * Serve per ottenere le info di un utente a partire dal suo username
+	 * @param nomeUtente Il nome dell'utente di cui si vogliono ottenere le info
+	 * @return il bean contente le info dell'utente richieste
+	 * @throws GiocatoreNonTrovatoException giocatore non trovato
+	 */
+	public BeanGiocatore ottieniInfoUtente(String nomeUtente) throws GiocatoreNonTrovatoException{
+		return ottieniInfoUtente (usernameToPlayer(nomeUtente));
+	}
+	
+	/**
+	 * Serve per ottenere le info di un utente 
+	 * @param giocatore - il riferimento all'oggetto giocatore, del quale si vogliono ottenere le info 
+	 * @return il bean contente le info dell'utente richieste
+	 */
+	public BeanGiocatore ottieniInfoUtente (GiocatoreConnesso giocatore){
+		BeanGiocatore infoUtente = giocatore.getMieInfo().clone();   
+		return infoUtente;
+	}
+	
+
+	/**
+	 * Ottiene la classifica del gioco, richiedendola al Db.
+	 * @return La classifica generale del gioco.
+	 * @throws SQLException 	Problema al Db
+	 */
+	public Classifica ottieniClassifica() throws SQLException{
+		return dbmInvasion.classificaGenerale(connessioneDb);
+	}
+	
+	
+	/**
+	 * Metodo per ricavare il riferimento a un oggetto Giocatore, partendo dal suo Username 
+	 * @param nomeGiocatore - lo username del giocatore di interesse
+	 * @return -Il riferimento al giocatore corrispondente allo username passato come parametro. .-null se non viene trovato il giocatore con quel username
+	 * @throws GiocatoreNonTrovatoException Il giocatore non è stato trovato
+	 */
+	public GiocatoreConnesso usernameToPlayer (String nomeGiocatore) throws GiocatoreNonTrovatoException {
+		Iterator<GiocatoreConnesso> iteratoreGiocatori = this.utentiConnessi.iterator();
+		GiocatoreConnesso giocatoreTemp;
+		while(iteratoreGiocatori.hasNext()){
+			giocatoreTemp = iteratoreGiocatori.next();
+			if(giocatoreTemp.getUsername() == nomeGiocatore)
+				return giocatoreTemp;  
+		}
+		throw new GiocatoreNonTrovatoException();   
+	}
+	
+	
+	/**
+	 * Metodo per rimuovere un giocatore dalla lista dei giocatori connessi
+	 * @param giocatoreDaRimuovere - il giocatore da rimuovere dalla lista dei giocatoi connessi
+	 */
+	public boolean rimuoviDaConnessi(GiocatoreConnesso giocatoreDaRimuovere){
+		boolean esitoRimozione = this.utentiConnessi.remove(giocatoreDaRimuovere); 
+		return esitoRimozione;
+	}
+	
+	
+//	/**
+//	 * Metodo che aggiunge un giocatore a un tavolo.
+//	 * @param giocatoreDaAggiungere  	Giocatore da aggiungere al tavolo
+//	 * @param idtavolo					L'Id del tavolo a cui il giocatore si vuole aggiungere
+//	 * @return true - se l'aggiunta e' andata a buon fine; false - altrimenti.
+//	 */
+//	public synchronized boolean joinTavolo(GiocatoreConnesso giocatoreDaAggiungere, Integer idtavolo){
+//		try {
+//			TavoloAperto tavoloTemp = idToTavolo(idtavolo);
+//			boolean aggiuntaRiuscita = tavoloTemp.aggiungiGiocatore(giocatoreDaAggiungere);
+//			if(aggiuntaRiuscita){
+//				if(tavoloTemp.getGiocatoriInTavolo().size() == TavoloAperto.maxPlayer){ //se ci sono il massimo numero di giocatori supportati nel tavolo avviamo la partita
+//					//avviamo la partita. 
+//					try {
+//						inizializzaPartita(tavoloTemp);
+//					} catch (SQLException e) {
+//							e.printStackTrace();
+//							return false; 
+//					}
+//				}
+//			}
+//			return aggiuntaRiuscita; 
+//		} catch (TavoloInesistenteException e) {
+//			//Il tavolo cercato non esiste più
+//			return false;
+//		}
+//	}
+	
+	/**
+	 * Metodo che aggiunge un giocatore a un tavolo.
+	 * @param giocatoreDaAggiungere  	Giocatore da aggiungere al tavolo
+	 * @param idtavolo					L'Id del tavolo a cui il giocatore si vuole aggiungere
+	 * @return la lista dei giocatori connessi al tavolo se l'aggiunta è andata a buon fine; null altrimenti
+	 */
+	public synchronized ArrayList<String> joinTavolo(GiocatoreConnesso giocatoreDaAggiungere, Integer idtavolo){
+		try {
+			TavoloAperto tavoloTemp = idToTavolo(idtavolo); //ricavo il riferimento al tavolox
+			ArrayList<String> listaNomiPartecipanti = tavoloTemp.aggiungiGiocatore(giocatoreDaAggiungere);
+			return listaNomiPartecipanti;
+		} catch (TavoloInesistenteException e) {
+			//Il tavolo cercato non esiste più
+			return null; //TODO ritorna l'eccezione
+		}
+	}
+	
+	
+	
+	
+	
+	
+	/**
+	 * Ci da il riferimento del tavolo a partire dal suo id.
+	 * Sync perchè non vogliamo interferenza nella ricerca del tavolo.
+	 * @param idtavolo	Id del tavolo ricercato.
+	 * @return	Il riferimento al tavolo cercato.
+	 * @throws TavoloInesistenteException	Tavolo inesistente.
+	 */
+	private synchronized TavoloAperto idToTavolo (Integer idtavolo) throws TavoloInesistenteException{
+		Iterator<TavoloAperto> iteratoreTavoli = this.tavoli.iterator();
+		TavoloAperto tavoloTemp;
+		while(iteratoreTavoli.hasNext()){
+			tavoloTemp = iteratoreTavoli.next();
+			if(tavoloTemp.getIdTavolo() == idtavolo)
+				return tavoloTemp;  
+		}
+		throw new TavoloInesistenteException(); //se arriva qui, non c'era il tavolo con quell'Id
+	}
+	
+	
+//	/**
+//	 * Rimuove il giocatore dal tavolo in cui si trova.
+//	 * @param giocatoreDaRimuovere	Giocatore che deve essere rimosso dal tavolo.
+//	 */
+//	public void rimuoviGiocatoreDaTavolo(GiocatoreConnesso giocatoreDaRimuovere){
+//		Integer idTavolo;
+//		try {
+//			idTavolo = inCheTavolo (giocatoreDaRimuovere);
+//			rimuoviGiocatoreDaTavolo(giocatoreDaRimuovere, idTavolo);
+//		} catch (TavoloInesistenteException e) {
+//			//Il giocatore non fa più parte del tavolo.
+//			e.printStackTrace();
+//		}
+//	}
+	
+	/**
+//	 * Rimuove il giocatore dal tavolo indicato.
+//	 * @param giocatoreDaRimuovere	Giocatore da rimuovere.
+//	 * @param idTavolo				Tavolo selezionato.
+//	 */
+//	public void rimuoviGiocatoreDaTavolo(GiocatoreConnesso giocatoreDaRimuovere, Integer idTavolo){
+//		try{
+//			TavoloAperto tavolo = idToTavolo(idTavolo);
+//			//Proviamo a rimuovere il giocatore
+//			boolean rimozione = tavolo.rimuoviGiocatore(giocatoreDaRimuovere); 
+//			if (rimozione == true){
+//				if(tavolo.getGiocatoriInTavolo().isEmpty()){
+//					//Se non ci sono altri tavoli lo rimuoviamo.
+//					rimuoviTavoloAperto(tavolo); 
+//				}
+//			}
+//		} catch(TavoloInesistenteException e){
+//			//Il giocatore non è più nel tavolo, no problem.
+//		}
+//	}
+
+//	/**
+//	 * Ci comunica l'id del tavolo.
+//	 * @param giocatoreDaRimuovere.
+//	 * @return	L'id del tavolo.
+//	 * @throws TavoloInesistenteException	Tavolo non trovato.
+//	 */
+//	public Integer inCheTavolo(GiocatoreConnesso giocatoreDaRimuovere) throws TavoloInesistenteException{
+//		Iterator<TavoloAperto> itTavoli = this.tavoli.iterator();
+//		TavoloAperto tavoloTemp; 
+//		while(itTavoli.hasNext()){
+//			tavoloTemp = itTavoli.next();
+//			if (tavoloTemp.getGiocatoriInTavolo().contains(giocatoreDaRimuovere))
+//				return tavoloTemp.getIdTavolo();
+//		}
+//		throw new TavoloInesistenteException(); //non era in nessun tavolo
+//	}
+	
+	
+	/**
+	 * Rimuoviamo il tavolo e comunichiamo a tutti gli utenti nel limbo il cambiamento
+	 * @param tavolo	Il tavolo da rimuovere.
+	 */
+	public void rimuoviTavoloAperto(TavoloAperto tavolo){
+		this.tavoli.remove(tavolo);
+		inviaListaTavoli();
+//		Iterator<GiocatoreConnesso> itGiocatori = this.utentiConnessi.iterator();
+//		GiocatoreConnesso giocatore;
+//		//comunico ai giocatori nel Limbo il cambiamento della lista dei tavoliAperti
+//		while(itGiocatori.hasNext()){
+//			giocatore = itGiocatori.next();
+//			giocatore.comunicaBeanTavoli(this.tavoli);
+//			//E' il giocatore che verifica se è all'interno del limbo o meno.
+//		}
+	}
+	
+	
+	/** 
+	 * Metodo che crea la lista dei nomi di giocatori a partire dai loro riferimenti
+	 * @return - la lista (ordinata in base all'ordine della lista dei giocatori nella classe) dei nomi dei giocatori della partita
+	 */
+	private ArrayList<String> creaListaUsername(ArrayList<GiocatoreConnesso> giocatori){
+		ArrayList<String> nomiGiocatoriPartita = new ArrayList<String>(giocatori.size());
+		Iterator<GiocatoreConnesso> iteratoreGiocatori = giocatori.iterator();
+		while(iteratoreGiocatori.hasNext()){
+			String nomeTemp = iteratoreGiocatori.next().getUsername(); 
+			nomiGiocatoriPartita.add(nomeTemp);
+		}
+		return nomiGiocatoriPartita;
+	}
+	
+	
+	/**
+	 * Inizializza una nuova partita, rimuove il tavolo corrispondente, e fa quindi partire la partita, dopo aver comunicato ai giocatori l'imminente inizio di essa. 
+	 * Sync per conservare l'integrità della lista di tavoli e della lista delle partite
+	 * @param tavoloTemp - Il tavolo che sarà chiuso per essere convertito in Partita.
+	 * @throws SQLException Problema al DB
+	 */
+	public synchronized void inizializzaPartita(TavoloAperto tavoloTemp) throws SQLException{
+		ArrayList<GiocatoreConnesso> giocatoriPartita = tavoloTemp.getGiocatoriInTavolo();//giocatori della partita
+		ArrayList<String> listaNomiGiocatori = creaListaUsername(giocatoriPartita);
+		//ottengo l'Id della nuova partita
+		Integer idPartita = dbmInvasion.creaPartita(connessioneDb, listaNomiGiocatori);
+		//costruisco un nuovo oggetto di tipo Partita
+		Partita nuovaPartita = new Partita(giocatoriPartita, idPartita);
+		//rimuovo il tavolo aperto
+		rimuoviTavoloAperto(tavoloTemp);
+		//aggiungo la partita alla lista locale di partite
+		this.partite.add(nuovaPartita); 
+		//creo un nuovo Thread per far girare la partita e lo faccio partire
+		Thread threadPartita = new Thread(nuovaPartita); 
+		threadPartita.start();
+	}
+	
+
+
+	
+	
+	
+//	/**
+//	 * Crea una lista di BeanGiocatore partendo da una lista di GiocatoreConnesso.
+//	 * @param giocatori - la lista di GiocatoriConnesi
+//	 * @return la lista di BeanGiocatore che 
+//	 */
+//	private ArrayList<BeanGiocatore> ottieniListaBean(ArrayList<GiocatoreConnesso> giocatori){
+//		Iterator<GiocatoreConnesso> itGiocatori = giocatori.iterator();
+//		ArrayList<BeanGiocatore> infoGiocatori = new ArrayList<BeanGiocatore>(giocatori.size());
+//		while(itGiocatori.hasNext()){
+//			infoGiocatori.add(itGiocatori.next().getMieInfo().clone()); //gli passo un clone
+//		}
+//		return infoGiocatori;
+//	}
+	
+//	//review
+//	public ArrayList<BeanGiocatore> getInfoPartecipanti(){
+//		ArrayList<BeanGiocatore> infoGiocatori = new ArrayList<BeanGiocatore>(this.giocatoriIniziali.size());
+//		Iterator<GiocatoreConnesso> itGiocIniz = this.giocatoriIniziali.iterator();
+//		while(itGiocIniz.hasNext()){
+//			infoGiocatori.add(itGiocIniz.next().getMieInfo().clone()); //gli passo un clone
+//		}
+//		return infoGiocatori;
+//	}
+	
+	
+	
+	/**
+	 * Chiude una partita e salva le informazioni relative nel Db. 
+	 * @param classificaPartita - la classifica finale della partita che si è conclusa. 
+	 * @throws SQLException Problema al DB
+	 */
+	public synchronized void chiudiPartita(ArrayList<GiocatoreConnesso> classificaPartita, Integer idPartita) throws SQLException{
+		Iterator<GiocatoreConnesso> itClassifica = classificaPartita.iterator();
+		int numeroGiocatoriFinale = classificaPartita.size();
+		int punteggioPrimo = Partita.punteggioPrimo(numeroGiocatoriFinale);
+		int punteggioSecondo = Partita.punteggioSecondo(numeroGiocatoriFinale);
+		GiocatoreConnesso giocatoreTemp; 
+		String username;
+		int punteggioGiocatore = 0; 
+		int contClassifica = 1; //per tenere traccia della posizione in classifica 
+		while(itClassifica.hasNext()){
+			giocatoreTemp = itClassifica.next();
+			username = giocatoreTemp.getUsername();
+			if(contClassifica==1)
+				punteggioGiocatore = punteggioPrimo; 
+			if(contClassifica == 2)
+				punteggioGiocatore = punteggioSecondo; 
+			dbmInvasion.aggiornaUtentePostPartita(connessioneDb, username, idPartita, punteggioGiocatore, contClassifica);
+			punteggioGiocatore = 0; 
+		}
+	}
+	
+	/**
+	 * Crea la mappa e la invia a chi ne ha fatto richiesta.
+	 * @return	La mappa.
+	 * @throws SQLException	Impossibile accedere al DB.
+	 */
+	public Mappa ottieniMappa() throws SQLException{
+		Mappa nuovaMappa = new Mappa(dbmInvasion.estraiContinenti(connessioneDb), dbmInvasion.estraiBonus(connessioneDb), dbmInvasion.estraiTerritori(connessioneDb), dbmInvasion.estraiConfini(connessioneDb));
+		return nuovaMappa;
+	}
+	
+	
+	
+	//TODO porccoooo caneeee
+	public void chiudiServer (){
+		
+	}
+
+	
+}

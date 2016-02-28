@@ -1,0 +1,49 @@
+package classiCondivise;
+
+import server_daler.*;
+/**
+ * Classe che rappresenta il countdown.
+ * @author daniele
+ *
+ */
+public class Countdown implements Runnable {
+
+	private GiocatoreConnesso mioGiocatore=null;
+	/**
+	 * Tempo iniziale del countdown
+	 */
+	private int tempo;
+
+	
+	public Countdown(int tempo, GiocatoreConnesso g) {
+		super();
+		this.tempo = tempo;
+		this.mioGiocatore=g;
+	}
+
+	public int getTempo() {
+		return tempo;
+	}
+
+	public void setTempo(int tempo) {
+		this.tempo = tempo;
+	} 
+	
+	/**
+	 * Metodo per fare partire il countdown dal tempo settato. Termina quando arriva a 0 o se riceve un Interrupt
+	 * @throws InterruptedException - se viene ricevuto un interrupt, ovvero se si effettua la mossa interessata prima che il timer scada
+	 */
+	public void run() {
+		int tempo=this.tempo;
+		try {	
+			while(tempo>0){
+				Thread.sleep(1000);
+				tempo--;
+			}
+		} catch(InterruptedException e){
+			return; //se riceve un interrupt, ovvero se il client fa la mossa, ritorna, senza aspettare che il cuntdown scada
+		}
+		
+		
+	}	
+}

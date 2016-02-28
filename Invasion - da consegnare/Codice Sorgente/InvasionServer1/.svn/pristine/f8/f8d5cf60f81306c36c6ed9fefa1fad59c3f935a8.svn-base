@@ -1,0 +1,133 @@
+package socket;
+
+import java.net.Socket;
+import java.util.ArrayList;
+
+import server_daler.GiocatoreConnesso;
+import socketTest.InterfacciaComunicazione;
+import classiCondivise.BeanGiocatore;
+import classiCondivise.Colori;
+import classiCondivise.CreareMessaggio;
+import interfacciaComunicazione.Server2Client;
+
+//TODO Implementerà l'interfaccia di comunicazione client2server
+public class Interprete implements InterfacciaComunicazione {
+
+	public static final String customString = "default";
+	private String stringaLetta;
+	private Lettore lettoreSocket;
+	private Thread threadLettore;
+	private GiocatoreConnesso giocatore;
+	
+	private static final String esitoPositivo = "OK";
+	private static final String esitoNegativo = "KO";
+	
+	public final static String login = "LOGIN";
+	public final static String logout = "LOGOUT";
+	public final static String registra = "REGISTRA";
+	
+	public final static String classifica = "STATISTICHEGENERALI";
+	public final static String statistiche = "STATISTICHEUTENTE";
+	
+	public final static String aggiornaTavoli = "AGGIORNATAVOLI";
+	public final static String creaTavolo = "CREATAVOLO";
+	public final static String joinTavolo = "UNISCITITAVOLO";
+	public final static String startTavolo = "AVVIATAVOLO";
+	
+	public final static String abbandonaPartita = "ABBANDONAPARTITA";
+	/**
+	 * Avvia il lettore assandogli il socket da cui leggere
+	 * @param mioSocket
+	 */
+	public Interprete(Socket mioSocket, GiocatoreConnesso mioGiocatore){
+		super();
+		this.giocatore = mioGiocatore;
+		this.lettoreSocket = new Lettore(this, mioSocket);
+		this.threadLettore = new Thread(lettoreSocket);
+		threadLettore.start();
+	}
+	/**
+	 * Interpreta la stringa letta e ritorna la stringa di risposta.
+	 * @param stringaLetta	La stringa letta dal socket.
+	 * @return	La stringa di risposta.
+	 */
+	public String interpreta(String stringaLetta){
+		String comando = CreareMessaggio.estraiComando(stringaLetta).toUpperCase();
+		String stringaPura = CreareMessaggio.rimuoviComando(stringaLetta);
+		if(comando.toUpperCase().equals(login)){
+			String username = CreareMessaggio.estraiStringa(stringaPura);
+			stringaLetta = CreareMessaggio.estraiSecondaParte(stringaPura);
+			String password = CreareMessaggio.estraiStringa(stringaPura);
+			if(this.giocatore.loginUtente(username, password)){
+				//ok@[bean separato da ;]
+				return CreareMessaggio.responsoPositivo(this.giocatore.getMieInfo().toString());
+			}
+			else{
+				//ko@[accesso fallito]
+				return CreareMessaggio.responsoNegativo("Impossibile effettuare il login");
+			}
+		} 
+		else if(comando.toUpperCase().equals(logout)){
+			this.giocatore.disconnetti();
+			return CreareMessaggio.responsoPositivo("Logout eseguito con successo");
+		} 
+		else if(comando.toUpperCase().equals(registra)){
+			String username = CreareMessaggio.estraiStringa(stringaPura);
+			stringaLetta = CreareMessaggio.estraiSecondaParte(stringaPura);
+			String password = CreareMessaggio.estraiStringa(stringaPura);
+			if(this.giocatore.registrazioneUtente(username, password)){
+				return CreareMessaggio.responsoPositivo("Registrazione effettuata");
+			}
+			else{
+				return CreareMessaggio.responsoNegativo("Username già in uso");
+			}
+		}
+		else if(comando.toUpperCase().equals(classifica)){
+			
+			//TODO
+		}
+		else if(comando.toUpperCase().equals(statistiche)){
+			String username = CreareMessaggio.estraiStringa(stringaPura);
+			//TODO	Chiedere al giocatore connesso il bean fare il toString e ritornarlo
+			
+		}
+		else if(comando.toUpperCase().equals(aggiornaTavoli)){
+			//TODO	Chiedere tutti i tavoli e poi li rimandiamo indietro
+		}
+		else if(comando.toUpperCase().equals(creaTavolo)){
+			
+		}
+		else if(comando.toUpperCase().equals(joinTavolo)){
+			Integer numeroTavolo = CreareMessaggio.estraiInteger(stringaPura);
+			//TODO	Inviare il comando di unione al tavolo scelto.
+		}
+		else if(comando.toUpperCase().equals(startTavolo)){
+			Integer numeroTavolo = CreareMessaggio.estraiInteger(stringaPura);
+			//TODO	Inviare il comando di unione al tavolo scelto.
+		}
+		//TODO Levare questo return e ritornare il valore di ogni interpreta.
+		return null;
+	}
+	
+	public synchronized String inviaComando(Integer secondiAttesa) throws InterruptedException{
+		//TODO gestire l'invio del comando
+		
+		//Attendiamo la risposta dell'utente
+		if(stringaLetta.equals(customString)){
+			wait(secondiAttesa*1000);
+		}
+		//Ci salviamo la risposta, ripristiniamo la stringa di default e ritorniamo quello che abbiamo letto
+		String risposta = stringaLetta;
+		this.stringaLetta = customString;
+		return risposta;
+	}
+	
+	public String getStringaLetta() {
+		return stringaLetta;
+	}
+
+	public void setStringaLetta(String stringaLetta) {
+		this.stringaLetta = stringaLetta;
+	}
+
+}

@@ -1,0 +1,78 @@
+package server_daler;
+
+import interfacceRemote.AcceptInterface;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+
+import provaRmi.AcceptClass;
+import socket.DemoneSocket;
+
+public class StartServer {
+
+	private static final String host = "127.0.0.1";
+	private static final String url = "rmi://"+host+"/Hello";
+	
+	public static void main(String[] args) {
+		//Creiamo l'istanza del server
+		Server mioServer = Server.getInstance();
+		//Avviamo il socket
+		System.out.println("Avvio il demone socket");
+		DemoneSocket demoneSocket = new DemoneSocket();
+		Thread demone = new Thread(demoneSocket);
+		demone.setDaemon(true);
+		demone.start();
+		System.out.println("Comunicazione socket avviata");
+		
+		boolean continua = true;
+		Registry registry = null;
+		try{
+			if (System.getSecurityManager() == null){
+				System.setSecurityManager(new SecurityManager());
+			}
+			//ServerAccImpl server = new ServerAccImpl();
+			//ServerAcceptInterface stub = (ServerAcceptInterface) UnicastRemoteObject.exportObject(server,0);
+			AcceptInterface stub = new AcceptClass();
+			registry = LocateRegistry.getRegistry(host); 
+			registry.rebind(url, stub);
+			Thread threadAccept = new Thread();
+			threadAccept.start();
+		} catch(RemoteException e){
+			System.out.println("cane 1"); 
+			e.printStackTrace();
+		}
+			//Da adesso in poi posso accettare le connessioni
+			System.out.println("Comunicazione RMI avviata");
+			BufferedReader inputBuffer = new BufferedReader(new InputStreamReader(System.in)); 
+			String input = null;
+			continua = true;
+			//registry.unbind(url);
+		
+
+		BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+		String letto = "";
+		while(! letto.toUpperCase().equals("EXIT")){
+			try {
+				letto = in.readLine();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+   		//Fermo il demone socket
+    	demoneSocket.ferma();
+    	try {
+			registry.unbind(url);
+		} catch (RemoteException | NotBoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+}

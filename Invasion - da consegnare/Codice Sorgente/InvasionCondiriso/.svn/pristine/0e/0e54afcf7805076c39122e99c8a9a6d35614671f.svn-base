@@ -1,0 +1,135 @@
+package interfacceRemote;
+
+import java.rmi.Remote;
+import java.rmi.RemoteException;
+import java.util.ArrayList;
+
+import classiCondivise.BeanGiocatore;
+import classiCondivise.BeanTavolo;
+import classiCondivise.Classifica;
+import classiCondivise.Colori;
+import exceptionCondivise.GiocatoreNonTrovatoException;
+import exceptionCondivise.ProblemaAvvioTavoloException;
+import exceptionCondivise.TavoloInesistenteException;
+import exceptionCondivise.TerritorioNonTrovatoException;
+import exceptionCondivise.UnitaInsufficientiException;
+
+/**
+ * Interfaccia remota di comunicazione lato Server
+ *
+ */
+public interface ServerComunicazioneInterfaccia extends Remote{
+	
+	
+	/**
+	 * Prova ad eseguire il login richiesto dall'utente.
+	 * @param username	username dell'utente
+	 * @param password	password dell'utente
+	 * @return il BeanGiocatore con le info dell'utente se il login è andato a buon fine; null altrimenti
+	 * @throws RemoteException
+	 */
+	public BeanGiocatore eseguiLogin(String username, String password) throws RemoteException;
+	
+	
+	/**
+	 * Prova a eseguire la registrazione richiesta dall'utente.
+	 * @param username	username dell'utente
+	 * @param password	password dell'utente
+	 * @return il BeanGiocatore con le info dell'utente se la registrazione è andato a buon fine; null altrimenti
+	 * @throws RemoteException
+	 */
+	public BeanGiocatore eseguiRegistrazione(String username, String password) throws RemoteException;
+	
+	
+	public boolean eseguiLogout() throws RemoteException;
+	
+	/**
+	 * Metodo per cambiare la password.
+	 * @param vecchiaPassword - la vecchia password
+	 * @param nuovaPassword - la nuova password
+	 * @return true - se il cambio di password è andato a buon fine; false - altrimenti
+	 * @throws RemoteException
+	 */
+	public boolean cambiaPassword(String vecchiaPassword, String nuovaPassword) throws RemoteException;
+	
+	/**
+	 * Ottiene la classifica generale del gioco
+	 * @return la classifica generale del gioco
+	 * @throws RemoteException
+	 */
+	public Classifica ottieniClassifica() throws RemoteException;
+	
+	
+	/**
+	 * Richiesta di ottenere le informazioni riguardanti un utente specifico.
+	 * @param nomeUtente - il nome dell'utente di cui se vogliono le info
+	 * @return le info riguardanti l'utente richiesto sotto forma di BeanGiocatore.
+	 * @throws RemoteException
+	 * @throws GiocatoreNonTrovatoException 
+	 */
+	public BeanGiocatore ottieniInfoUtente (String nomeUtente) throws RemoteException, GiocatoreNonTrovatoException;
+	
+	
+	/**
+	 * Metodo per richiedere la lista dei Tavoli Aperti
+	 * @return - la lista con le info dei tavoli aperti (id e numero giocatori)
+	 * @throws RemoteException
+	 */
+	public ArrayList<BeanTavolo> richiediListaTavoliAperti() throws RemoteException;
+	
+	
+	/**
+	 * Comando di creare un nuovo tavolo (a cui il creatore si aggiungerà)
+	 * @return - l'id del tavolo creato
+	 * @throws RemoteException
+	 */
+	public Integer creaTavolo() throws RemoteException;
+	
+	
+	/**
+	 * Comando del client di avviare il tavolo a cui ha preso parte.
+	 * @param idTavolo - l'id del tavolo che il client ha richiesto di avviare 
+	 * @return true - se il tavolo verrà avviato; false - altrimenti
+	 * @throws RemoteException
+	 * @throws ProblemaAvvioTavoloException 
+	 */
+	public boolean avviaTavolo(Integer idTavolo) throws RemoteException, ProblemaAvvioTavoloException;
+	
+	
+	/**
+	 * Metodo per aggiungersi a un tavolo. 
+	 * Se l'aggiunta va a buon fine cambia lo stato attuale in "InTavolo."
+	 * @param idtavolo					L'Id del tavolo a cui il giocatore si vuole aggiungere
+	 * @return la lista dei giocatori connessi al tavolo se l'aggiunta è andata a buon fine; null altrimenti
+	 * @throws RemoteException
+	 * @throws TavoloInesistenteException 
+	 */
+	public ArrayList<String> joinTavolo(Integer idTavolo) throws RemoteException, TavoloInesistenteException;
+	
+	
+	/**
+	 *Comando di abbandonare un tavolo. Fa abbandonare il tavolo al client.
+	 *@throws RemoteException
+	 */
+	public void abbandonaTavolo() throws RemoteException;
+	
+	public void sceltaColoreEffettuata(Colori colore) throws RemoteException;
+	
+	public void sceltaArmateInizialeEffettuata(String comandoPosizionamento) throws RemoteException; //anche per armate inizio turno
+	
+	public void passaTurno() throws RemoteException;
+
+	public void comandoSpostaArmate(Integer numeroArmateDaSpostare, String origine, String destinazione) throws RemoteException, TerritorioNonTrovatoException;
+	
+	public void comandoAttacco(Integer numeroUnitaAttaccanti, String tAttaccato, String tAttaccante) throws RemoteException, UnitaInsufficientiException, GiocatoreNonTrovatoException, TerritorioNonTrovatoException;
+	
+	
+	public void abbandonaPartita() throws RemoteException;
+	
+	
+
+	
+	
+	
+	
+}

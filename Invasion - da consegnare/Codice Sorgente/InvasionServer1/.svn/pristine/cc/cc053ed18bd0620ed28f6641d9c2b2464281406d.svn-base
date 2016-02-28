@@ -1,0 +1,402 @@
+package server_daler;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Iterator;
+
+import classiCondivise.BeanGiocatore;
+import classiCondivise.Classifica;
+import classiCondivise.StatiUtente;
+
+import org.omg.CosNaming.NamingContextPackage.NotFound; //per Eccezione NotFound
+
+import dbManager.*;
+
+
+/**
+ * Classe che gestisce il lato Server del gioco Invasion
+ * Singleton
+ */
+public class Server {
+	
+	/**
+	 * Istanza del Server. 
+	 * Se è null creo una nuova istanza 
+	 */
+	private static Server INSTANCE = null; 
+	
+	/**
+	 * Riferimento al database Manager, per gestire il database
+	 */
+	private DbManager dbmInvasion; 
+	
+	/**
+	 * È la connessione al db.
+	 */
+	private Connection connessioneDb;
+	
+	/**
+	 * Lista di giocatori connessi
+	 */
+	private ArrayList<GiocatoreConnesso> utentiConnessi; 
+	
+	/**
+	 * Lista di Beans con Info Utenti
+	 */
+	private ArrayList<BeanGiocatore> beanUtenti;
+	
+	/**
+	 * Lista di tavoli Aperti
+	 */
+	private ArrayList <TavoloAperto> tavoli; 
+	
+	/**
+	 * Liste di partite in corso
+	 */
+	private ArrayList <Partita> partite; 
+	
+	
+	/**
+	 * Costruttore privato
+	 * Crea una nuova istanza della classe DbManager, per gestire il database
+	 */
+	private Server() {
+		this.utentiConnessi = new ArrayList<GiocatoreConnesso>();
+		this.beanUtenti = new ArrayList<BeanGiocatore>();
+		this.tavoli = new ArrayList<TavoloAperto>();
+		this.partite = new ArrayList<Partita>();
+		this.dbmInvasion = new DbManager();
+		try {
+			//this.connessioneDb = this.dbmInvasion.connessioneDb();
+			this.connessioneDb = dbmInvasion.connessioneDb();  //dava warning
+		} catch (InstantiationException | IllegalAccessException
+				| ClassNotFoundException | SQLException e) {
+			System.err.println("Impossibile connettersi al Database");
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Metodo per crea un'istanza della classe Server, se essa ancora non esiste.
+	 */
+	private synchronized static void createInstance() {
+		if(INSTANCE==null)
+			INSTANCE = new Server();
+	}
+	
+	
+	/**
+	 * Metodo per ottenere un riferimento alla classe Server
+	 * @return l'unica istanza della classe Server
+	 */
+	public static Server getInstance(){
+		if(INSTANCE == null)
+			createInstance();
+		return INSTANCE; 
+	}
+	
+
+		
+	public Integer ottieniIdNuovoTavolo(){
+		Integer idNuovoTavolo = (this.tavoli.size()) + 1;
+		return idNuovoTavolo;
+	}
+	
+	
+	//magari non serve
+	public Integer creaTavolo(){
+		TavoloAperto nuovoTavolo = new TavoloAperto(ottieniIdNuovoTavolo());
+		this.tavoli.add(nuovoTavolo);
+		inviaListaTavoli();
+		return nuovoTavolo.getIdTavolo(); 
+	}
+	
+	
+	public Integer creaTavolo(GiocatoreConnesso creatoreTavolo){
+		TavoloAperto nuovoTavolo = new TavoloAperto(ottieniIdNuovoTavolo(), creatoreTavolo);
+		this.tavoli.add(nuovoTavolo);
+		creatoreTavolo.setStatoAttuale(StatiUtente.INTAVOLO);
+		 inviaListaTavoli();
+		return nuovoTavolo.getIdTavolo(); 
+	}
+	
+	
+	/**
+	 * aggiunge un nuovo giocatore che si è appena connesso...
+	 * @throws Exception 
+	 */
+	public boolean aggiungiGiocatoreConnesso(GiocatoreConnesso giocatoreConnesso, String password) {
+		if(this.utentiConnessi.contains(giocatoreConnesso))
+			return false;
+		boolean aggiunta = this.utentiConnessi.add(giocatoreConnesso);
+		if (aggiunta == true)
+			try {
+				dbmInvasion.effettuaLogin(connessioneDb, giocatoreConnesso.getUsername(), password);
+				riempiBeanGiocatore(giocatoreConnesso);
+				giocatoreConnesso.riceviListaTavoli(this.tavoli);//solo al giocatore 
+			} catch (SQLException e) {
+				//e.printStackTrace();
+				//return false;  //non ha potuto farlo
+			} 
+		return aggiunta; 
+	}
+	
+	
+	public void inviaListaTavoli(){
+		Iterator<GiocatoreConnesso> itUtenti =  this.utentiConnessi.iterator();
+		GiocatoreConnesso giocatoreTemp; 
+		while(itUtenti.hasNext()){
+			giocatoreTemp = itUtenti.next();
+			if (giocatoreTemp.getStatoAttuale() != StatiUtente.INPARTITA){
+				giocatoreTemp.riceviListaTavoli(this.tavoli);
+			}
+		}
+	}
+	
+	
+	
+	public void riempiBeanGiocatore(GiocatoreConnesso giocatoreConnesso) throws SQLException{
+		BeanGiocatore mioBean = ottieniInfoUtente(giocatoreConnesso.getUsername());
+		giocatoreConnesso.setMieInfo(mioBean);
+		this.beanUtenti.add(mioBean);
+	}
+	
+	
+	public boolean creaUtente(GiocatoreConnesso giocatoreConnesso, String password) throws SQLException{
+		boolean conn = dbmInvasion.creaUtente(connessioneDb, giocatoreConnesso.getUsername(), password);
+		return conn; 
+//		try {
+//			return dbmInvasion.creaUtente(connessioneDb, giocatoreConnesso.getUsername(), password);
+//		} catch (SQLException e) {
+//			//e.printStackTrace();
+//			
+//			return false;
+//		}
+	}
+	
+	
+	
+	public boolean cambiaPassword(Connection connessioneDb, GiocatoreConnesso giocatoreConnesso, String vecchiaPassword, String nuovaPassword) throws SQLException{
+		String username = giocatoreConnesso.getUsername();
+		return dbmInvasion.cambiaPassword(connessioneDb, username, vecchiaPassword, nuovaPassword);
+	}
+	
+	public BeanGiocatore ottieniInfoUtente (GiocatoreConnesso giocatore){
+		BeanGiocatore infoUtente = giocatore.getMieInfo().clone();   //non so se è il clone
+		return infoUtente;
+	}
+	
+	public BeanGiocatore ottieniInfoUtente (String username) throws SQLException{
+		//String username = giocatoreConnesso.getUsername();
+		int punteggio = dbmInvasion.puntiVinti(connessioneDb, username);
+		int posizioneClassifica = dbmInvasion.posizioneInClassifica(connessioneDb, username);
+		int numeroPartitePartecipate = dbmInvasion.totalePartiteGiocate(connessioneDb, username);
+		float percentualePartiteVinte = dbmInvasion.percentualePartiteVinte(connessioneDb, username); 
+		float percentualePartiteSecondo = dbmInvasion.percentualePartiteSecondo(connessioneDb, username);
+		float percentualePartiteAbbandonate = dbmInvasion.percentualePartiteAbbandonate(connessioneDb, username);
+		boolean connesso = true; 
+		BeanGiocatore mioBean = new BeanGiocatore(username, punteggio, posizioneClassifica, numeroPartitePartecipate, 
+				percentualePartiteVinte, percentualePartiteSecondo, percentualePartiteAbbandonate, connesso);
+		return mioBean; 
+	}
+	
+
+	
+	public Classifica ottieniClassifica() throws SQLException{
+		return dbmInvasion.classificaGenerale(connessioneDb);
+	}
+	
+	
+	/**
+	 * Metodo per ricavare il riferimento a un oggetto Giocatore, partendo dal suo Username 
+	 * @param nomeGiocatore - lo username del giocatore di interesse
+	 * @return -Il riferimento al giocatore corrispondente allo username passato come parametro. .-null se non viene trovato il giocatore con quel username
+	 */
+	public GiocatoreConnesso usernameToPlayer (String nomeGiocatore){
+		Iterator<GiocatoreConnesso> iteratoreGiocatori = this.utentiConnessi.iterator();
+		GiocatoreConnesso giocatoreTemp;
+		while(iteratoreGiocatori.hasNext()){
+			giocatoreTemp = iteratoreGiocatori.next();
+			if(giocatoreTemp.getUsername() == nomeGiocatore)
+				return giocatoreTemp;  
+		}
+		return null;  //se non lo trova \\TODO manderei un'eccezione
+	}
+	
+	
+	
+	/**
+	 * @throws NotFound 
+	 * 
+	 */
+	public void rimuoviGiocatore(GiocatoreConnesso giocatoreDaRimuovere) throws NotFound {
+		if(!this.utentiConnessi.contains(giocatoreDaRimuovere)){
+			throw new NotFound(); //utente non connesso
+		} //TODO e poi altro??? va bene void??
+		
+		switch(giocatoreDaRimuovere.getStatoAttuale()){
+			case LIMBO : 
+				rimuoviDaConnessi(giocatoreDaRimuovere);
+				break;
+			
+			case INTAVOLO :
+				rimuoviGiocatoreDaTavolo(giocatoreDaRimuovere);
+				break;
+						
+			case INPARTITA :
+				rimuoviGiocatoreDaPartita(giocatoreDaRimuovere);
+				break;
+		default: //TODO boh
+			break;				
+		}		
+	}
+	
+
+	
+	public void rimuoviDaConnessi(GiocatoreConnesso giocatoreDaRimuovere) throws NotFound{
+		if(!this.utentiConnessi.contains(giocatoreDaRimuovere)){
+			throw new NotFound(); //utente non connesso
+		}
+		giocatoreDaRimuovere.setStatoAttuale(StatiUtente.NONCONNESSO);
+		this.utentiConnessi.remove(giocatoreDaRimuovere); //\\TODO Qua ci pensa il garbage collector o che altro? non so se dovrebbe
+	}
+	
+	
+	/**
+	 * aggiungo un giocatore al tavolo
+	 */
+	public boolean joinTavolo(GiocatoreConnesso giocatoreDaAggiungere, Integer idtavolo){
+		try {
+			TavoloAperto tavoloTemp = idToTavolo(idtavolo);
+			tavoloTemp.aggiungiGiocatore(giocatoreDaAggiungere);
+			giocatoreDaAggiungere.setStatoAttuale(StatiUtente.INTAVOLO);
+			inviaListaTavoli(); //comunico a tutti gli utenti a meno di quelli in partira
+			return true; 
+		} catch (NotFound e) {
+			return false; //non ho potuto aggiungere il giocatore
+		}
+	}
+	
+	private TavoloAperto idToTavolo (Integer idtavolo) throws NotFound{
+		Iterator<TavoloAperto> iteratoreTavoli = this.tavoli.iterator();
+		TavoloAperto tavoloTemp;
+		while(iteratoreTavoli.hasNext()){
+			tavoloTemp = iteratoreTavoli.next();
+			if(tavoloTemp.getIdTavolo() == idtavolo)
+				return tavoloTemp;  
+		}
+		throw new NotFound(); //se arriva qui, non c'era il tavolo con quell'Id
+	}
+	
+	
+//	/**
+//	 * rimuove il giocatore da un tavolo
+//	 */
+//	public void rimuoviGiocatoreDaTavolo(GiocatoreConnesso giocatoreDaRimuovere, Integer idTavolo){
+//		
+//	}
+	
+	
+	public void rimuoviGiocatoreDaTavolo(GiocatoreConnesso giocatoreDaRimuovere) throws NotFound{
+		Integer idTavolo = inCheTavolo (giocatoreDaRimuovere); //notfound
+		rimuoviGiocatoreDaTavolo(giocatoreDaRimuovere, idTavolo);
+	}
+	
+	
+	public void rimuoviGiocatoreDaTavolo(GiocatoreConnesso giocatoreDaRimuovere, Integer idTavolo) throws NotFound{
+		TavoloAperto tavolo = idToTavolo(idTavolo);
+		boolean rimozione = tavolo.rimuoviGiocatore(giocatoreDaRimuovere);
+		if (rimozione == true){
+			comunicaRimozioneDaTavolo(giocatoreDaRimuovere);
+			giocatoreDaRimuovere.setStatoAttuale(StatiUtente.LIMBO);
+			if(tavolo.getGiocatoriInTavolo().isEmpty()){
+				rimuoviTavoloAperto(tavolo); //TODO vedi l'implementazone, ma qui devo comunicarlo a tutti
+			}
+		}
+	}
+	
+	
+	
+	public void rimuoviGiocatoreDaPartita(GiocatoreConnesso giocatoreDaRimuovere){
+		Iterator<Partita> itPartite = this.partite.iterator();
+		Partita partitaTemp;
+		while(itPartite.hasNext()){
+			partitaTemp = itPartite.next();
+			if(partitaTemp.getGiocatoriPartita().contains(giocatoreDaRimuovere)){
+				partitaTemp.utenteDisconnesso(giocatoreDaRimuovere); //non so se va bene
+				giocatoreDaRimuovere.setStatoAttuale(StatiUtente.LIMBO);
+				break;
+			}
+		}
+	}
+	
+	
+	//devo comunicarlo a tutti quelli nel limbo e nei tavoli 
+	private void comunicaRimozioneDaTavolo(GiocatoreConnesso giocatoreDaRimuovere){	
+		Iterator<GiocatoreConnesso> itGiocatori = this.utentiConnessi.iterator();
+		while(itGiocatori.hasNext()){
+			itGiocatori.next().giocatoreRimossoDaTavolo(giocatoreDaRimuovere.getUsername());
+		}		
+	}
+
+	
+	
+	//in che tavoloèil giocatore
+	public Integer inCheTavolo(GiocatoreConnesso giocatoreDaRimuovere) throws NotFound{
+		Iterator<TavoloAperto> itTavoli = this.tavoli.iterator();
+		TavoloAperto tavoloTemp; 
+		while(itTavoli.hasNext()){
+			tavoloTemp = itTavoli.next();
+			if (tavoloTemp.getGiocatoriInTavolo().contains(giocatoreDaRimuovere))
+				return tavoloTemp.getIdTavolo();
+		}
+		throw new NotFound(); //non era in nessun tavolo
+	}
+	
+	
+	
+	public void rimuoviTavoloAperto(TavoloAperto tavolo){
+		this.tavoli.remove(tavolo);
+		Iterator<GiocatoreConnesso> itGiocatori = this.utentiConnessi.iterator();
+		while(itGiocatori.hasNext()){
+			itGiocatori.next().tavoloRimosso(tavolo.getIdTavolo()); 
+		}
+				//\\TODO: CI VORREBBE UN OSSERVATORE DELLO STATO DI UN TAVOLO, SE è ZERO LO CHIUDE	
+	}
+	
+	
+	
+	
+	//inizializza una partita
+	public void inizializzaPartita(){
+		//forse mi torna un integer
+		//dbmanager.creapartita   (connessione, listaGiocatore)
+		
+		//devo comunicarlo a tutti
+		
+	}
+	
+	public void chiudiPartita(ArrayList<GiocatoreConnesso> classificaPartita){//TODO Passare informazioni al server per il salvataggio di tutto sul db
+		//devo comunicarlo, e devo comunicare i bean ai giocatori
+	}
+	
+	
+	
+	
+	
+	//TODO porccoooo caneeee
+	public void chiudiServer (){
+		
+	}
+	
+
+	
+	//ci faccio un for
+	//Connection connessione
+	//Integer id_partita
+	//String giocatore + Integer posizione + Integer punteggio
+	
+
+	
+}

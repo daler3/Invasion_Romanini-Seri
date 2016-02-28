@@ -1,0 +1,96 @@
+package server_daler;
+
+import java.util.ArrayList;
+
+/**
+ * Classe che rappresenta il Tavolo Aperto, in attesa di essere Chiuso e cominciare quindi una nuova partita
+ *
+ */
+public class TavoloAperto {
+	
+	/**
+	 * Il tempo prefissato che manca alla chiusura del tavolo cioè all'inizio della partita, quando è stato raggiunto il numero minimo di giocatori
+	 */
+	protected static final int tempoAllaChiusura = 60; 
+	
+	/**
+	 * Numero massimo di giocatori in una partita
+	 */
+	protected static final int maxPlayer = 6;
+	
+	/**
+	 * Numero minimo di giocatori per poter iniziare una partita
+	 */
+	protected static final int minPlayer=3;
+	
+	/**
+	 * Id del Tavolo.
+	 */
+	private Integer idTavolo;
+
+		
+	/**
+	 * Lista di giocatori connessi al Tavolo
+	 */
+	private ArrayList<GiocatoreConnesso> giocatoriInTavolo;
+	
+	
+	/**
+	 * Costruttore della classe TavoloAperto.
+	 * @param idTavolo - l'id del Tavolo che viene creato
+	 */
+	public TavoloAperto(Integer idTavolo){
+		this.giocatoriInTavolo = new ArrayList<GiocatoreConnesso>(maxPlayer);
+		this.idTavolo = idTavolo; 
+	}
+	
+	
+	/**
+	 * Costruttore della classe TavoloAperto. 
+	 * Se un utente ha creato il tavolo chiamo questo costruttore, e aggiungo direttamente il creatore a questo tavolo.
+	 * @param idTavolo - l'id del Tavolo che viene creato 
+	 * @param creatoreTavolo - colui che ha creato il tavolo. 
+	 */
+	public TavoloAperto(Integer idTavolo, GiocatoreConnesso creatoreTavolo){
+		this.giocatoriInTavolo = new ArrayList<GiocatoreConnesso>(maxPlayer);
+		this.idTavolo = idTavolo;
+		aggiungiGiocatore(creatoreTavolo);
+	}
+	
+	
+	/**
+	 * Getter per la lista dei giocatori connessi al tavolo
+	 * @return la lista dei giocatori presenti nel tavolo
+	 */
+	public ArrayList<GiocatoreConnesso> getGiocatoriInTavolo() {
+		return giocatoriInTavolo;
+	}
+	
+	/**
+	 * Aggiunge un giocatore al tavolo
+	 * @param giocatore - il giocatore da aggiungere al tavolo
+	 * @return true - se il giocatore è stato aggiunto correttamente al tavolo; false - se il giocatore non è potuto essere aggiunto al tavolo
+	 */
+	public boolean aggiungiGiocatore(GiocatoreConnesso giocatore){
+		return this.giocatoriInTavolo.add(giocatore);
+	}
+	
+	
+	/**
+	 * Rimuove un giocatore dal tavolo
+	 * @param giocatore - il giocatore da rimuovere dal tavolo
+	 * @return true - se il giocatore è stato rimosso correttamente al tavolo; false - se il giocatore non è potuto essere rimosso dal tavolo
+	 */
+	public boolean rimuoviGiocatore(GiocatoreConnesso giocatore){
+		return this.giocatoriInTavolo.remove(giocatore);
+	}
+
+	/**
+	 * Getter per l'ide del Tavolo
+	 * @return l'id del tavolo
+	 */
+	public Integer getIdTavolo() {
+		return idTavolo;
+	}
+	
+}

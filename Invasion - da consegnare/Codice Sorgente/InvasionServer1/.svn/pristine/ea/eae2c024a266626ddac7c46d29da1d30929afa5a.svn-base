@@ -1,0 +1,23 @@
+package socket;
+
+public class oggettoAllocco {
+
+	public oggettoAllocco() {
+		super();
+	}
+	
+	
+	public synchronized void notifica(){
+		notifyAll();
+	}
+	
+	public synchronized void attendi(){
+		try {
+			wait();
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+}

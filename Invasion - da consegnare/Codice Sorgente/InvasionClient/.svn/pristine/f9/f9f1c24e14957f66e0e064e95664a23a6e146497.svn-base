@@ -1,0 +1,18 @@
+package interfacciaGUI;
+
+import classiCondivise.BeanGiocatore;
+import classiCondivise.Classifica;
+
+public interface ControllerAccountStatistiche {
+	
+	public boolean cambiaPassword(String vecchiaPassword, String nuovaPassword);
+	
+	public Classifica visualizzaClassifica(); 
+	
+	public BeanGiocatore visualizzaInfoGiocatore (String nomeGiocatore);
+	
+	public BeanGiocatore visualizzaMieInfo ();
+	
+	public String ottieniNome();
+	
+}

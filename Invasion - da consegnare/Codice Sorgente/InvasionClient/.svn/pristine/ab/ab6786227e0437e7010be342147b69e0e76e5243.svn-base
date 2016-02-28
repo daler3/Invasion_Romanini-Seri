@@ -1,0 +1,78 @@
+package guiClient;
+
+import interfacciaGUI.ControllerLoginInterface;
+
+import java.awt.EventQueue;
+
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.border.EmptyBorder;
+import javax.swing.JLabel;
+import javax.swing.ButtonGroup;
+import javax.swing.SwingConstants;
+import javax.swing.JTextField;
+import javax.swing.JPasswordField;
+import javax.swing.JRadioButton;
+import javax.swing.JButton;
+
+import java.awt.event.ActionListener;
+import java.awt.event.ActionEvent;
+import java.awt.Font;
+import java.awt.Color;
+import java.io.IOException;
+import java.net.UnknownHostException;
+
+import javax.swing.ImageIcon;
+
+public class LoginSwing extends JFrame {
+
+	private JPanel contentPane;
+	private PanelLogin mioLogin;
+	private ControllerLoginInterface login = null;
+
+//	/**
+//	 * Launch the application.
+//	 */
+//	public static void main(String[] args) {
+//		
+//		EventQueue.invokeLater(new Runnable() {
+//			public void run() {
+//				try {
+//					LoginSwing frameLog = new LoginSwing();
+//					frameLog.setVisible(true);
+//				} catch (Exception e) {
+//					e.printStackTrace();
+//				}
+//			}
+//		});
+//	}
+
+	public LoginSwing(ControllerLoginInterface login) {
+		this.login = login;
+		
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		//setBounds(100, 100, 450, 300);
+		contentPane = new JPanel();
+		contentPane.setBorder(new EmptyBorder(5, 5, 5, 5));
+		
+//		try {
+//			avviaLogin();
+//		} catch (IOException e) {
+//			String motivazione = "Impossibile raggiungere il server";
+//			getContentPane().add(new PanelError(motivazione));
+//			pack();
+//			//System.out.println("Impossibile connettersi");
+//			//e.printStackTrace();
+//		}
+	}
+	
+	public void createAndShowGUI() {
+		mioLogin = new PanelLogin(this.login);
+		getContentPane().add(mioLogin);
+		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		pack();
+		setVisible(true);
+    }
+
+}
+

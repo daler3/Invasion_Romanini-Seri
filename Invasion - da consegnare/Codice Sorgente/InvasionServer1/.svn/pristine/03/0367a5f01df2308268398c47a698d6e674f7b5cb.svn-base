@@ -1,0 +1,27 @@
+package server_daler;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
+import provaRmi.AcceptClass;
+
+public class StartServer {
+
+	public static void main(String[] args) {
+		Server mioServer = Server.getInstance();
+		AcceptClass demoneRmi = new AcceptClass();
+		
+		BufferedReader in = new BufferedReader(new InputStreamReader(System.in));
+		String letto = "";
+		while(letto.toUpperCase().equals("EXIT")){
+			try {
+				letto = in.readLine();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+	}
+
+}

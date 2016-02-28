@@ -1,0 +1,268 @@
+package comunicazione;
+
+import interfacceRemote.AcceptInterface;
+import interfacceRemote.ClientComunicazioneInterfaccia;
+import interfacceRemote.ServerComunicazioneInterfaccia;
+
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
+import java.rmi.*;
+
+import classiCondivise.BeanGiocatore;
+import classiCondivise.Classifica;
+import client.Ambasciatore;
+
+/**
+ *Oggetto per la comunicazione RMI lato client.
+ *
+ */
+public class ClientComunicazione extends UnicastRemoteObject implements ClientComunicazioneInterfaccia, Client2Server {
+
+	/**
+	 * Default serial version UID.
+	 */
+	private static final long serialVersionUID = 1L;
+	private static final String host = "127.0.0.1";
+	private static final String url = "rmi://"+host+"/Hello";
+	
+	/**
+	 * Riferimento all'interfaccia remota del server.
+	 */
+	private ServerComunicazioneInterfaccia interfacciaServer; 
+	private AcceptInterface stub = null; 
+	
+	
+	/**
+	 * Riferimento all'ambasciatore, che mi permetterà di comunicare con i metodi di client.
+	 */
+	private Ambasciatore ambasciatore;
+	
+	
+	/**
+	 * Costruttore. 
+	 * Prende l'istanza di ambasciatore (Singleton) e gli setta sè stesso come interfaccia di comunicazione. 
+	 * @throws RemoteException
+	 */
+	public ClientComunicazione() throws RemoteException {
+		super();
+		this.ambasciatore = Ambasciatore.getInstance();
+		ambasciatore.setInterfacciaComunicazione(this);
+	}
+	
+	
+
+//	public boolean iniziaComunicazione() {
+//		if (System.getSecurityManager() == null){
+//			System.setSecurityManager(new SecurityManager());
+//		}
+//		try {
+//			Registry registry = LocateRegistry.getRegistry(host);
+////			AcceptInterface stub;
+//			this.stub = (AcceptInterface) registry.lookup(url);
+//			this.interfacciaServer = stub.inizioConnessione(this); //torna una nuova interfaccia per comunicare col server
+//			return true; 
+//		} catch (RemoteException | NotBoundException e) {
+//			e.printStackTrace();
+//			return false; 
+//		} 		
+//	}
+	
+	
+	
+	/**
+	 * Il server tenta il login con le informazioni passate.
+	 * Il client attende il responso.
+	 * @param Username
+	 * @param Password
+	 * @return Responso dell'operazione
+	 * @throws RemoteException 
+	 */
+	@Override
+	public BeanGiocatore effettuaLogin(String username, String password){
+		if (System.getSecurityManager() == null)
+			System.setSecurityManager(new SecurityManager());
+		Registry registry;
+		try {
+			registry = LocateRegistry.getRegistry(host);
+			AcceptInterface stub = (AcceptInterface) registry.lookup(url); 		
+			//lo loggo
+			this.interfacciaServer = stub.inizioConnessione(this);
+			return this.interfacciaServer.eseguiLogin (username, password); 
+		} catch (RemoteException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NotBoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null; 
+	}
+		
+	
+	@Override
+	public BeanGiocatore effettuaRegistrazione(String username, String password){
+		if (System.getSecurityManager() == null)
+			System.setSecurityManager(new SecurityManager());
+		Registry registry;
+		try {
+			registry = LocateRegistry.getRegistry(host);
+			AcceptInterface stub = (AcceptInterface) registry.lookup(url); 		
+			//lo loggo
+			this.interfacciaServer = stub.inizioConnessione(this);
+			return this.interfacciaServer.eseguiRegistrazione(username, password); 
+		} catch (RemoteException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (NotBoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return null; 
+	}
+	
+	
+	
+		
+//		boolean esito = true; 
+//		if(this.stub == null){
+//			esito = iniziaComunicazione();
+//		}
+//		if (esito == true){
+//		if(iniziaComunicazione()){
+//				return this.interfacciaServer.eseguiLogin(username, password); //eseguiamo il login e torniamo il bean //null se non lo trova
+//		} else return null; 
+	//}
+	
+	/**
+	 * DA QUI IN POI E? BORDELLOOOOO
+	 */
+
+
+
+
+
+	@Override
+	public BeanGiocatore chiediStatistiche(String UsernameUtente) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public Classifica chiediClassifica() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public boolean effettuaLogout(String Username) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+
+	@Override
+	public boolean esciPartita() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+
+	@Override
+	public boolean cambiaPassword(String vecchiaPassword, String nuovaPassword) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+
+	@Override
+	public String CreaTavolo() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+
+	@Override
+	public boolean abbandonaTavolo() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+
+	@Override
+	public boolean joinTavolo(Integer idTavolo) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+
+	
+//	@Override
+//	public boolean abbandonaPartita() {
+//		// TODO Auto-generated method stub
+//		return false;
+//	}
+//
+//
+//	@Override
+//	public boolean scegliColore(String colore) {
+//		// TODO Auto-generated method stub
+//		return false;
+//	}
+//
+//
+//	@Override
+//	public String attaccaStato(String statoAttaccante, String statoDifensore,
+//			Integer armateAttaccanti) {
+//		// TODO Auto-generated method stub
+//		return null;
+//	}
+//
+//
+//	@Override
+//	public Integer[] lanciaDadi(Integer numeroDadi) {
+//		// TODO Auto-generated method stub
+//		return null;
+//	}
+//
+//
+//	@Override
+//	public boolean passaTurno() {
+//		// TODO Auto-generated method stub
+//		return false;
+//	}
+//
+//
+//	@Override
+//	public Integer posizionaArmate(String territorio, Integer numero) {
+//		// TODO Auto-generated method stub
+//		return null;
+//	}
+
+
+//	@Override
+//	public void eseguiLogin(String username, String password) {
+//		// TODO Auto-generated method stub
+//		
+//	}
+		
+		
+		
+//		this.username=username; 
+//		this.password=password; 
+//		
+//		if (System.getSecurityManager() == null)
+//			System.setSecurityManager(new SecurityManager());
+//			Registry registry = LocateRegistry.getRegistry(host);
+//			AcceptInterface stub = (AcceptInterface) registry.lookup(url); 		
+//			//lo loggo
+//			this.interInServer = stub.login(this, username, password); 
+//	}
+	
+
+			
+}

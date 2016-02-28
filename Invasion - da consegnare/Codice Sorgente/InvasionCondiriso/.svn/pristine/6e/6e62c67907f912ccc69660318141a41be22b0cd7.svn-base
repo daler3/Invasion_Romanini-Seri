@@ -1,0 +1,70 @@
+package socketcondiviso;
+
+public class AlfabetoSocket {
+
+	public static final String at = "@";
+	public static final String dotcomma =";";
+	
+	public final static String stringaVoid = "VOID";
+	
+	public static final String esitoPositivo = "OK";
+	public static final String esitoNegativo = "KO";
+	
+	
+	public final static String login = "LOGIN";
+	public final static String logout = "LOGOUT";
+	public final static String registra = "REGISTRA";
+	public final static String cambioPsw = "CAMBIOPSW";
+	
+	public final static String classifica = "STATISTICHEGENERALI";
+	public final static String ottieniInfoUtente = "OTTIENIINFOUTENTE";
+	
+	public final static String aggiornaTavoli = "AGGIORNATAVOLI";
+	public final static String creaTavolo = "CREATAVOLO";
+	public final static String joinTavolo = "UNISCITITAVOLO";
+	public final static String abbandonaTavolo = "ABBANDONATAVOLO";
+	public final static String startTavolo = "AVVIATAVOLO";
+	
+	//Da Server a Client
+	public final static String infoUtenteAggiornate = "MIEINFOUTENTE";
+	public final static String listaTavoliAggiornati = "TAVOLIAGGIORNATI";
+	public final static String cambiamentiTavolo = "CAMBIAMENTITAVOLO";
+	
+	public final static String abbandonaPartita = "ABBANDONAPARTITA";
+	
+	/*
+	 * public static final String stringaVoid = "VOID";
+	
+	private static final String at = "@";
+	private static final String dotcomma =";";
+	
+	private static final String esitoPositivo = "OK";
+	private static final String esitoNegativo = "KO";
+	
+	public final static String login = "LOGIN";
+	public final static String logout = "LOGOUT";
+	public final static String registra = "REGISTRA";
+	public final static String cambioPsw = "CAMBIOPSW";
+	
+	public final static String classifica = "STATISTICHEGENERALI";
+	public final static String ottieniInfoUtente = "OTTIENIINFOUTENTE";
+	
+	public final static String aggiornaTavoli = "AGGIORNATAVOLI";
+	public final static String creaTavolo = "CREATAVOLO";
+	public final static String joinTavolo = "UNISCITITAVOLO";
+	public final static String abbandonaTavolo = "ABBANDONATAVOLO";
+	public final static String startTavolo = "AVVIATAVOLO";
+	
+	//Da Server a Client
+	public final static String infoUtenteAggiornate = "MIEINFOUTENTE";
+	public final static String listaTavoliAggiornati = "TAVOLIAGGIORNATI";
+	public final static String cambiamentiTavolo = "CAMBIAMENTITAVOLO";
+	
+	public final static String abbandonaPartita = "ABBANDONAPARTITA";
+	 */
+	
+	public AlfabetoSocket() {
+		// TODO Auto-generated constructor stub
+	}
+
+}

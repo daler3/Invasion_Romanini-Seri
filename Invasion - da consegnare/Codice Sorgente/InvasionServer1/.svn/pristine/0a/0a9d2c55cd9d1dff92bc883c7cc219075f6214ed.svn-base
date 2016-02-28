@@ -1,0 +1,198 @@
+package server_daler;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Iterator;
+
+import org.omg.CosNaming.NamingContextPackage.NotFound;
+
+import classiCondivise.StatiUtente;
+import dbManager.*;
+
+/**
+ * Classe che gestisce il lato Server del gioco Invasion
+ * Singleton
+ */
+public class Server {
+	
+	/**
+	 * Istanza del Server. 
+	 * Se è null creo una nuova istanza 
+	 */
+	private static Server INSTANCE = null; 
+	
+	/**
+	 * Riferimento al database Manager, per gestire il database
+	 */
+	private DbManager dbmInvasion; 
+	
+	/**
+	 * È la connessione al db.
+	 */
+	private Connection connessioneDb;
+	
+	/**
+	 * Lista di giocatori connessi
+	 */
+	private ArrayList<GiocatoreConnesso> utentiConnessi; 
+	
+	/**
+	 * Lista di tavoli Aperti
+	 */
+	private ArrayList <TavoloAperto> tavoli; 
+	
+	/**
+	 * Liste di partite in corso
+	 */
+	private ArrayList <Partita> partite; 
+	
+	
+	/**
+	 * Costruttore privato
+	 * Crea una nuova istanza della classe DbManager, per gestire il database
+	 */
+	private Server() {
+		this.dbmInvasion = new DbManager();
+		try {
+			this.connessioneDb = this.dbmInvasion.connessioneDb();
+		} catch (InstantiationException | IllegalAccessException
+				| ClassNotFoundException | SQLException e) {
+			System.err.println("Impossibile connettersi al Database");
+			e.printStackTrace();
+		}
+	}
+	
+	/**
+	 * Metodo per crea un'istanza della classe Server, se essa ancora non esiste.
+	 */
+	private synchronized static void createInstance() {
+		if(INSTANCE==null)
+			INSTANCE = new Server();
+	}
+	
+	
+	/**
+	 * Metodo per ottenere un riferimento alla classe Server
+	 * @return l'unica istanza della classe Server
+	 */
+	public static Server getInstance(){
+		if(INSTANCE == null)
+			createInstance();
+		return INSTANCE; 
+	}
+	
+
+	public Integer ottieniIdNuovoTavolo(){
+		if (this.tavoli == null){ 
+			this.tavoli = new ArrayList<TavoloAperto>();
+		}
+		Integer idNuovoTavolo = (this.tavoli.size()) + 1;
+		return idNuovoTavolo;
+	}
+	
+	
+	
+	public TavoloAperto creaTavolo(){
+		TavoloAperto nuovoTavolo = new TavoloAperto(ottieniIdNuovoTavolo());
+		this.tavoli.add(nuovoTavolo);
+		return nuovoTavolo; 
+	}
+	
+	
+	public TavoloAperto creaTavolo(GiocatoreConnesso creatoreTavolo){
+		TavoloAperto nuovoTavolo = new TavoloAperto(ottieniIdNuovoTavolo(), creatoreTavolo);
+		this.tavoli.add(nuovoTavolo);
+		return nuovoTavolo; 
+	}
+	
+	
+	/**
+	 * aggiunge un nuovo giocatore che si è appena connesso
+	 * @throws Exception 
+	 */
+	public void aggiungiGiocatoreConnesso(GiocatoreConnesso giocatoreConnesso) throws Exception{
+		if(this.utentiConnessi.contains(giocatoreConnesso)){
+			throw new Exception ("giocatore gia connesso");
+		} //TODO
+		else this.utentiConnessi.add(giocatoreConnesso);
+	}
+	
+	/**
+	 * @throws NotFound 
+	 * 
+	 */
+	public void rimuoviGiocatore(GiocatoreConnesso giocatoreDaRimuovere) throws NotFound {
+		if(!this.utentiConnessi.contains(giocatoreDaRimuovere)){
+			throw new NotFound(); 
+		} //TODO e poi altro??? va bene void??
+//		else this.utentiConnessi.remove(giocatoreDaRimuovere);
+		
+		
+		
+		switch(giocatoreDaRimuovere.getStatoAttuale()){
+			case LIMBO :
+			
+			case INTAVOLO :
+				
+			case INPARTITA :
+		}
+		
+	}
+	
+	//\\TODO: vari casi di remove
+	//\\TODO: tutti i metodi di visualizzazione statostiche
+	//\\TODO: metodi di gestione dell'ACCOUNT 
+	
+	
+	/**
+	 * aggiungo un giocatore al tavolo
+	 */
+	public boolean joinTavolo(GiocatoreConnesso giocatoreDaAggiungere, Integer idtavolo){
+		try {
+			TavoloAperto tavoloTemp = idToTavolo(idtavolo);
+			tavoloTemp.aggiungiGiocatore(giocatoreDaAggiungere);
+			return true; 
+		} catch (NotFound e) {
+			return false; //non ho potuto aggiungere il giocatore
+		}
+	}
+	
+	private TavoloAperto idToTavolo (Integer idtavolo) throws NotFound{
+		Iterator<TavoloAperto> iteratoreTavoli = this.tavoli.iterator();
+		TavoloAperto tavoloTemp;
+		while(iteratoreTavoli.hasNext()){
+			tavoloTemp = iteratoreTavoli.next();
+			if(tavoloTemp.getIdTavolo() == idtavolo)
+				return tavoloTemp;  
+		}
+		throw new NotFound(); //non c'era il tavolo con quell'Id
+	}
+	
+	/**
+	 * rimuove il giocatore da un tavolo
+	 */
+	public void rimuoviGiocatoreDaTavolo(GiocatoreConnesso giocatoreDaRimuovere, Integer idTavolo){
+		
+	}
+	
+	//inizializza una partita
+	public void inizializzaPartita(){
+		
+	}
+	
+	public void rimuoviTavoloAperto(){
+		
+		//\\TODO: CI VORREBBE UN OSSERVATORE DELLO STATO DI UN TAVOLO, SE è ZERO LO CHIUDE
+		//\\TODO: POI DEVO COMUNICARLO A TUTTI
+		
+	}
+	
+	public void chiudiPartita(){//TODO Passare informazioni al server per il salvataggio di tutto sul db
+		
+	}
+	
+	
+	
+
+}

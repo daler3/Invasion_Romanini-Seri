@@ -1,0 +1,65 @@
+package server_daler;
+
+import java.util.ArrayList;
+
+/**
+ * Classe che rappresenta il Tavolo Aperto, in attesa di essere Chiuso e cominciare quindi una nuova partita
+ *
+ */
+public class TavoloAperto {
+	
+	/**
+	 * Il tempo prefissato che manca alla chiusura del tavolo cioè all'inizio della partita, quando è stato raggiunto il numero minimo di giocatori
+	 */
+	public static final int tempoAllaChiusura = 60; 
+	
+	public static final int maxPlayer = 6;
+
+		
+	/**
+	 * Lista di giocatori connessi al Tavolo
+	 */
+	private ArrayList<GiocatoreConnesso> giocatoriInTavolo;
+	
+	
+	/**
+	 * Costruttore della classe TavoloAperto
+	 * Quando creo il Tavolo, lo costruisco. 
+	 */
+	public TavoloAperto(){
+		this.giocatoriInTavolo = new ArrayList<GiocatoreConnesso>(maxPlayer);
+	}
+	
+	
+	/**
+	 * Getter per la lista dei giocatori connessi al tavolo
+	 * @return la lista dei giocatori presenti nel tavolo
+	 */
+	public ArrayList<GiocatoreConnesso> getGiocatoriInTavolo() {
+		return giocatoriInTavolo;
+	}
+	
+
+
+	/**
+	 * Aggiunge un giocatore al tavolo
+	 * @param giocatore - il giocatore da aggiungere al tavolo
+	 * @return true - se il giocatore è stato aggiunto correttamente al tavolo; false - se il giocatore non è potuto essere aggiunto al tavolo
+	 */
+	public boolean aggiungiGiocatore(GiocatoreConnesso giocatore){
+		return this.giocatoriInTavolo.add(giocatore);
+	}
+	
+	
+	/**
+	 * Rimuove un giocatore dal tavolo
+	 * @param giocatore - il giocatore da rimuovere dal tavolo
+	 * @return true - se il giocatore è stato rimosso correttamente al tavolo; false - se il giocatore non è potuto essere rimosso dal tavolo
+	 */
+	public boolean rimuoviGiocatore(GiocatoreConnesso giocatore){
+		return this.giocatoriInTavolo.remove(giocatore);
+	}
+	
+	
+	
+}

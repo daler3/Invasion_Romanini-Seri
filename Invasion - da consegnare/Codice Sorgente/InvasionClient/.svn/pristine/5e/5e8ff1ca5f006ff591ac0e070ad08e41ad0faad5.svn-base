@@ -1,0 +1,1008 @@
+package guiClient;
+
+import interfacciaGUI.ControllerLimbo;
+import interfacciaGUI.ControllerPartita;
+import interfacciaGUI.ViewPartita;
+
+import java.awt.Container;
+import java.awt.Dimension;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
+import java.util.ArrayList;
+import java.util.Iterator;
+
+import exceptionCondivise.GiocatoreNonTrovatoException;
+import exceptionCondivise.TerritorioNonTrovatoException;
+import exceptionCondivise.UnitaInsufficientiException;
+import guiClient.immagini.IconLoader;
+
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.JLabel;
+import javax.swing.JButton;
+import javax.swing.SwingUtilities;
+import javax.swing.Timer;
+
+import java.awt.Color;
+
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.JSlider;
+
+import java.awt.Font;
+
+import mappa.Mappa;
+import mappa.Territorio;
+import classiCondivise.BeanGiocatore;
+import classiCondivise.BeanTavolo;
+import classiCondivise.Colori;
+
+@SuppressWarnings("serial")
+public class PanelPartita extends JPanel implements ViewPartita{
+	private final static int x[] = {12, 82, 70, 173, 226, 252, 82, 183, 105, 173, 173, 252, 206, 453, 560, 453, 532, 375, 453, 350, 411, 411, 323, 361, 421, 509, 519, 628, 721, 667, 571, 594, 651, 721, 702, 712, 770, 816, 806, 702, 758, 841};
+	private final static int y[] = {45, 55, 104, 104, 104, 12, 168, 180, 258, 310, 364, 349, 454, 493, 493, 429, 393, 310, 321, 226, 243, 167, 136, 94, 45, 55, 258, 272, 310, 226, 187, 69, 12, 12, 94, 168, 45, 156, 363, 401, 488, 454};
+	private final static int w[] = {73, 158, 108, 62, 73, 120, 96, 96, 96, 106, 80, 96, 73, 108, 62, 80, 62, 86, 86, 86, 86, 86, 86, 62, 86, 86, 119, 96, 73, 127, 96, 73, 73, 73, 73, 108, 120, 73, 73, 108, 86, 73};
+	private final static int h[] = {99, 50, 64, 90, 90, 112, 78, 90, 78, 50, 78, 132, 151, 112, 83, 71, 107, 120, 50, 99, 64, 64, 95, 50, 123, 210, 132, 132, 99, 78, 83, 125, 151, 99, 90, 71, 123, 99, 99, 99, 99, 133};
+	private final static String territori[] = {"Alaska", "Territori del Nord Ovest", "Alberta", "Ontario", "Quebec", "Groenlandia", "Stati Uniti Occidentali", "Stati Uniti Orientali", "America Centrale", "Venezuela", "Perù", "Brasile", "Argentina", "Africa del Sud", "Madagascar", "Congo", "Africa Orientale", "Africa del Nord", "Egitto", "Europa Occidentale", "Europa Meridionale", "Europa Settentrionale", "Gran Bretagna", "Islanda", "Scandinavia", "Ucraina", "Medio Oriente", "India", "Siam", "Cina", "Afghanistan", "Urali", "Siberia", "Jacuzia", "Cita", "Mongolia", "Kamchatka", "Giappone", "Nuova Guinea", "Indonesia", "Australia Occidentale", "Australia Orientale"};
+	
+	private final static int xG[] = {12, 216, 12, 216, 12, 216};
+	private final static int yG[] = {12, 12, 68, 68, 124, 124};
+	
+	private Mappa miaMappa;
+	
+	private final static String testo1 = "Seleziona Territorio1";
+	private final static String testo2 = "Seleziona Territorio2";
+	private final static String testoSpostare = "Numero Armate Da Spostare";
+	private final static String turnoDi = "È il turno di: ";
+	private final static String defaultDadiAttacco = "- - -";
+	private final static String defaultDadiDifesa = "- -";
+	private ControllerPartita controller;
+	final JPanel p = this;
+	/**
+	 * Lo stato del pannello: false -> invisibile; true -> visibile
+	 */
+	private boolean stato = false;
+	
+	private ArrayList<JButton> bottoniStati = new ArrayList<JButton>(territori.length);
+	private ArrayList<JButton> bottoniUtenti = new ArrayList<JButton>();
+	private ArrayList<JLabel> labelPossessore = new ArrayList<JLabel>(territori.length);
+	private ArrayList<BeanGiocatore> giocatoriInOrdine = new ArrayList<BeanGiocatore>();
+	private ArrayList<Colori> coloriInOrdine = new ArrayList<Colori>();
+	
+	private int tempoTotale = 0;
+	private int tempoTrascorso = 0;
+	private int faseDifesa = 0;
+	
+	private JTextField txtNumeroArmateDa;
+	private JLabel txtTerr1 = new JLabel();
+	private JLabel txtTerr2 = new JLabel();
+	private JLabel lblTurnoDi = new JLabel();
+	private JLabel lblCronaca = new JLabel("Cronaca");;
+	private JButton btnAttaccaattacca = new JButton();
+	private JButton btnSpostaPassa = new JButton();
+	private JButton btnPassa = new JButton();
+	private JButton btnDifenditi = new JButton();
+	private JPanel panel = new JPanel();
+	private JSlider slider = new JSlider();
+	private PanelInserisciArmate pannelloPosizionamento;
+	private JPanel panel_4;
+	private JLabel lblValoreDifesa;
+	private JLabel lblValoreAttacco;
+	private Timer timerFlusso;
+	private Timer timerPrincipale;
+	private Timer timerAttacco;
+	private Timer timerDifesa;
+	
+	
+	public PanelPartita(ControllerPartita partita) {
+		this.controller = partita;
+		setBackground(new Color(255, 255, 255));
+		setLayout(null);
+		
+		JPanel pnlBottoni = new JPanel();
+		pnlBottoni.setBounds(0, 0, 926, 686);
+		pnlBottoni.setOpaque(false);
+		add(pnlBottoni);
+		pnlBottoni.setLayout(null);
+		
+		disegnaBottoni(pnlBottoni);
+		
+		JPanel panel_3 = new JPanel();
+		panel_3.setBackground(new Color(204, 153, 102));
+		panel_3.setBounds(0, 618, 926, 68);
+		pnlBottoni.add(panel_3);
+		panel_3.setLayout(null);
+		
+		JButton btnClassifica = new JButton("Abbandona Partita");
+		btnClassifica.setBounds(12, 9, 168, 18);
+		panel_3.add(btnClassifica);
+		
+		JButton button_8 = new JButton("Classifica");
+		button_8.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+			}
+		});
+		button_8.setBounds(12, 38, 168, 18);
+		panel_3.add(button_8);
+		
+		lblCronaca = new JLabel("Cronaca");
+		lblCronaca.setHorizontalAlignment(SwingConstants.CENTER);
+		lblCronaca.setBounds(378, 14, 536, 42);
+		panel_3.add(lblCronaca);
+		
+		JButton button_9 = new JButton("Classifica");
+		button_9.setBounds(192, 9, 168, 18);
+		panel_3.add(button_9);
+		
+		JButton button_10 = new JButton("Classifica");
+		button_10.setBounds(192, 38, 168, 18);
+		panel_3.add(button_10);
+		
+		JLabel lblLabelmappa = new JLabel(IconLoader.imageIcon("RiskMap3.png"));
+		lblLabelmappa.setBackground(new Color(255, 255, 255));
+		lblLabelmappa.setBounds(0, 0, 926, 628);
+		add(lblLabelmappa);
+		
+		JPanel panel_4 = new JPanel();
+		panel_4.setBounds(926, 0, 414, 686);
+		add(panel_4);
+		panel_4.setLayout(null);
+		
+		panel = new JPanel();
+		panel.setBounds(0, 0, 414, 686);
+		panel_4.add(panel);
+		panel.setBackground(new Color(204, 153, 102));
+		panel.setLayout(null);
+		
+		btnAttaccaattacca = new JButton("Attacca");
+		btnAttaccaattacca.addActionListener(new AttaccaListener());
+		btnAttaccaattacca.setBounds(12, 636, 87, 25);
+		panel.add(btnAttaccaattacca);
+		
+		btnSpostaPassa = new JButton("Sposta - Passa");
+		btnSpostaPassa.addActionListener(new SpostaEPassaListener());
+		btnSpostaPassa.setBounds(111, 636, 192, 25);
+		panel.add(btnSpostaPassa);
+		
+		btnPassa = new JButton("Passa");
+		btnPassa.addActionListener(new PassaTurno());
+		btnPassa.setBounds(315, 636, 87, 25);
+		panel.add(btnPassa);
+		
+		JButton btnCancellaT1 = new JButton("Cancella T1");
+		btnCancellaT1.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				txtTerr1.setText(testo1);
+			}
+		});
+		btnCancellaT1.setBounds(285, 345, 117, 50);
+		panel.add(btnCancellaT1);
+		
+		JButton btnCancellaT2 = new JButton("Cancella T2");
+		btnCancellaT2.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				txtTerr2.setText(testo2);
+			}
+		});
+		btnCancellaT2.setBounds(285, 407, 117, 51);
+		panel.add(btnCancellaT2);
+		
+		JPanel panel_1 = new JPanel();
+		panel_1.setBackground(new Color(255, 51, 0));
+		panel_1.setBounds(12, 345, 265, 50);
+		panel.add(panel_1);
+		panel_1.setLayout(null);
+		
+		txtTerr1 = new JLabel(testo1);
+		txtTerr1.setBounds(0, 0, 265, 50);
+		panel_1.add(txtTerr1);
+		txtTerr1.setBackground(new Color(204, 51, 51));
+		txtTerr1.setHorizontalAlignment(SwingConstants.CENTER);
+		
+		JPanel panel_2 = new JPanel();
+		panel_2.setBackground(new Color(102, 204, 255));
+		panel_2.setBounds(12, 407, 265, 50);
+		panel.add(panel_2);
+		panel_2.setLayout(null);
+		
+		txtTerr2 = new JLabel(testo2);
+		txtTerr2.setBounds(0, 0, 265, 50);
+		panel_2.add(txtTerr2);
+		txtTerr2.setHorizontalAlignment(SwingConstants.CENTER);
+		
+		JLabel lblArmateattaccanti = new JLabel("ArmateAttaccanti");
+		lblArmateattaccanti.setHorizontalAlignment(SwingConstants.CENTER);
+		lblArmateattaccanti.setBounds(12, 470, 390, 25);
+		panel.add(lblArmateattaccanti);
+		
+		slider = new JSlider();
+		slider.setBounds(12, 496, 390, 16);
+		slider.setMinimum(0);
+		slider.setMaximum(3);
+		slider.setValue(0);
+		panel.add(slider);
+		
+		JLabel label = new JLabel("Armate da spostare");
+		label.setHorizontalAlignment(SwingConstants.CENTER);
+		label.setBounds(12, 543, 390, 33);
+		panel.add(label);
+		
+		txtNumeroArmateDa = new JTextField();
+		txtNumeroArmateDa.setBackground(new Color(255, 255, 255));
+		txtNumeroArmateDa.setHorizontalAlignment(SwingConstants.CENTER);
+		txtNumeroArmateDa.setText(testoSpostare);
+		txtNumeroArmateDa.addFocusListener(new FocusListener(){
+	        @Override
+	        public void focusGained(FocusEvent e){
+	            if(txtNumeroArmateDa.getText().equals(testoSpostare)){
+	            	txtNumeroArmateDa.setText("");
+	            }
+	        }
+			@Override
+			public void focusLost(FocusEvent arg0) {
+				if(txtNumeroArmateDa.getText().isEmpty()){
+	            	txtNumeroArmateDa.setText(testoSpostare);
+	            }
+			}
+	    });
+		txtNumeroArmateDa.setBounds(12, 588, 390, 19);
+		panel.add(txtNumeroArmateDa);
+		txtNumeroArmateDa.setColumns(10);
+		
+		JLabel num0 = new JLabel("0");
+		num0.setHorizontalAlignment(SwingConstants.CENTER);
+		num0.setBounds(12, 516, 24, 15);
+		panel.add(num0);
+		JLabel num1 = new JLabel("1");
+		num1.setHorizontalAlignment(SwingConstants.CENTER);
+		num1.setBounds(131, 516, 24, 15);
+		panel.add(num1);
+		JLabel num2 = new JLabel("2");
+		num2.setHorizontalAlignment(SwingConstants.CENTER);
+		num2.setBounds(255, 516, 24, 15);
+		panel.add(num2);
+		JLabel num3 = new JLabel("3");
+		num3.setHorizontalAlignment(SwingConstants.CENTER);
+		num3.setBounds(390, 516, 12, 15);
+		panel.add(num3);
+		
+		JLabel lblDadiAttacco = new JLabel("Dadi Attacco");
+		lblDadiAttacco.setHorizontalAlignment(SwingConstants.CENTER);
+		lblDadiAttacco.setBounds(12, 262, 143, 15);
+		panel.add(lblDadiAttacco);
+		
+		JLabel label_1 = new JLabel("Dadi Difesa");
+		label_1.setHorizontalAlignment(SwingConstants.CENTER);
+		label_1.setBounds(12, 295, 143, 15);
+		panel.add(label_1);
+		
+		lblValoreAttacco = new JLabel(defaultDadiAttacco);
+		lblValoreAttacco.setHorizontalAlignment(SwingConstants.CENTER);
+		lblValoreAttacco.setBounds(220, 262, 123, 15);
+		panel.add(lblValoreAttacco);
+		
+		lblValoreDifesa = new JLabel(defaultDadiDifesa);
+		lblValoreDifesa.setHorizontalAlignment(SwingConstants.CENTER);
+		lblValoreDifesa.setBounds(220, 295, 123, 15);
+		panel.add(lblValoreDifesa);
+		
+		btnDifenditi = new JButton("Difenditi");
+		btnDifenditi.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				disabilitaPulsantiDifesa();
+				if(timerDifesa != null){
+					timerDifesa.stop();
+				}
+				faseDifesa = 0;
+				//Avviamo un timer e ogni volta che scatta modifica qualcosa
+				timerFlusso = new Timer(1500, new ActionListener() {
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						if(faseDifesa == 0){
+							String temp = estraiDadi(controller.getDadiDifesa());
+							lblCronaca.setText("Hai fatto: "+temp);
+							lblValoreDifesa.setText(temp);
+							faseDifesa++;
+						}
+						else{
+							stopTimerFlusso();
+							int suoiMorti = controller.getUnitaAttaccoPerse();
+							int mieiMorti = controller.getUnitaDifesaSconfitte();
+							if(mieiMorti == 0){
+								lblCronaca.setText("Continua così, hai fatto fuori: "+suoiMorti+" armate.");
+							}
+							else{
+								lblCronaca.setText("Gli hai distrutto "+suoiMorti+" armate, ne hai perse: "+mieiMorti);
+							}
+							riceviMappa(controller.fineDifesa());
+						}
+					}
+				});
+				timerFlusso.start();
+			}
+		});
+		btnDifenditi.setBounds(12, 216, 390, 33);
+		panel.add(btnDifenditi);
+		
+		
+		
+		lblTurnoDi = new JLabel(turnoDi);
+		lblTurnoDi.setHorizontalAlignment(SwingConstants.CENTER);
+		lblTurnoDi.setBounds(12, 180, 390, 15);
+		panel.add(lblTurnoDi);
+		
+		//Inizialmente la nascondiamo
+		LoginSwing.getInstance().setVisible(false);
+		LoginSwing.getInstance().setMinimumSize(new Dimension(1345, 686));
+		LoginSwing.getInstance().setTitle("Partita di: "+controller.visualizzaMieInfo().getNomeUtente());
+	}
+	
+	//TODO - Segnaposto inizio funzioni personali
+	
+	private void resetPannello(){
+		lblValoreDifesa.setText(defaultDadiAttacco);
+		lblValoreAttacco.setText(defaultDadiDifesa);
+		txtTerr1.setText(testo1);
+		txtTerr2.setText(testo2);
+		lblTurnoDi.setForeground(new Color(0, 0, 0));
+	}
+	
+	/**
+	 * Ferma i timer (tranne quello di attacco che è indipendente) e resetta le variabili che vengono comunamente usate.
+	 */
+	private void stopTimerFlusso(){
+		//Spegniamo il primo Timer
+		if(timerFlusso != null){
+			timerFlusso.stop();
+		}
+		faseDifesa = 0;
+	}
+	
+	
+	private void stopTimerDifesa(){
+		if(timerDifesa  != null){
+			timerDifesa.stop();
+		}
+		faseDifesa = 0;
+	}
+	
+	private void stopTimerAttacco(){
+		if(timerAttacco  != null){
+			timerAttacco.stop();
+		}
+	}
+	
+	private void stopTimerPrincipale(){
+		if(timerPrincipale  != null){
+			timerPrincipale.stop();
+		}
+		faseDifesa = 0;
+		tempoTrascorso = 0;
+	}
+	
+	/**
+	 * Estrae in forma di stringa stampabile i dadi
+	 * @param dadi	I dadi.
+	 * @return	Una stringa stampabile.
+	 */
+	private String estraiDadi(ArrayList<Integer> dadi){
+		String testo2 = "";
+		Iterator<Integer> itDadi = dadi.iterator();
+		while(itDadi.hasNext()){
+			testo2 = testo2+itDadi.next().intValue();
+			if(itDadi.hasNext()){
+				testo2 = testo2+" - ";
+			}
+		}
+		return testo2;
+	}
+	
+	/**
+	 * Stampa tutti i pulsanti e le info degli stati.
+	 * @param pnlBottoni	Il pannello su cui stampare i pulsanti.
+	 */
+	private void disegnaBottoni(JPanel pnlBottoni){
+		for(int i = 0; i < territori.length; i++){
+			JButton pulsanteTerritorio = new JButton();
+			pulsanteTerritorio.addActionListener(new ClickSuTerritorio());
+			pulsanteTerritorio.setForeground(new Color(0, 51, 0));
+			pulsanteTerritorio.setFont(new Font("Dialog", Font.BOLD, 15));
+			pulsanteTerritorio.setOpaque(false);
+			pulsanteTerritorio.setContentAreaFilled(false);
+			pulsanteTerritorio.setBorderPainted(false);
+			pulsanteTerritorio.setActionCommand(territori[i]);
+			pulsanteTerritorio.setBounds(x[i], y[i], w[i], h[i]);
+			pnlBottoni.add(pulsanteTerritorio);
+			JLabel lblTerritorio = new JLabel(territori[i]);
+			lblTerritorio.setBounds(x[i]+(w[i]/2), y[i]+(h[i]/2), 100, 20);
+			lblTerritorio.setHorizontalAlignment(SwingConstants.LEADING);
+			bottoniStati.add(pulsanteTerritorio);
+			pnlBottoni.add(lblTerritorio);
+			JLabel lblArmateTerritorio = new JLabel("0");
+			lblArmateTerritorio.setBackground(new Color(0,0,0));
+			lblArmateTerritorio.setForeground(new Color(255,255,255));
+			lblArmateTerritorio.setHorizontalAlignment(SwingConstants.CENTER);
+			lblArmateTerritorio.setOpaque(true);
+			lblArmateTerritorio.setBounds(x[i]+(w[i]/2), y[i]+(h[i]/2)+20, 20, 20);
+			labelPossessore.add(lblArmateTerritorio);
+			pnlBottoni.add(lblArmateTerritorio);
+		}	
+	}
+	
+	private int indiceTerritorio(String territorio) throws TerritorioNonTrovatoException{
+		for(int i = 0; i < territori.length; i++){
+			if(territori[i].trim().toUpperCase().equals(territorio.trim().toUpperCase()))
+				return i;
+		}
+		throw new TerritorioNonTrovatoException();
+	}
+	
+	private void applicaModificaPossessore(String territorio, Colori colorePossessore) throws TerritorioNonTrovatoException{
+		int indice = indiceTerritorio(territorio);
+		//Estraiamo il territorio
+		JLabel labelDaModificare = labelPossessore.get(indice);
+		labelDaModificare.setBackground(new Color(colorePossessore.getR(), colorePossessore.getG(), colorePossessore.getB()));
+		if(colorePossessore.getForeground()){
+			labelDaModificare.setForeground(new Color(255, 255, 255));
+		}
+		else{
+			labelDaModificare.setForeground(new Color(0, 0, 0));
+		}
+	}
+	
+	private void applicaModificaArmate(String territorio, int armatePresenti) throws TerritorioNonTrovatoException{
+		int indice = indiceTerritorio(territorio);
+		JLabel labelDaModificare = labelPossessore.get(indice);
+		labelDaModificare.setText(""+armatePresenti);
+	}
+	private void disabilitaPulsantiAttacco() {
+		btnAttaccaattacca.setEnabled(false);
+		btnPassa.setEnabled(false);
+		btnSpostaPassa.setEnabled(false);
+	}
+	
+	private void abilitaPulsantiAttacco() {
+		btnAttaccaattacca.setEnabled(true);
+		btnPassa.setEnabled(true);
+		btnSpostaPassa.setEnabled(true);
+	}
+	
+	private void disabilitaPulsantiDifesa() {
+		btnDifenditi.setEnabled(false);
+	}
+	
+	private void abilitaPulsantiDifesa() {
+		btnDifenditi.setEnabled(true);
+	}
+	
+	private void abilitaVisioneComandiPartita(){
+		Container c = pannelloPosizionamento.getParent();
+		c.remove(pannelloPosizionamento);
+		c.add(panel);
+		c.invalidate();
+		c.revalidate();
+		
+		SwingUtilities.updateComponentTreeUI(c);
+		LoginSwing.getInstance().invalidate();
+		LoginSwing.getInstance().validate();
+		
+		this.stato = true;
+	}
+	
+	//TODO - Segnaposto inizio ActionListener
+	
+	public class ClickSuTerritorio implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent nomeTerritorioPremuto) {
+			String testoTerritorio1 = txtTerr1.getText();
+			if(testoTerritorio1.equals(testo1)){
+				txtTerr1.setText(nomeTerritorioPremuto.getActionCommand());
+			}
+			else txtTerr2.setText(nomeTerritorioPremuto.getActionCommand());
+		}
+	}	
+	
+	/**
+	 * Si occupa di comunicare tramite controller il passaggio del turno.
+	 * @author timmy
+	 *
+	 */
+	public class PassaTurno implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent arg0) {
+			controller.passaTurno();
+			disabilitaPulsantiDifesa();
+		}
+	}
+	
+	/**
+	 * Si occupa di comunicare tramite controller lo spostamento delle armate.
+	 * @author timmy
+	 *
+	 */
+	public class SpostaEPassaListener implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent arg0) {
+			String tPartenza = txtTerr1.getText();
+			String tArrivo = txtTerr2.getText();
+			Integer numeroArmateDaSpostare = 0;
+			try{
+				numeroArmateDaSpostare = Integer.parseInt(txtNumeroArmateDa.getText());
+			} catch(NumberFormatException e){
+				new CreaPopup("Inserisci il numero di armate da spostare", 3);
+			}
+			//Inizio controlli
+			if(numeroArmateDaSpostare == null){
+				System.out.println("Digita un numero di armate da spostare");
+				return;
+			}
+			if(numeroArmateDaSpostare <= 0){
+				System.out.println("Digita il numero di armate da spostare");
+				return;
+			}
+			//Fine controlli
+			System.out.println("Voglio spostare da: "+tPartenza+" a: "+tArrivo+" con "+numeroArmateDaSpostare+" armate");
+			try {
+				controller.comandoSpostaArmate(numeroArmateDaSpostare, tPartenza, tArrivo);
+			} catch (TerritorioNonTrovatoException e) {
+				new CreaPopup("I due territori non sono compatibili per lo spostamento", 3);
+			}
+			//Disabilito tutti i pulsanti
+			disabilitaPulsantiDifesa();
+		}
+	}
+	
+	/**
+	 * Si occupa di comunicare tramite controller l'attacco tra due territori.
+	 * @author timmy
+	 *
+	 */
+	public class AttaccaListener implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent arg0) {
+			Integer numeroUnitaAttaccanti = slider.getValue();
+			String tAttacco = txtTerr1.getText();
+			String tDifensore = txtTerr2.getText();
+			if(tAttacco.equals(testo1) || tAttacco.equals("")){
+				System.out.println("Devi scegliere uno stato da cui far partire l'attacco");
+				return;
+			}
+			if(tDifensore.equals(testo2) || tDifensore.equals("")){
+				System.out.println("Devi scegliere uno stato da attaccare");
+				return;
+			}
+			if(numeroUnitaAttaccanti.equals(0)){
+				System.out.println("Devi scegliere il numero di armate");
+				return;
+			}
+			System.out.println("Voglio attaccare da: "+tAttacco+" a: "+tDifensore+" con "+numeroUnitaAttaccanti+" armate");
+			try {
+				controller.comandoAttacco(numeroUnitaAttaccanti, tDifensore, tAttacco);
+			} catch (UnitaInsufficientiException e) {
+				new CreaPopup("Non hai abbastanza unità per attaccare", 4);
+			}
+		}
+	}
+	
+	public class InfoUtenteListener implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent arg0) {
+			BeanGiocatore giocatore = null;
+			try {
+				giocatore = controller.visualizzaInfoGiocatore(arg0.getActionCommand());
+			} catch (GiocatoreNonTrovatoException e) {
+				new CreaPopup("Giocatore non trovato", 4);
+			}
+			if(giocatore != null){
+				JFrame infoFrame = new FrameInfoUtente(giocatore);
+				infoFrame.setTitle("Informazioni di: "+arg0.getActionCommand());
+				infoFrame.setSize(800, 800);
+				infoFrame.setLocationRelativeTo(null);
+				infoFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+				infoFrame.pack();
+				infoFrame.setVisible(true);
+			}
+			else{
+				new CreaPopup("Impossibile trovare informazioni sul giocatore richiesto");
+			}
+		}
+	}
+	
+	//TODO segnaposto inizio implementazione view
+	
+	@Override
+	public void scegliColore(Integer timer,
+			ArrayList<Colori> coloriDisponibili) {
+		JFrame frameClassifica = new FrameColori(timer, coloriDisponibili, controller);
+		frameClassifica.setTitle("Scegli colore - utente: "+controller.visualizzaMieInfo().getNomeUtente());
+        frameClassifica.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frameClassifica.pack();
+        frameClassifica.setVisible(true);
+	}
+	
+	@Override
+	public void riceviOrdinePartita(ArrayList<BeanGiocatore> listaInfoGiocatori, ArrayList<Colori> ordineColori) {
+		this.giocatoriInOrdine = listaInfoGiocatori;
+		this.coloriInOrdine = ordineColori;
+		for(int i = 0; i< giocatoriInOrdine.size(); i++){
+			Colori coloreEstratto = coloriInOrdine.get(i);
+			BeanGiocatore giocatore = giocatoriInOrdine.get(i);
+			JButton btnNewButton = new JButton(giocatore.getNomeUtente()+" - "+coloreEstratto.getNome());
+			btnNewButton.setBackground(new Color(coloreEstratto.getR(), coloreEstratto.getG(), coloreEstratto.getB()));
+			if(coloreEstratto.getForeground()){
+				btnNewButton.setForeground(new Color(255,255,255));
+			}
+			btnNewButton.setOpaque(true);
+			btnNewButton.setBorderPainted(false);
+			btnNewButton.setActionCommand(giocatore.getNomeUtente());
+			btnNewButton.addActionListener(new InfoUtenteListener());
+			btnNewButton.setBounds(xG[i], yG[i], 186, 44);
+			panel.add(btnNewButton);
+			this.bottoniUtenti.add(btnNewButton);
+		}
+		//Ricevuti i giocatori e i colori stampo il pannello
+		LoginSwing.getInstance().setVisible(true);
+	}
+
+	@Override
+	public void riceviTerritoriPosizionaArmate(
+			Integer numeroArmateDaPosizionare, Integer tempoPosizionaArmate,
+			Mappa mappaPartita) {
+		Container c = panel.getParent();
+		c.remove(panel);
+		pannelloPosizionamento = new PanelInserisciArmate(controller, numeroArmateDaPosizionare, tempoPosizionaArmate, mappaPartita);
+		c.add(pannelloPosizionamento);
+		c.invalidate();
+		c.revalidate();
+		c.setVisible(false);
+		c.setVisible(true);
+		this.stato = true;
+	}
+
+	@Override
+	public void riceviMappa(Mappa mappa) {
+		this.miaMappa = mappa;
+		if(stato){
+			abilitaVisioneComandiPartita();
+			this.stato = false;
+			Container c = panel_4;
+			if(c != null){
+				SwingUtilities.updateComponentTreeUI(c);
+				LoginSwing.getInstance().invalidate();
+				LoginSwing.getInstance().validate();
+			}
+		}
+		ArrayList<Territorio> listaTerritori;
+		Iterator<Territorio> itTerritori;
+		Territorio territorioEstratto;
+		String nomeTerritorio = "";
+		try{
+			if(mappa != null){
+				listaTerritori = mappa.getListaTerritori();
+				itTerritori = listaTerritori.iterator();
+				while(itTerritori.hasNext()){
+					territorioEstratto = itTerritori.next();
+					nomeTerritorio = territorioEstratto.getNome();
+					applicaModificaPossessore(nomeTerritorio, territorioEstratto.getColorePossessore());
+					applicaModificaArmate(nomeTerritorio, territorioEstratto.getUnitaPresenti());
+				}
+				//Aggiorno il pannello
+				Container c = panel_4;
+				if(c != null){
+					SwingUtilities.updateComponentTreeUI(c);
+					LoginSwing.getInstance().invalidate();
+					LoginSwing.getInstance().validate();
+				}
+			}
+		}catch(TerritorioNonTrovatoException e){
+			System.err.println("Impossibile trovare il territorio: "+nomeTerritorio);
+		}
+	}
+	/**
+	 * Comunicazione di turno altrui.
+	 */
+	@Override
+	public void riceviComunicazioneNuovoTurno(Colori colore, String username) {
+		stopTimerPrincipale();
+		disabilitaPulsantiDifesa();
+		disabilitaPulsantiAttacco();
+		resetPannello();
+		
+		lblTurnoDi.setText(turnoDi+username);
+		lblCronaca.setText(turnoDi+username);
+	}
+
+	/**
+	 * Comunicazione inizio nostro turno.
+	 */
+	@Override
+	public void riceviArmateInizioTurno(Integer numeroArmate, Integer tempo) {
+		//Aspetto che tutti abbiano finito di dfendersi prima di iniziare il mio turno
+		disabilitaPulsantiDifesa();
+		abilitaPulsantiAttacco();
+		resetPannello();
+		lblTurnoDi.setText("È il tuo turno!");
+		lblTurnoDi.setForeground(new Color(255, 0, 0));
+		lblCronaca.setText("È il tuo turno posiziona "+numeroArmate+" armate in "+tempo+" secondi");
+		disabilitaPulsantiDifesa();
+		//Faccio apparire il pannello di posizionamento armate e avvio un timer
+		Container c = panel.getParent();
+		if(c != null){
+			c.remove(panel);
+			pannelloPosizionamento = new PanelInserisciArmate(controller, numeroArmate, tempo, miaMappa);
+			c.add(pannelloPosizionamento);
+			c.invalidate();
+			c.revalidate();
+			c.setVisible(false);
+			c.setVisible(true);
+			this.stato = true;
+		}
+		
+	}
+
+	/**
+	 * Mi viene comunicato di fare una mossa
+	 */
+	@Override
+	public void comunicazioneInAttesaMossa(Integer tempo) {
+		stopTimerFlusso();
+		stopTimerDifesa();
+		stopTimerPrincipale();
+		disabilitaPulsantiDifesa();
+		abilitaPulsantiAttacco();
+		
+		lblCronaca.setText("Scegli cosa fare");
+		tempoTotale = tempo;
+		tempoTrascorso = 0;
+		timerPrincipale = new Timer(1000, new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				if(tempoTotale-tempoTrascorso <= 0){
+					stopTimerFlusso();
+				}
+				else{
+					tempoTrascorso++;
+					lblTurnoDi.setText("Hai "+(tempoTotale-tempoTrascorso)+" secondi per effettuare la mossa");
+				}
+				
+			}
+		});
+		timerPrincipale.start();
+	}
+	
+	/**
+	 * 
+	 */
+	@Override
+	public void riceviConfermaMioAttacco(Territorio territorioAttaccante,
+			Territorio territorioAttaccato,
+			ArrayList<Integer> risultatoDadiAttacco) {
+		
+		stopTimerPrincipale();
+		stopTimerAttacco();
+		stopTimerDifesa();
+		stopTimerFlusso();
+		disabilitaPulsantiAttacco();
+		
+		String testo = "Hai attaccato "+territorioAttaccato.getNome()+" con "+territorioAttaccante.getNome()+". Hai fatto: ";
+		String testo2 = estraiDadi(risultatoDadiAttacco);
+		lblCronaca.setText(testo+testo2);
+		//Stampo i dadi
+		lblValoreDifesa.setText(defaultDadiDifesa);
+		lblValoreAttacco.setText(testo2);
+		faseDifesa = 0;
+		//Avviamo un timer e ogni volta che scatta modifica qualcosa
+		timerAttacco = new Timer(1500, new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if(faseDifesa == 0){
+					faseDifesa++;
+				}
+				//Passati 3 secondi
+				if(faseDifesa == 1){
+					faseDifesa++;
+					String temp = estraiDadi(controller.getDadiDifesa());
+					lblCronaca.setText("La difesa ha fatto: "+temp);
+					lblValoreDifesa.setText(temp);
+				}
+				else{
+					stopTimerAttacco();
+					int mieiMorti = controller.getUnitaAttaccoPerse();
+					int suoiMorti = controller.getUnitaDifesaSconfitte();
+					if(mieiMorti == 0){
+						lblCronaca.setText("Continua così, hai fatto fuori: "+suoiMorti+" armate.");
+					}
+					else{
+						lblCronaca.setText("Armate perse: "+mieiMorti+" - Armate sconfitte: "+suoiMorti);
+					}
+					riceviMappa(controller.fineDifesa());
+					abilitaPulsantiAttacco();
+				}
+			}
+		});
+		timerAttacco.start();		
+	}
+	
+	/**
+	 * Devo difendermi da un attacco.
+	 */
+	@Override
+	public void riceviAttaccoSubito(Territorio territorioAttaccante,
+			Territorio territorioAttaccato,
+			ArrayList<Integer> risultatoDadiAttacco, Integer tempoDifesa) {
+		
+		stopTimerPrincipale();
+		stopTimerAttacco();
+		stopTimerFlusso();
+		stopTimerDifesa();
+		
+		String testo = "Ti hanno attaccato con: ";
+		String testo2 = estraiDadi(risultatoDadiAttacco);
+		
+		lblCronaca.setText(testo+testo2);	
+		lblValoreAttacco.setText(testo2);
+		lblValoreDifesa.setText(defaultDadiDifesa);
+		
+		abilitaPulsantiDifesa();
+		new CreaPopup("È ora di difendersi! ALLE ARMI!", tempoDifesa);
+		timerDifesa = new Timer(tempoDifesa*1000, new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				//Non mi sono difeso, faccio da solo!
+				disabilitaPulsantiDifesa();
+				//Spengo il timer
+				stopTimerDifesa();
+				faseDifesa = 0;
+				//Avviamo un timer e ogni volta che scatta modifica qualcosa
+				timerDifesa = new Timer(1000, new ActionListener() {
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						if(faseDifesa == 0){
+							String temp = estraiDadi(controller.getDadiDifesa());
+							lblCronaca.setText("Hai fatto: "+temp);
+							lblValoreDifesa.setText(temp);
+							faseDifesa++;
+						}
+						else{
+							stopTimerDifesa();
+							int suoiMorti = controller.getUnitaAttaccoPerse();
+							int mieiMorti = controller.getUnitaDifesaSconfitte();
+							if(mieiMorti == 0){
+								lblCronaca.setText("Continua così, hai fatto fuori: "+suoiMorti+" armate.");
+							}
+							else{
+								lblCronaca.setText("Hai perso "+mieiMorti+" armate, ne hai sconfitte "+suoiMorti);
+							}
+							riceviMappa(controller.fineDifesa());
+						}
+					}
+				});
+				timerDifesa.start();
+			}
+		});
+		timerDifesa.start();
+	}
+	
+	/**
+	 * Qualcuno sta attaccando qualcun'altro.
+	 */
+	@Override
+	public void riceviComunicazioneAttacco(Colori coloreAttaccante, Territorio territorioAttaccante,
+			Territorio territorioAttaccato,
+			ArrayList<Integer> risultatoDadiAttacco) {
+		
+		stopTimerAttacco();
+		stopTimerDifesa();
+		stopTimerPrincipale();
+		stopTimerFlusso();
+		
+		final String nomeTerrAttaccato = territorioAttaccato.getColorePossessore().getNome();
+		lblCronaca.setText(coloreAttaccante.getNome()+" attacca da "+territorioAttaccante.getNome()+" a "+territorioAttaccato.getNome()+" con "+estraiDadi(risultatoDadiAttacco));
+		//Avviamo un timer e ogni volta che scatta modifica qualcosa
+		faseDifesa = 0;
+		lblValoreAttacco.setText(estraiDadi(risultatoDadiAttacco));
+		lblValoreDifesa.setText(defaultDadiDifesa);
+		timerFlusso = new Timer(1500, new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if(faseDifesa == 0){
+					faseDifesa++;
+				}
+				else if(faseDifesa == 1){
+					String temp = estraiDadi(controller.getDadiDifesa());
+					lblCronaca.setText(nomeTerrAttaccato+" si difende con: "+temp);
+					lblValoreDifesa.setText(temp);
+					faseDifesa++;
+				}
+				//Passati + di 3 secondi
+				else if(faseDifesa > 1){
+					stopTimerFlusso();
+					int morti = controller.getUnitaAttaccoPerse();
+					int uccisi = controller.getUnitaDifesaSconfitte();
+					lblCronaca.setText("Armate attacco perse: "+morti+" - Armate difesa perse: "+uccisi);
+					riceviMappa(controller.fineDifesa());
+				}
+			}
+		});
+		timerFlusso.start();
+	}
+
+	/**
+	 * Hai perso la partita
+	 */
+	@Override
+	public void riceviComunicazioneSconfitta(ControllerLimbo limboSconfitta) {
+		new CreaPopup("Mi dispiace sei stato sconfitto");
+		ControllerLimbo controllerLimbo = limboSconfitta;
+		if(controllerLimbo != null){
+			ArrayList<BeanTavolo> tavoli = controllerLimbo.aggiornaTavoli();
+			//Disegno il Limbo
+			Container c = p.getParent();
+			PanelLimbo mioPanel = null;
+			if (c != null) {
+				c.remove(p);
+				mioPanel = new PanelLimbo(controllerLimbo, tavoli);
+				controllerLimbo.setVistaLimbo(mioPanel);
+	            c.add(mioPanel);
+	            c.revalidate();
+			}
+		}
+		else{
+			System.err.println("Controller null - Non posso abbandonare la partita");
+		}
+		
+	}
+
+
+	/**
+	 * Un altro giocatore ha perso la partita
+	 */
+	@Override
+	public void riceviComunicazioneSconfitta(String giocatoreSconfitto) {
+		String testo = giocatoreSconfitto+" ha perso. Continua così!";
+		lblCronaca.setText(testo);
+		new CreaPopup(testo);
+	}
+	
+	/**
+	 * Un giocatore ha abbandonato la partita.
+	 */
+	@Override
+	public void riceviComunicazioneRitirata(String giocatoreRitirato) {
+		String testo = "Il giocatore "+giocatoreRitirato+" ha abbandonato la battaglia, fuori uno!";
+		lblCronaca.setText(testo);
+		new CreaPopup(testo);
+	}
+
+	/**
+	 * Partita finita - Classifica generale
+	 */
+	@Override
+	public void riceviClassificaFinale(ArrayList<String> classificaFinale,
+			Integer punteggioPrimo, Integer punteggioSecondo) {
+		String testo = "Complimenti sei tra i primi! Questa è la classifica finale: ";
+		int i = 0;
+		Iterator<String> itClassifica = classificaFinale.iterator();
+		while(itClassifica.hasNext()){
+			testo = testo+(i+1)+"°: "+itClassifica.next()+" - Vince: ";
+			if(i == 0){
+				testo = testo+punteggioPrimo.intValue()+" punti";
+			}
+			else if(i == 1){
+				testo = testo+punteggioSecondo.intValue()+" punti";
+			}
+			else{
+				testo = testo+" 0 punti";
+			}
+			if(itClassifica.hasNext()){
+				testo = testo+" -- ";
+			}
+		}
+		lblCronaca.setText(testo);
+		disabilitaPulsantiAttacco();
+		disabilitaPulsantiDifesa();
+	}
+}

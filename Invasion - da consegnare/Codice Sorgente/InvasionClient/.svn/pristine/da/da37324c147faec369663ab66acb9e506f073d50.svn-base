@@ -1,0 +1,63 @@
+package client;
+
+import interfacciaGUI.ControllerLimbo;
+import interfacciaGUI.ControllerUtente;
+
+/**
+ * 
+ * @see ControllerUtente
+ *
+ */
+public class Utente implements ControllerUtente {
+	private Ambasciatore ambasciatore = null;
+	
+	public Utente(){
+		super();
+		this.ambasciatore = Ambasciatore.getInstance();
+	}
+	/**
+	 * Effettua il login
+	 * @param username Username del giocatore
+	 * @param password Password del giocatore
+	 * @return True: login riuscito; false: username in uso
+	 * 
+	 */
+	private boolean login(String username, String password){
+		boolean esitoComunicazione = this.ambasciatore.login(username, password);
+		return esitoComunicazione;
+	}
+	
+	
+	/**
+	 * 
+	 * @param username Username del giocatore
+	 * @param password Password del giocatore
+	 * @return True: login riuscito; false: username in uso
+	 */
+	private boolean registazione(String username, String password){
+		boolean esitoComunicazione = this.ambasciatore.registrazione(username, password);
+		return esitoComunicazione;
+	}
+
+	
+	@Override
+	public ControllerLimbo effettuaLogin(String username, String password) {
+		if(login(username, password)){
+			System.out.println("OK login - passo il controller");
+			ControllerLimbo controllerLimbo = new Limbo();
+			return controllerLimbo;
+		}
+		return null;
+	}
+
+
+	@Override
+	public ControllerLimbo effettuaRegistrazione(String username, String password) {
+		if(registazione(username, password)){
+			System.out.println("OK login - passo il controller");
+			ControllerLimbo controllerLimbo = new Limbo();
+			return controllerLimbo;
+		}
+		return null;
+	}
+}

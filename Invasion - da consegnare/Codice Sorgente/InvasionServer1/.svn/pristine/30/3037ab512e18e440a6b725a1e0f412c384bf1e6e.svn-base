@@ -1,0 +1,63 @@
+package socket;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.Socket;
+
+public class Lettore implements Runnable {
+
+	private Interprete interprete;
+	private boolean continua;
+	private PrintWriter writer = null;
+	private BufferedReader reader = null;
+	public final static int port = 4445;
+	public final static String ritorno = "RETURN@";
+	public final static String stringaVoid = "VOID@";
+	
+	public Lettore (Interprete interprete){
+		this.interprete = interprete;
+		this.continua = true;
+	}
+	
+	@Override
+	public void run() {
+		ServerSocket serverSocket = null;
+		Socket clientSocket = null;
+		
+        try {
+        	//Inizializzo il server socket
+            serverSocket = new ServerSocket(port);
+            writer = new PrintWriter(clientSocket.getOutputStream(), true);
+			reader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+        } catch (IOException e) {
+            System.err.println("Non posso fare listen sulla porta: "+port);
+            System.exit(1);
+        }
+        //Ciclo di lettura continua
+		while(continua){
+			String stringaLetta = null;
+			String stringaDaInviare = null;
+			try {
+				stringaLetta = reader.readLine();
+				if(stringaLetta.toUpperCase().startsWith(ritorno)){	//Caso risposta
+					interprete.aggiornaStringa(stringaLetta);
+				}
+				else{	//Caso comunicazione ricevuta dal client
+					stringaDaInviare = interprete.interpreta(stringaLetta);
+					writer.println(stringaDaInviare);	//Risposta al client - Anche se VOID comunica al client
+				}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (NullPointerException e){
+				e.printStackTrace();
+				//TODO gestire un eventuale null del client che spegne la connessione
+			}
+		}
+
+	}
+
+}

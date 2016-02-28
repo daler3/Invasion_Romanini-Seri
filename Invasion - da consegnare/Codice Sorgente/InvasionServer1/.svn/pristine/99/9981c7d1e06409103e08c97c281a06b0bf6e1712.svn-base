@@ -1,0 +1,310 @@
+package server_daler;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+
+import eccezioni.InserimentoMancanteException;
+
+/**
+ * Una classe che si occupa di ricevere i comandi dall'utente e di restituirli ordinati in una matrice.
+ * Permette di scrivere nella classe solo quando inizio inserimento è abilitato.
+ * @author timmy
+ *
+ */
+public class PosizionamentoArmate {
+
+	public static final String separatoreComando = "@";
+	public static final String separatoreStati = ";";
+	public static final String separatoreStatoArmate = ":";
+	private ArrayList<String> listaComandi;
+	private Integer numeroGiocatori;
+	private boolean inizioInserimento = false;
+	
+	/**
+	 * Crea una lista di giocatori pari al numero di giocatori
+	 * @param numeroGiocatori	Numero di giocatori che devono inserire il comando
+	 */
+	public PosizionamentoArmate(Integer numeroGiocatori) {
+		this.numeroGiocatori = numeroGiocatori;
+		this.listaComandi = new ArrayList<String>(numeroGiocatori);
+	}
+	
+	/**
+	 * Aggiunge un comando alla lista.
+	 * @param mioComando	Il comando da aggiungere.
+	 */
+	public synchronized void aggiungiComando(String mioComando){
+		if(!nomeGiaPresente(getNomeComando(mioComando)) && possoAggiungere())	//Se l'utente non ha già inserito il comando lo aggiunge
+			listaComandi.add(mioComando);
+		if(comandiCompleti()){
+			notifica();   //risveglio la partita
+		}
+	}
+	
+	/**
+	 * Richiede se è ancora possibile aggiungere un comando
+	 * @return	true: si può aggiungere il comando; false: inserimento bloccato;
+	 */
+	private boolean possoAggiungere(){
+		return inizioInserimento;
+	}
+	
+	/**
+	 * Abilita l'aggiunta di comandi
+	 * @throws InterruptedException 
+	 */
+	public void abilitaAggiunta() {
+		this.inizioInserimento = true;
+	}
+	
+	/**
+	 * Disabilita l'aggiunta di ulteriori comandi da parte degli utenti.
+	 */
+	public void disabilitaAggiunta(){
+		this.inizioInserimento = false;
+	}
+	
+	public synchronized void attendi(int tempo) throws InterruptedException{
+		wait(tempo*1000); //la wait è solo per un tempo
+	}
+	
+	public synchronized void notifica() {
+		notifyAll();
+	}
+	
+	/**
+	 * Ci dice il numero di utenti che hanno lasciato il comando.
+	 * @return	Il numero di utenti.
+	 */
+	private Integer contaComandiRicevuti(){
+		return listaComandi.size();
+	}
+	
+	/**
+	 * Ci dice se tutti hanno inserito i comandi
+	 * @return	true: tutti i comandi inseriti; false: almeno un comando mancante;
+	 */
+	public synchronized boolean comandiCompleti(){
+		if(contaComandiRicevuti() == numeroGiocatori)
+			return true;
+		return false;
+	}
+	
+	/**
+	 * Ci dice se non è presenta ancora nessun comando
+	 * @return true: nessun comando ancora inserito; false: almeno un comando inserito;
+	 */
+	public boolean nessunComando(){
+		if(contaComandiRicevuti() == 0)
+			return true;
+		return false;
+	}
+	
+	/**
+	 * Ci dà il nome di chi ha inviato il comando.
+	 * @param comando	Il comando su cui cercare il nome.
+	 * @return	Il nome di chi ha inviato il comando.
+	 */
+	private String getNomeComando(String comando){
+		Integer posizioneSeparatore = comando.indexOf(separatoreComando);
+		String nome = comando.substring(0, posizioneSeparatore);
+		return nome;
+	}
+	
+	/**
+	 * Ci dice se l'utente ha già inserito un comando
+	 * @param nome	Nome dell'utente che cerchiamo.
+	 * @return	true: il giocatore ha già inserito un comando; false: ancora in attesa di inserimento da parte del giocatore;
+	 */
+	private boolean nomeGiaPresente(String nome){
+		Iterator<String> itLista = listaComandi.iterator();
+		while(itLista.hasNext()){
+			String comando = itLista.next();
+			String nomeTemp = getNomeComando(comando);
+			if(nomeTemp.equals(nome))
+				return true;
+		}
+		return false;
+	}
+	
+	/**
+	 * Cerca il comando relativo al giocatore.
+	 * @param nomeGiocatore	Nome del giocatore da ricercare.
+	 * @return	Comando del relativo giocatore.
+	 */
+	private String cercaComando(String nomeGiocatore){
+		Iterator<String> itLista = listaComandi.iterator();
+		while(itLista.hasNext()){
+			String comando = itLista.next();
+			String nomeTemp = getNomeComando(comando);
+			if(nomeTemp.equals(nomeGiocatore))
+				return comando;
+		}
+		return null;
+	}
+	
+	/**
+	 * Ritorna il comando puro senza l'indicazione del proprietario
+	 * @param nomeGiocatore	Il proprietario del comando puro da estrarre
+	 * @return	Il comando senza il [nomeRichiedente]@
+	 */
+	private String estraiComandoPuro(String nomeGiocatore){
+		String comando = cercaComando(nomeGiocatore);
+		String comandoPuro = comando.substring(nomeGiocatore.length()+1, comando.length());
+		return comandoPuro;
+	}
+	
+	/**
+	 * Ritorna il primo stato
+	 * FONDAMENTALE che il parametro inizi con lo stato
+	 * @param comandoPuro	Il comando da cui estrarre lo stato
+	 * @return	Lo stato estratto
+	 */
+	private String estraiTerritorio(String comandoPuro){
+		String nomeTerritorio = comandoPuro.substring(0, comandoPuro.indexOf(separatoreStatoArmate));
+		return nomeTerritorio;
+	}
+	
+	/**
+	 * Ritorna il numero di armate (come stringhe)
+	 * FONDAMENTALE che parametro inizi con il numero
+	 * @param comandoPuro	Il comando da cui estrarre le armate
+	 * @return	Il numero di armate
+	 */
+	private String estraiNumero(String comandoPuro){
+		String numero = comandoPuro.substring(0, comandoPuro.indexOf(separatoreStati));
+		return numero;
+	}
+	
+	/**
+	 * Ci dice il numero di armate posizionate da un determinato utente
+	 * @param nomeGiocatore	L'utente che ha posizionato le armate.
+	 * @return	Il numero di armate posizionate.
+	 * @throws InserimentoMancanteException	Il giocatore non ha inviato nessun comando.
+	 */
+	public Integer numeroArmatePosizionate(String nomeGiocatore) throws InserimentoMancanteException{
+		String[][] tabella = tabellaPosizionamenti(nomeGiocatore);
+		Integer numeroArmate = 0;
+		for(int i = 0; i < tabella.length; i++){
+			int armateLette = Integer.parseInt(tabella[i][1]);
+			numeroArmate = numeroArmate + armateLette;
+		}
+		return numeroArmate;
+	}
+	
+	/**
+	 * Ritorna il numero di territori presenti.
+	 * @param comando	Il comando in cui contiamo i territori.
+	 * @return	Numero di territori contati.
+	 */
+	private Integer numeroTerritori(String comando){
+		return comando.length() - comando.replace(separatoreStatoArmate, "").length();	
+	}
+	
+	/**
+	 * Ci dà la tabella contenente la scelta del giocatore.
+	 * La tabella è di dimensione [numeroTerritori] X [2](0: nomeTerritorio; 1: numeroArmate).
+	 * @param nomeGiocatore	Il nome della persona di cui vogliamo la tabella.
+	 * @return	La tabella relativa al giocatore.
+	 * @throws InserimentoMancanteException	L'utente non ha effettuato l'inserimento
+	 */
+	public String[][] tabellaPosizionamenti(String nomeGiocatore) throws InserimentoMancanteException{
+		String comando = cercaComando(nomeGiocatore);
+		if(comando == null)	//Caso giocatore assente
+			throw new InserimentoMancanteException();
+		else{	//Caso giocatore esistente
+			String[][] tabella = new String[numeroTerritori(comando)][2];
+			String comandoPuro = estraiComandoPuro(nomeGiocatore);
+			popolaTabella(tabella, comandoPuro);
+			return tabella;
+		}
+	}
+	
+	/**
+	 * Estrae le informazioni da comando puro e le inserisce correttamente in tabella.
+	 * @param tabella	La tabella da popolare.
+	 * @param comandoPuro	Il comando da cui estrarre le informazioni.
+	 */
+	private void popolaTabella(String[][] tabella, String comandoPuro){
+		String temp = comandoPuro;
+		for(int i = 0; i <numeroTerritori(comandoPuro); i++){
+			tabella[i][0] = estraiTerritorio(temp);
+			temp = scorriComando(temp);
+			tabella[i][1] = estraiNumero(temp);
+			temp = scorriComando(temp);
+		}
+		
+	}
+	
+	/**
+	 * Scorre all'informazione dopo il primo carattere di separazione
+	 * @param comando	Il comando intero.
+	 * @return	Il comando troncato senza la prima informazione
+	 */
+	private String scorriComando(String comando){
+		String comandoTroncato = comando.substring(posizioneMinore(comando)+1, comando.length());
+		return comandoTroncato;
+	}
+	
+	/**
+	 * Ci torna la posizione del più vicino carattere di separazione tra ":" e ";"
+	 * @param comando	Comando su cui fare la ricerca del carattere di separazione
+	 * @return
+	 */
+	private Integer posizioneMinore(String comando){
+		Integer posizione = 0;
+		posizione = comando.indexOf(separatoreStati);	//Posizione del primo ":"
+		Integer posizione1 = comando.indexOf(separatoreStatoArmate);	//Posizione del primo ";"
+		if(posizione1 != -1 && posizione1 < posizione)
+			posizione = posizione1;
+		return posizione;
+	}
+	
+	/**
+	//Serve solo per testare
+	public static void main(String[] args){
+		String [] nomi = {"asd", "sdf", "dfg", "fgh", "ghj", "hjk"};
+		String [] stati = {"a", "b", "c", "d", "e", "f", "g"};
+		String [] armate = { "1", "2", "3", "4", "5", "6", "7"};
+		PosizionamentoArmate mioPosizionamento = new PosizionamentoArmate(nomi.length);
+		mioPosizionamento.abilitaAggiunta();
+		for(int i = 0; i < nomi.length; i++){
+			String temp = creaStringa(nomi[i], stati, armate);
+			System.out.println("Stringa :"+temp);
+			mioPosizionamento.aggiungiComando(temp);
+		}
+		for(int i = 0; i < nomi.length; i++){
+			Integer numeroArmate;
+			try {
+				numeroArmate = mioPosizionamento.numeroArmatePosizionate(nomi[i]);
+				System.out.println("Utente: "+nomi[i]+" Possiede: "+numeroArmate.toString());
+			} catch (InserimentoMancanteException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		int numero = 0;
+		try {
+			if(mioPosizionamento.tabellaPosizionamenti("asdasdasdasdasdasdasd") == null)
+				System.out.println("Utente esistente");
+		} catch (InserimentoMancanteException e) {
+			System.err.println("Utente fuffa");
+			numero = 1;
+		}
+		
+		
+		System.out.println("Tutto OK zio"+numero);
+	}
+
+	
+	//TESTATO
+	public static String creaStringa(String nome, String[] stati, String[] armate){
+		String comando = nome+separatoreComando;
+		for(int i = 0; i < stati.length; i++){
+			comando = comando+stati[i]+separatoreStatoArmate+armate[i]+separatoreStati;
+		}
+		return comando;
+	}
+	*/
+	
+}

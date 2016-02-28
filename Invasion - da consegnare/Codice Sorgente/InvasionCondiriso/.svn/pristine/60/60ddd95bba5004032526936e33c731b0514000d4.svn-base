@@ -1,0 +1,57 @@
+package classiCondivise;
+
+import java.io.Serializable;
+
+public class BeanTavolo implements Serializable{
+
+	/**
+	 * Defaul serial version UID
+	 */
+	private static final long serialVersionUID = 1L;
+	/**
+	 * Id identificativo del tavolo
+	 */
+	private Integer idTavolo;
+	/**
+	 * Numero di utenti connessi
+	 */
+	private Integer numeroUtenti;
+	
+	/**
+	 * Costruttore
+	 * @param idTavolo - id del tavolo 
+	 * @param numeroUtenti - numero di utenti nel tavolo
+	 */
+	public BeanTavolo(Integer idTavolo, Integer numeroUtenti) {
+		super();
+		this.idTavolo = idTavolo;
+		this.numeroUtenti = numeroUtenti;
+	}
+	
+	
+	public Integer getIdTavolo() {
+		return idTavolo;
+	}
+	
+	
+	public void setIdTavolo(Integer idTavolo) {
+		this.idTavolo = idTavolo;
+	}
+	
+	
+	public Integer getNumeroUtenti() {
+		return numeroUtenti;
+	}
+	
+	
+	public void setNumeroUtenti(Integer numeroUtenti) {
+		this.numeroUtenti = numeroUtenti;
+	}
+	
+	@Override
+	public String toString() {
+		String stringa = idTavolo+";"+numeroUtenti;
+		return stringa;
+	}
+	
+}

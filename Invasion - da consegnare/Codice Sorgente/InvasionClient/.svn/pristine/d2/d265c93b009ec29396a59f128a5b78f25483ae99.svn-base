@@ -1,0 +1,327 @@
+package socket;
+
+import java.net.Socket;
+import java.util.ArrayList;
+
+import comunicazione.Client2Server;
+import classiCondivise.BeanGiocatore;
+import classiCondivise.BeanTavolo;
+import classiCondivise.Classifica;
+import classiCondivise.CreareMessaggio;
+import client.Ambasciatore;
+
+//TODO Implementerà l'interfaccia di comunicazione client2server
+public class InterpreteClient implements Client2Server {
+
+	public static final String customString = "default";
+	private Ambasciatore ambasciatore;
+	private String stringaLetta;
+	private LettoreClient lettoreSocket;
+	private Thread threadLettore;
+	
+	private static final String esitoPositivo = "OK";
+	private static final String esitoNegativo = "KO";
+	
+	public final static String login = "LOGIN";
+	public final static String logout = "LOGOUT";
+	public final static String registra = "REGISTRA";
+	
+	public final static String classifica = "STATISTICHEGENERALI";
+	public final static String statistiche = "STATISTICHEUTENTE";
+	
+	public final static String aggiornaTavoli = "AGGIORNATAVOLI";
+	public final static String creaTavolo = "CREATAVOLO";
+	public final static String joinTavolo = "UNISCITITAVOLO";
+	public final static String startTavolo = "AVVIATAVOLO";
+	
+	//Da Server a Client
+	public final static String listaTavoliAggiornati = "TAVOLIAGGIORNATI";
+	
+	public final static String abbandonaPartita = "ABBANDONAPARTITA";
+	/**
+	 * Avvia il lettore assandogli il socket da cui leggere
+	 * @param mioSocket
+	 */
+	public InterpreteClient(Socket mioSocket){
+		super();
+		this.ambasciatore = Ambasciatore.getInstance();
+		this.lettoreSocket = new LettoreClient(this, mioSocket);
+		this.threadLettore = new Thread(lettoreSocket);
+		threadLettore.start();
+		this.ambasciatore.setInterfacciaComunicazione(this);
+	}
+	
+	/**
+	 * Controlla se il lettore è vivo.
+	 * @return	Lo stato del lettore.
+	 */
+	public boolean isAlive() {
+		//Controlla che il lettore sia ancora vivo
+		if(threadLettore == null){	//Lettore inesistente
+			return false;
+		}
+		else if(! threadLettore.isAlive()){	//Lettore morto
+			return false;
+		}
+		return true;
+	}
+	
+	/**
+	 * Manda un interrupt al  lettore per terminarlo.
+	 */
+	public void killLettore() {
+		this.threadLettore.interrupt();
+	}
+	
+	/**
+	 * Interpreta la stringa letta e ritorna la stringa di risposta.
+	 * @param stringaLetta	La stringa letta dal socket.
+	 * @return	La stringa di risposta.
+	 */
+	public String interpreta(String stringaLetta){
+		String comando = CreareMessaggio.estraiComando(stringaLetta).toUpperCase();
+		String stringaPura = CreareMessaggio.rimuoviComando(stringaLetta);
+		
+//		if(comando.toUpperCase().equals(login)){
+//			String username = CreareMessaggio.estraiStringa(stringaPura);
+//			stringaLetta = CreareMessaggio.estraiSecondaParte(stringaPura);
+//			String password = CreareMessaggio.estraiStringa(stringaPura);
+//			BeanGiocatore bean = this.giocatore.loginUtente(username, password);
+//			if(bean != null){
+//				//ok@[bean separato da ;]
+//				return CreareMessaggio.responsoPositivo(bean.toString());
+//			}
+//			else{
+//				//ko@[accesso fallito]
+//				return CreareMessaggio.responsoNegativo("Impossibile effettuare il login");
+//			}
+//		} 
+//		else if(comando.toUpperCase().equals(logout)){
+//			this.giocatore.disconnetti();
+//			return CreareMessaggio.responsoPositivo("Logout eseguito con successo");
+//		} 
+//		else if(comando.toUpperCase().equals(registra)){
+//			String username = CreareMessaggio.estraiStringa(stringaPura);
+//			stringaLetta = CreareMessaggio.estraiSecondaParte(stringaPura);
+//			String password = CreareMessaggio.estraiStringa(stringaPura);
+//			BeanGiocatore bean = this.giocatore.registrazioneUtente(username, password);
+//			if(bean != null){
+//				return CreareMessaggio.responsoPositivo(bean.toString());
+//			}
+//			else{
+//				return CreareMessaggio.responsoNegativo("Username già in uso");
+//			}
+//		}
+//		else if(comando.toUpperCase().equals(classifica)){
+//			
+//			//TODO
+//		}
+//		else if(comando.toUpperCase().equals(statistiche)){
+//			String username = CreareMessaggio.estraiStringa(stringaPura);
+//			//TODO	Chiedere al giocatore connesso il bean fare il toString e ritornarlo
+//			
+//		}
+//		else if(comando.toUpperCase().equals(aggiornaTavoli)){
+//			//TODO	Chiedere tutti i tavoli e poi li rimandiamo indietro
+//		}
+//		else if(comando.toUpperCase().equals(creaTavolo)){
+//			
+//		}
+//		else if(comando.toUpperCase().equals(joinTavolo)){
+//			Integer numeroTavolo = CreareMessaggio.estraiInteger(stringaPura);
+//			//TODO	Inviare il comando di unione al tavolo scelto.
+//		}
+//		else if(comando.toUpperCase().equals(startTavolo)){
+//			Integer numeroTavolo = CreareMessaggio.estraiInteger(stringaPura);
+//			//TODO	Inviare il comando di unione al tavolo scelto.
+//		}
+		//TODO Levare questo return e ritornare il valore di ogni interpreta.
+		return null;
+	}
+	
+	public synchronized String inviaComando(Integer secondiAttesa) throws InterruptedException{
+		//TODO gestire l'invio del comando
+		
+		//Attendiamo la risposta dell'utente
+		if(stringaLetta.equals(customString)){
+			wait(secondiAttesa*1000);
+		}
+		//Ci salviamo la risposta, ripristiniamo la stringa di default e ritorniamo quello che abbiamo letto
+		String risposta = stringaLetta;
+		this.stringaLetta = customString;
+		return risposta;
+	}
+	
+	public synchronized String inviaComando(String stringaDaInviare) throws InterruptedException{
+		String risposta = this.lettoreSocket.inviaComando(stringaDaInviare);
+		this.stringaLetta = customString;
+		return risposta;
+	}
+	
+	public String getStringaLetta() {
+		return stringaLetta;
+	}
+
+	public void setStringaLetta(String stringaLetta) {
+		this.stringaLetta = stringaLetta;
+	}
+
+	@Override
+	public BeanGiocatore effettuaLogin(String username, String password) {
+		String stringaDaInviare = login+"@"+username+";"+password;
+		String risposta = null;
+		BeanGiocatore bean = null;
+		try {
+			risposta = inviaComando(stringaDaInviare);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		if(risposta == null){
+			System.out.println("Disconnesso");
+			return null;
+		}
+		else if (risposta.startsWith(esitoPositivo)){
+			risposta = CreareMessaggio.rimuoviComando(risposta);
+			bean = CreareMessaggio.estraiBeanGiocatore(risposta);
+			System.out.println(bean.toString());
+			return bean;
+		}
+		else{
+			System.out.println("Credenziali errate");
+			return null;
+		}
+	}
+
+	@Override
+	public BeanGiocatore effettuaRegistrazione(String username, String password) {
+		String stringaDaInviare = registra+"@"+username+";"+password;
+		String risposta = null;
+		BeanGiocatore bean = null;
+		try {
+			System.out.println("Invio la richiesta di registrazione");
+			risposta = inviaComando(stringaDaInviare);
+			System.out.println("Risposta: "+risposta);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		if(risposta == null){
+			System.out.println("Disconnesso");
+			return null;
+		}
+		else if (risposta.startsWith("OK")){
+			risposta = CreareMessaggio.rimuoviComando(risposta);
+			bean = CreareMessaggio.estraiBeanGiocatore(risposta);
+			System.out.println(bean.toString());
+			return bean;
+		}
+		else{
+			System.out.println("Credenziali errate");
+			return null;
+		}
+	}
+
+	@Override
+	public Classifica chiediClassifica() {
+		String stringaDaInviare = classifica;
+		String risposta = null;
+		Classifica classifica;
+		try {
+			risposta = inviaComando(stringaDaInviare);
+			System.out.println("Risposta: "+risposta);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		if(risposta == null){
+			System.out.println("Disconnesso");
+			return null;
+		}
+		else if (risposta.startsWith("OK")){
+			risposta = CreareMessaggio.rimuoviComando(risposta);
+			classifica = CreareMessaggio.estraiClassifica(risposta);
+			return classifica;
+		}
+		else{
+			//Non dovrebbero arrivare stringhe diverse
+			return null;
+		}
+	}
+
+	@Override
+	public boolean esciPartita() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean cambiaPassword(String vecchiaPassword, String nuovaPassword) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public BeanGiocatore ottieniInfoUtente(String usernameUtente) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public ArrayList<BeanTavolo> richiediListaTavoliAperti() {
+		String stringaDaInviare = aggiornaTavoli;
+		String risposta = null;
+		ArrayList<BeanTavolo> tavoli;
+		try {
+			risposta = inviaComando(stringaDaInviare);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		if(risposta == null){
+			System.out.println("Disconnesso");
+			return null;
+		}
+		else if (risposta.startsWith(esitoPositivo)){
+			risposta = CreareMessaggio.rimuoviComando(risposta);
+			tavoli = CreareMessaggio.estraiArrayListBeanTavolo(risposta);
+			System.out.println(risposta);
+			return tavoli;
+		}
+		else{
+			//TODO non dovrebbe mai dare esito negativo
+			return null;
+		}
+	}
+
+	@Override
+	public Integer creaTavolo() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public ArrayList<String> joinTavolo(Integer idTavolo) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void abbandonaTavolo() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public boolean avviaTavolo(Integer idTavolo) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean effettuaLogout() {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+}

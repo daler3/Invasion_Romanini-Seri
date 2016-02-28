@@ -1,0 +1,50 @@
+package provaRmi;
+
+import interfacciaComunicazione.Server2Client;
+
+import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
+
+import server_daler.ThreadPlayer;
+
+
+/**
+ * Classe comunicazione da server a client. Questa è nel server e associata a ogni giocatore
+ * @author daniele
+ *
+ */
+
+public class ClassForPlayer extends UnicastRemoteObject implements InterfaceForPlayer, Server2Client {
+
+	
+	private static final long serialVersionUID = 2L;
+	
+	private String name;
+	private String password; 
+	private MyInterface client;
+	private AcceptClass serverAcc = null; 
+	private ThreadPlayer threadGiocatore; 
+	private Thread serverThread;
+	
+	public ClassForPlayer(MyInterface client, String name, String password, AcceptClass serverAcc) throws RemoteException{
+		this.client=client; 
+		this.name=name; 
+		this.password=password; 
+		this.serverAcc=serverAcc; 
+		//creo il ThreadPlayer...\\TODO: mettici i parametri
+		this.threadGiocatore = new ThreadPlayer();
+	}
+	
+
+	public void startThreadPlayer(){
+		this.serverThread = new Thread(this.threadGiocatore);
+		serverThread.start();
+	}
+	
+	public void rimuovi(){
+		
+	}
+
+	
+
+}

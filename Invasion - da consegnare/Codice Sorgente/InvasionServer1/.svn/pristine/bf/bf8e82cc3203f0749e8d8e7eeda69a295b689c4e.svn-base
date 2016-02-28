@@ -1,0 +1,528 @@
+package socket;
+
+import java.net.Socket;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Iterator;
+
+import mappa.Mappa;
+import mappa.Territorio;
+import server.GiocatoreConnesso;
+import server.TavoloAperto;
+import socketcondiviso.AlfabetoSocket;
+import classiCondivise.BeanGiocatore;
+import classiCondivise.BeanTavolo;
+import classiCondivise.Classifica;
+import classiCondivise.Colori;
+import classiCondivise.CreareMessaggio;
+import exceptionCondivise.GiocatoreNonTrovatoException;
+import exceptionCondivise.ProblemaAvvioTavoloException;
+import exceptionCondivise.TavoloInesistenteException;
+import exceptionCondivise.TerritorioNonTrovatoException;
+import exceptionCondivise.UnitaInsufficientiException;
+import interfacciaComunicazione.Server2Client;
+
+//TODO Implementerà l'interfaccia di comunicazione client2server
+public class InterpreteServer implements Server2Client {
+
+	public static final String customString = "default";
+	private String stringaLetta;
+	private LettoreServer lettoreSocket;
+	private Thread threadLettore;
+	private GiocatoreConnesso giocatore;
+	
+	
+	/**
+	 * Avvia il lettore assandogli il socket da cui leggere
+	 * @param mioSocket
+	 */
+	public InterpreteServer(Socket mioSocket, GiocatoreConnesso mioGiocatore){
+		super();
+		this.giocatore = mioGiocatore;
+		this.lettoreSocket = new LettoreServer(this, mioSocket);
+		this.threadLettore = new Thread(lettoreSocket);
+		threadLettore.start();
+	}
+	
+	/**
+	 * Controlla se il lettore è vivo.
+	 * @return	Lo stato del lettore.
+	 */
+	public boolean isAlive() {
+		//Controlla che il lettore sia ancora vivo
+		if(threadLettore == null){	//Lettore inesistente
+			return false;
+		}
+		else return threadLettore.isAlive();
+	}
+	
+	/**
+	 * Manda un interrupt al  lettore per terminarlo.
+	 */
+	public void killLettore() {
+		this.threadLettore.interrupt();
+	}
+	
+	/**
+	 * Interpreta la stringa letta e ritorna la stringa di risposta.
+	 * @param stringaLetta	La stringa letta dal socket.
+	 * @return	La stringa di risposta.
+	 */
+	public String interpreta(String stringaLetta){
+		String comando = CreareMessaggio.estraiComando(stringaLetta).toUpperCase();
+		String stringaPura = CreareMessaggio.rimuoviComando(stringaLetta); //senza comando nè @
+		String risposta = "";
+		if(comando.toUpperCase().equals(AlfabetoSocket.login)){
+			String username = CreareMessaggio.estraiStringa(stringaPura);
+			stringaPura = CreareMessaggio.estraiSecondaParte(stringaPura);
+			String password = CreareMessaggio.estraiStringa(stringaPura);
+			BeanGiocatore bean = null;
+			try {
+				//Database funzionante
+				bean = this.giocatore.loginUtente(username, password);
+				if(bean != null){
+					//ok@[bean separato da ;]
+					return CreareMessaggio.responsoPositivo(bean.toString());
+				}
+				else{
+					//ko@[accesso fallito]
+					return CreareMessaggio.responsoNegativo("Impossibile effettuare il login");
+				}
+			} catch (SQLException e) {
+				//Errore nel DB
+				return CreareMessaggio.responsoException(AlfabetoSocket.sqlException);
+			}
+		} 
+		else if(comando.toUpperCase().equals(AlfabetoSocket.logout)){
+			Boolean esitoLogout = this.giocatore.disconnetti();
+			//return CreareMessaggio.responsoPositivo("Logout eseguito con successo");
+			return CreareMessaggio.responsoPositivo(esitoLogout.toString());
+		} 
+		else if(comando.toUpperCase().equals(AlfabetoSocket.registra)){
+			String username = CreareMessaggio.estraiStringa(stringaPura);
+			stringaPura = CreareMessaggio.estraiSecondaParte(stringaPura);
+			String password = CreareMessaggio.estraiStringa(stringaPura);
+			BeanGiocatore bean = this.giocatore.registrazioneUtente(username, password);
+			if(bean != null){
+				return CreareMessaggio.responsoPositivo(bean.toString());
+			}
+			else{
+				return CreareMessaggio.responsoNegativo("Username già in uso");
+			}
+		}
+		else if(comando.toUpperCase().equals(AlfabetoSocket.cambioPsw)){
+			String vecchiaPw = CreareMessaggio.estraiStringa(stringaPura);
+			stringaPura = CreareMessaggio.estraiSecondaParte(stringaPura);
+			String nuovaPw = CreareMessaggio.estraiStringa(stringaPura);
+			Boolean esito = this.giocatore.cambiaPassword(vecchiaPw, nuovaPw);
+			return CreareMessaggio.responsoPositivo(esito.toString());
+		}
+		else if(comando.toUpperCase().equals(AlfabetoSocket.classifica)){
+			Classifica classifica = this.giocatore.ottieniClassifica();
+			return CreareMessaggio.responsoPositivo(classifica.toString());
+		}
+		else if(comando.toUpperCase().equals(AlfabetoSocket.ottieniInfoUtente)){
+			String nomeUtente = CreareMessaggio.estraiStringa(stringaPura);
+			stringaPura = CreareMessaggio.estraiSecondaParte(stringaPura);
+			BeanGiocatore mioBean = null;
+			String exception = "";
+			try {
+				mioBean = this.giocatore.ottieniInfoUtente(nomeUtente);
+				risposta = mioBean.toString();
+				return CreareMessaggio.responsoPositivo(risposta);
+			} catch (GiocatoreNonTrovatoException e) {
+				exception = e.toString();
+				return CreareMessaggio.responsoException(exception);
+			}
+		}
+		else if(comando.toUpperCase().equals(AlfabetoSocket.aggiornaTavoli)){
+			ArrayList<BeanTavolo> tavoli = giocatore.richiediListaTavoliAperti();
+			Iterator<BeanTavolo> itTavoli = tavoli.iterator();
+			BeanTavolo tavoloEstratto;
+			risposta = "";
+			if(itTavoli.hasNext()){
+				tavoloEstratto = itTavoli.next();
+				risposta = tavoloEstratto.toString();
+				while(itTavoli.hasNext()){
+					tavoloEstratto = itTavoli.next();
+					risposta = risposta+AlfabetoSocket.dotcomma+tavoloEstratto.toString();
+				}				
+			}
+			return CreareMessaggio.responsoPositivo(risposta);
+		}
+		else if(comando.toUpperCase().equals(AlfabetoSocket.creaTavolo)){
+			risposta = "";
+			Integer idTavolo = this.giocatore.creaTavolo();
+			risposta = idTavolo.toString();
+			return CreareMessaggio.responsoPositivo(risposta); //TODO se è uguale a null resposo negativo
+		}
+		else if(comando.toUpperCase().equals(AlfabetoSocket.joinTavolo)){
+			risposta = "";
+			Integer idTavolo = CreareMessaggio.estraiInteger(stringaPura);
+			ArrayList<String> nomiGiocatori = new ArrayList<String>();
+			String exception = "";
+			try {
+				nomiGiocatori = this.giocatore.joinTavolo(idTavolo);
+				risposta = CreareMessaggio.impacchettaArrayListStringhe(nomiGiocatori);
+				return CreareMessaggio.responsoPositivo(risposta);
+			} catch (TavoloInesistenteException e) {
+				exception = e.toString();
+				return CreareMessaggio.responsoException(exception);
+			}
+		}
+		else if(comando.toUpperCase().equals(AlfabetoSocket.startTavolo)){
+			risposta = "";
+			Integer idTavolo = CreareMessaggio.estraiInteger(stringaPura);
+			Boolean esito = false;
+			try {
+				esito = this.giocatore.avviaTavolo(idTavolo);
+			} catch (ProblemaAvvioTavoloException e) {
+				// TODO gestire eccezione
+			}
+			risposta = esito.toString();
+			return CreareMessaggio.responsoPositivo(risposta);
+		}
+		else if(comando.toUpperCase().equals(AlfabetoSocket.abbandonaTavolo)){
+			this.giocatore.abbandonaTavolo();
+			return CreareMessaggio.responsoPositivo(risposta);
+		}
+		else if(comando.toUpperCase().equals(AlfabetoSocket.sceltaColore)){
+			Colori colore = CreareMessaggio.estraiColori(stringaPura);
+			this.giocatore.sceltaColoreEffettuata(colore);
+			return CreareMessaggio.responsoPositivo(risposta);
+		}
+		else if(comando.toUpperCase().equals(AlfabetoSocket.posizionamentoArmate)){
+			this.giocatore.sceltaArmateInizialeEffettuata(stringaPura);
+			return CreareMessaggio.responsoPositivo(risposta);
+		}
+		else if(comando.toUpperCase().equals(AlfabetoSocket.passo)){
+			this.giocatore.passaTurno();
+			return CreareMessaggio.responsoPositivo(risposta);
+		}
+		else if(comando.toUpperCase().equals(AlfabetoSocket.sposta)){
+			Integer numeroArmate = CreareMessaggio.estraiInteger(stringaPura);
+			stringaPura = CreareMessaggio.estraiSecondaParte(stringaPura);
+			String territorioOrigine = CreareMessaggio.estraiStringa(stringaPura);
+			stringaPura = CreareMessaggio.estraiSecondaParte(stringaPura);
+			String territorioDestinazione = CreareMessaggio.estraiStringa(stringaPura);
+			try {
+				this.giocatore.comandoSpostaArmate(numeroArmate, territorioOrigine, territorioDestinazione);
+				return CreareMessaggio.responsoPositivo(risposta);
+			} catch (TerritorioNonTrovatoException e) {
+				return CreareMessaggio.responsoException(e.toString());
+			}
+		}
+		else if(comando.toUpperCase().equals(AlfabetoSocket.attacca)){
+			Integer numeroArmate = CreareMessaggio.estraiInteger(stringaPura);
+			stringaPura = CreareMessaggio.estraiSecondaParte(stringaPura);
+			String territorioDifesa = CreareMessaggio.estraiStringa(stringaPura);
+			stringaPura = CreareMessaggio.estraiSecondaParte(stringaPura);
+			String territorioAttacco = CreareMessaggio.estraiStringa(stringaPura);
+			try {
+				this.giocatore.comandoAttacco(numeroArmate, territorioDifesa, territorioAttacco);
+				return CreareMessaggio.responsoPositivo(risposta);
+			} catch (UnitaInsufficientiException e) {
+				return CreareMessaggio.responsoException(e.toString());
+			}
+		}
+		else if(comando.toUpperCase().equals(AlfabetoSocket.abbandonaPartita)){
+			this.giocatore.abbandonaPartita();
+			return CreareMessaggio.responsoPositivo(risposta);
+		}
+		System.err.println("Comando provenienza client non riconosciuto: ["+comando+"]");
+		return null;
+	}
+	
+	/**
+	 * Leggi la stringa letta.
+	 * @return
+	 */
+	public String getStringaLetta() {
+		return stringaLetta;
+	}
+
+	/**
+	 * Cambia la stringa letta.
+	 * @param stringaLetta
+	 */
+	public void setStringaLetta(String stringaLetta) {
+		this.stringaLetta = stringaLetta;
+	}
+
+	
+
+	
+	@Override
+	public void inviaMieInfo(BeanGiocatore mieInfo) {
+		String stringaDaInviare = "";
+		stringaDaInviare = AlfabetoSocket.infoUtenteAggiornate+AlfabetoSocket.at+mieInfo.toString();
+		String risposta = this.lettoreSocket.inviaComando(stringaDaInviare); //attendo la risposta del client
+		//ora devo interpretare la risposta, ma è void, quindi faccio return
+		return; 
+	}
+	
+	
+	@Override
+	public void comunicaCambiamentiTavolo(ArrayList<String> nomiGiocatoriSeduti) {
+		String stringaDaInviare = ""; //inizializzo la stringa
+		Iterator<String> itNomi = nomiGiocatoriSeduti.iterator();
+		while(itNomi.hasNext()){
+			stringaDaInviare = stringaDaInviare+CreareMessaggio.preparaInserimetoParametro(itNomi.next());
+			if(itNomi.hasNext()){
+				stringaDaInviare = stringaDaInviare+AlfabetoSocket.dotcomma;  //così evito di mettere il ; alla fine.
+			}
+		}
+		stringaDaInviare = AlfabetoSocket.cambiamentiTavolo+AlfabetoSocket.at+stringaDaInviare;
+		this.lettoreSocket.inviaComandoIstantaneo(stringaDaInviare); //attendo la risposta del client
+		return; 
+	}
+	
+	@Override
+	public void comunicaInfoTavoli(ArrayList<BeanTavolo> infoTavoliAperti) {
+		String stringaDaInviare = ""; //inizializzo la stringa
+		BeanTavolo tavoloTemp; 
+		String stringaTemp;
+		Iterator<BeanTavolo> itInfoTavoli = infoTavoliAperti.iterator();
+		while(itInfoTavoli.hasNext()){
+			tavoloTemp = itInfoTavoli.next();
+			stringaTemp = tavoloTemp.toString();
+			stringaDaInviare = stringaDaInviare+stringaTemp;
+			if(itInfoTavoli.hasNext())
+				stringaDaInviare = stringaDaInviare+AlfabetoSocket.dotcomma; //così evito di mettere il ; alla fine.
+		}
+		stringaDaInviare = AlfabetoSocket.listaTavoliAggiornati+AlfabetoSocket.at+stringaDaInviare;
+		String risposta = this.lettoreSocket.inviaComando(stringaDaInviare); //attendo la risposta del client
+		return;  //è void
+	}
+	
+	@Override
+	public void comunicazioneInizioPartita() {
+		String stringaDaInviare = "";
+		stringaDaInviare = AlfabetoSocket.inizioPartita+AlfabetoSocket.at;
+		String risposta = lettoreSocket.inviaComando(stringaDaInviare);
+		return;
+		
+	}
+	@Override
+	public void ordinePartita(ArrayList<BeanGiocatore> listaInfoGiocatori,
+			ArrayList<Colori> ordineColori) {
+		int numeroGiocatori = listaInfoGiocatori.size();
+		int numeroColori = listaInfoGiocatori.size();
+		//Metto il comando
+		String stringaDaInviare = AlfabetoSocket.ordinePartita+AlfabetoSocket.at;
+		//Metto il numero di BeanGiocatore + i bean
+		stringaDaInviare = stringaDaInviare+numeroGiocatori+AlfabetoSocket.dotcomma;
+		Iterator<BeanGiocatore> itGiocatori = listaInfoGiocatori.iterator();
+		while(itGiocatori.hasNext()){
+			stringaDaInviare = stringaDaInviare+itGiocatori.next().toString()+AlfabetoSocket.dotcomma;
+		}
+		//Metto il numero di Colori + i Colori
+		stringaDaInviare = stringaDaInviare+numeroColori+AlfabetoSocket.dotcomma;
+		Iterator<Colori> itColori = ordineColori.iterator();
+		while(itColori.hasNext()){
+			stringaDaInviare = stringaDaInviare+itColori.next().toString()+AlfabetoSocket.dotcomma;
+		}
+		//Invio il messaggio
+		lettoreSocket.inviaComando(stringaDaInviare);
+		return;
+	}
+
+	@Override
+	public void comunicaTerritoriPosizionaArmate(
+			Integer numeroArmateDaPosizionare, Integer tempoPosizionaArmate,
+			Mappa mappaPartita) {
+		//Comando
+		String stringaDaInviare = AlfabetoSocket.territoriPerPosizionamento+AlfabetoSocket.at;
+		//num armate
+		stringaDaInviare = stringaDaInviare+numeroArmateDaPosizionare.intValue()+AlfabetoSocket.dotcomma;
+		//tempo
+		stringaDaInviare = stringaDaInviare+tempoPosizionaArmate.intValue()+AlfabetoSocket.dotcomma;
+		//mappa
+		stringaDaInviare = stringaDaInviare+mappaPartita.toString();
+		//Invio il messaggio
+		lettoreSocket.inviaComando(stringaDaInviare);
+		return;
+	}
+
+	@Override
+	public void scegliColore(Integer timer, ArrayList<Colori> coloriDisponibili) {
+		int numeroColori = 0;
+		//Comando
+		String stringaDaInviare = AlfabetoSocket.scegliIlTuoColore+AlfabetoSocket.at;
+		stringaDaInviare = stringaDaInviare+timer.intValue()+AlfabetoSocket.dotcomma;
+		if(coloriDisponibili != null){
+			numeroColori = coloriDisponibili.size();
+			stringaDaInviare = stringaDaInviare+numeroColori+AlfabetoSocket.dotcomma;
+			Iterator<Colori> itColori = coloriDisponibili.iterator();
+			while(itColori.hasNext()){
+				stringaDaInviare = stringaDaInviare+itColori.next().getNome()+AlfabetoSocket.dotcomma;
+			}
+		}
+		else{
+			stringaDaInviare = stringaDaInviare+numeroColori+AlfabetoSocket.dotcomma;
+		}
+		//Abbiamo creato il comando lo inviamo
+		lettoreSocket.inviaComando(stringaDaInviare);
+		return;
+	}
+
+	@Override
+	public void comunicaMappa(Mappa mappa) {
+		String comando = AlfabetoSocket.aggiornaMappa+AlfabetoSocket.at+mappa.toString();
+		
+		this.lettoreSocket.inviaComandoIstantaneo(comando);
+		return;
+	}
+
+	@Override
+	public void comunicaTurno(Colori colore, String username) {
+		//Comando da inviare
+		String comando = AlfabetoSocket.turnoAltrui+AlfabetoSocket.at;
+		//colore
+		comando = comando+colore.getNome()+AlfabetoSocket.dotcomma;
+		//username
+		comando = comando+CreareMessaggio.preparaInserimetoParametro(username)+AlfabetoSocket.dotcomma;
+		this.lettoreSocket.inviaComando(comando);
+		return;
+	}
+
+	@Override
+	public void comunicaArmateInizioTurno(Integer numeroArmate, Integer tempo) {
+		//Comando da inviare
+		String comando = AlfabetoSocket.turnoTuo+AlfabetoSocket.at;
+		//numero armate
+		comando = comando+numeroArmate.intValue()+AlfabetoSocket.dotcomma;
+		//tempo
+		comando = comando+tempo.intValue()+AlfabetoSocket.dotcomma;
+		this.lettoreSocket.inviaComando(comando);
+		return;
+	}
+
+	@Override
+	public void comunicaAttendiMossa(Integer tempo) {
+		//Comando da inviare
+		String comando = AlfabetoSocket.attendoMossa+AlfabetoSocket.at;
+		//tempo
+		comando = comando+tempo.intValue()+AlfabetoSocket.dotcomma;
+		this.lettoreSocket.inviaComando(comando);
+		return;
+	}
+
+	@Override
+	public void comunicaAttacco(Integer tempoDifesa,
+			Territorio territorioAttaccante, Territorio territorioAttaccato,
+			ArrayList<Integer> risultatoDadiAttacco,
+			ArrayList<Integer> risultatoDadiDifesa, Integer[] risultati,
+			boolean conquistato) {
+		
+		
+		int numAttacco = 0;
+		int numDifesa = 0;
+		if(risultatoDadiDifesa != null){
+			numDifesa = risultatoDadiDifesa.size();
+		}
+		//Comando da inviare
+		String comando = AlfabetoSocket.attaccoEffettuato+AlfabetoSocket.at;
+		//tempo
+		comando = comando+tempoDifesa.intValue()+AlfabetoSocket.dotcomma;
+		//territorio attaccante
+		comando = comando+territorioAttaccante.toString()+AlfabetoSocket.dotcomma;
+		//territorio difensore
+		comando = comando+territorioAttaccato.toString()+AlfabetoSocket.dotcomma;
+		//Inserisco i dadi attacco
+		if(risultatoDadiAttacco != null){
+			numAttacco = risultatoDadiAttacco.size();
+			comando = comando+numAttacco+AlfabetoSocket.dotcomma;
+			Iterator<Integer> itAttacco = risultatoDadiAttacco.iterator();
+			while(itAttacco.hasNext()){
+				comando = comando+itAttacco.next().intValue()+AlfabetoSocket.dotcomma;
+			}
+		}
+		else{
+			comando = comando+numAttacco+AlfabetoSocket.dotcomma;
+		}
+		//Inserisco i dadi difesa
+		if(risultatoDadiDifesa != null){
+			numDifesa = risultatoDadiDifesa.size();
+			comando = comando+numDifesa+AlfabetoSocket.dotcomma;
+			Iterator<Integer> itDIfesa = risultatoDadiDifesa.iterator();
+			while(itDIfesa.hasNext()){
+				comando = comando+itDIfesa.next().intValue()+AlfabetoSocket.dotcomma;
+			}
+		}
+		else{
+			comando = comando+numDifesa+AlfabetoSocket.dotcomma;
+		}
+		//Inserisco i risultati
+		if(risultati != null){
+			int numRisultati = risultati.length;
+			comando = comando+numRisultati+AlfabetoSocket.dotcomma;
+			for(int i = 0; i < numRisultati; i++){
+				comando = comando+risultati[i].toString()+AlfabetoSocket.dotcomma;
+			}
+		}
+		//Inserisco il conquistato
+		if(conquistato){
+			comando = comando+"true"+AlfabetoSocket.dotcomma;
+		}
+		else{
+			comando = comando+"false"+AlfabetoSocket.dotcomma;
+		}		
+		this.lettoreSocket.inviaComandoIstantaneo(comando);
+		return;
+	}
+
+	@Override
+	public void comunicaSconfitta(String giocatoreSconfitto) {
+		//Comando da inviare
+		String comando = AlfabetoSocket.sconfittaGiocatore+AlfabetoSocket.at;
+		//giocatore sconfitto
+		comando = comando+CreareMessaggio.preparaInserimetoParametro(giocatoreSconfitto)+AlfabetoSocket.dotcomma;
+		this.lettoreSocket.inviaComandoIstantaneo(comando);
+		return;
+	}
+
+	@Override
+	public void comunicaRitirata(String giocatoreRitirato) {
+		//Comando da inviare
+		String comando = AlfabetoSocket.ritirataGiocatore+AlfabetoSocket.at;
+		//giocatore sconfitto
+		comando = comando+CreareMessaggio.preparaInserimetoParametro(giocatoreRitirato)+AlfabetoSocket.dotcomma;
+		this.lettoreSocket.inviaComandoIstantaneo(comando);
+		return;
+	}
+
+	@Override
+	public void fineDellaPartita(ArrayList<String> classificaFinale,
+			Integer punteggioPrimo, Integer punteggioSecondo) {
+		
+		int lungClassifica = 0;
+		String comando = AlfabetoSocket.finePartita+AlfabetoSocket.at;
+		if(classificaFinale != null){
+			lungClassifica = classificaFinale.size();
+			comando = comando+lungClassifica+AlfabetoSocket.dotcomma;
+			Iterator<String> itClassifica = classificaFinale.iterator();
+			while(itClassifica.hasNext()){
+				comando = comando+CreareMessaggio.preparaInserimetoParametro(itClassifica.next())+AlfabetoSocket.dotcomma;
+			}
+		}
+		else{
+			comando = comando+lungClassifica+AlfabetoSocket.dotcomma;
+		}
+		//punteggio primo
+		comando = comando+punteggioPrimo.intValue()+AlfabetoSocket.dotcomma;
+		//punteggio secondo
+		comando = comando+punteggioSecondo.intValue()+AlfabetoSocket.dotcomma;
+		
+		this.lettoreSocket.inviaComando(comando);
+		return;
+	}
+
+	protected void disconnetti(){
+		this.giocatore.disconnetti();
+		//Eliminiamo tutti i riferimenti al giocatore connesso.
+		this.giocatore = null;
+	}
+
+
+}

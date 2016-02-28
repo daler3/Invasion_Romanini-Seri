@@ -1,0 +1,15 @@
+package interfacciaGUI;
+import classiCondivise.BeanGiocatore;
+import classiCondivise.Colori;
+
+import java.util.*;
+
+public interface ControllerPartita extends ControllerAccountStatistiche {
+
+	public void inviaSceltaColore(Colori coloreScelto);
+	
+	public void inviaPosizionamentoArmate(String sceltaPosizionamentoArmate);
+	
+	
+
+}

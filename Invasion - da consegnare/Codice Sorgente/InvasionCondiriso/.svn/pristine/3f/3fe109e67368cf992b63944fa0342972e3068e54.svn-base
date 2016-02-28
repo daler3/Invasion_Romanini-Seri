@@ -1,0 +1,36 @@
+package classiCondivise;
+
+public enum Colori {
+	GIALLO(255,255,0, "Giallo"),
+	ROSSO(255,0,0, "Rosso"),
+	VERDE(0,255,0, "Verde"),
+	BLU(0,0,255, "Blu"),
+	VIOLA(143,0,255, "Viola"),
+	NERO(0,0,0, "Nero"),
+	NEUTRO(255,255,255, "Neutro");
+	
+	private Integer r;
+	private Integer g;
+	private Integer b;
+	private String nome;
+	
+	private Colori(Integer r, Integer g, Integer b, String nome) {
+		this.r = r;
+		this.g = g;
+		this.b = b;
+		this.nome = nome;
+	}
+	
+	public Integer getR() {
+		return r;
+	}
+	public Integer getG() {
+		return g;
+	}
+	public Integer getB() {
+		return b;
+	}
+	public String getNome(){
+		return nome;
+	}
+}

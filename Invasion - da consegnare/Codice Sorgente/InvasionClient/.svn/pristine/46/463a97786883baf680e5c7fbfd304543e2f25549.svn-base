@@ -1,0 +1,29 @@
+package client;
+
+import guiClient.LoginSwing;
+import interfacciaGUI.ControllerUtente;
+
+
+public class Start {
+
+	public static void main(String[] args) {
+		javax.swing.SwingUtilities.invokeLater(new Runnable() {
+            public void run() {
+            	try{
+            		//Interfaccia per il login
+            		ControllerUtente login = new Utente();
+            		//Creaiamo l'ambasciatore
+            		Ambasciatore ambasciatore = Ambasciatore.getInstance();
+	            	//Avviamo l'interfaccia Grafica
+	            	LoginSwing simpleapp = new LoginSwing(login);
+	            	simpleapp.createAndShowGUI();
+            	}
+            	catch(Exception e){
+            		e.printStackTrace();
+            	}
+            	
+            }
+        });
+
+	}
+}

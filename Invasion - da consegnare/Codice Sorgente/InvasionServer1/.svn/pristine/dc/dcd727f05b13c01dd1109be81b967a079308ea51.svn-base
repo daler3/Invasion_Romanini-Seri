@@ -1,0 +1,86 @@
+package interfacciaComunicazione;
+
+import java.util.ArrayList;
+
+import server_daler.GiocatoreConnesso;
+import server_daler.Server;
+import server_daler.TavoloAperto;
+import mappa.*;
+import classiCondivise.BeanGiocatore;
+import classiCondivise.BeanTavolo;
+import classiCondivise.Classifica;
+import classiCondivise.Colori;
+
+public interface Server2Client {
+	
+	/**
+	 * Invia il bean con le proprie info
+	 * @param mieInfo - Bean con le info da inviare al Client.
+	 */
+	public void inviaMieInfo(BeanGiocatore mieInfo);
+	
+	
+	/**
+	 * Comunica al client una lista aggiornata dei nomi dei giocatori con cui è attualmente seduto a un tavolo.
+	 * @param nomiGiocatoriSeduti - la lista dei nomi dei giocatori attualmente seduti al tavolo
+	 */
+	public void comunicaCambiamentiTavolo(ArrayList<String> nomiGiocatoriSeduti);
+	
+	
+	/**
+	 * Comunica all'utente connesso (nel limbo) le info riguardanti i tavoli aperti
+	 * @param infoTavoliAperti - lista di BeanTavoli contenenti le informazioni sui tavoli attualmente aperti (id e numero giocatori attualmente seduti)
+	 */
+	public void comunicaInfoTavoli(ArrayList<BeanTavolo> infoTavoliAperti);
+	
+	
+	
+	//METODI DI PARTITA:
+	
+	
+	/**
+	 * Comunicazione da Server a Client di inizio della partita. 
+	 */
+	public void comunicazioneInizioPartita();
+	
+	/**
+	 * Comunica al client di scegliere il colore per la partita e i colori che sono disponibili per la scelta
+	 * @param coloriDisponibili
+	 * @return
+	 */
+	public void scegliColore(Integer timer, ArrayList<Colori> coloriDisponibili); 
+	
+	/**
+	 * Comunica al client l'ordine dei giocatori della partita e i rispettivi colori.
+	 */
+	public void ordinePartita(ArrayList<BeanGiocatore>listaInfoGiocatori, ArrayList<Colori>ordineColori);
+	
+	
+	public void comunicaMappa (Mappa mappa);
+	
+	/**
+	 * Comunica al client la mappa della partita (quindi i territori che possiede), il numero di armate che deve posizionare sulla mappa, e il tempo che ha per posizionarle.
+	 * @param mappaPartita
+	 * @param numeroArmateDaPosizionare
+	 * @param tempoPosizionaArmate
+	 */
+	public void comunicaTerritoriPosizionaArmate(Integer numeroArmateDaPosizionare, Integer tempoPosizionaArmate, Mappa mappaPartita);
+	
+	public void comunicaTurno(Colori colore, String username);
+	
+	public void comunicaArmateInizioTurno(Integer numeroArmate, Integer tempo);
+	
+	public void comunicaAttendiMossa(Integer tempo);
+
+	public void comunicaAttacco(Integer tempoDifesa, Territorio territorioAttaccante, Territorio territorioAttaccato, 
+			ArrayList<Integer> risultatoDadiAttacco, ArrayList<Integer> risultatoDadiDifesa, Integer [] risultati, boolean conquistato);
+
+	public void comunicaSconfitta(String giocatoreSconfitto);
+	
+	public void comunicaRitirata(String giocatoreRitirato);
+	
+	public void fineDellaPartita(ArrayList<String> classificaFinale, Integer punteggioPrimo, Integer punteggioSecondo);
+
+
+ 
+}

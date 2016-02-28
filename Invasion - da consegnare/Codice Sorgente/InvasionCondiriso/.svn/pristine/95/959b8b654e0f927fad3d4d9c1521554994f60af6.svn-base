@@ -1,0 +1,5 @@
+package exceptionCondivise;
+
+public class ProblemaAvvioTavoloException extends Exception {
+
+}

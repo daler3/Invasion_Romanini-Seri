@@ -1,0 +1,5 @@
+package interfacciaGUI;
+
+public interface ViewTavolo {
+
+}

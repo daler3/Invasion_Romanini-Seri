@@ -1,0 +1,763 @@
+package guiClient;
+
+import interfacciaGUI.ControllerLimbo;
+import interfacciaGUI.ControllerPartita;
+import interfacciaGUI.ViewPartita;
+
+import java.awt.Container;
+import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
+import java.util.ArrayList;
+import java.util.Iterator;
+
+import exceptionCondivise.TerritorioNonTrovatoException;
+import guiClient.immagini.IconLoader;
+
+import javax.swing.JFrame;
+import javax.swing.JPanel;
+import javax.swing.JLabel;
+import javax.swing.JButton;
+import javax.swing.SwingUtilities;
+
+import java.awt.Color;
+
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
+import javax.swing.JSlider;
+
+import java.awt.Font;
+
+import mappa.Mappa;
+import mappa.Territorio;
+import classiCondivise.BeanGiocatore;
+import classiCondivise.BeanTavolo;
+import classiCondivise.Colori;
+import classiCondivise.StatoPartita;
+
+public class PanelPartita extends JPanel implements ViewPartita{
+	private final static int x[] = {12, 82, 70, 173, 226, 252, 82, 183, 105, 173, 173, 252, 206, 453, 560, 453, 532, 375, 453, 350, 411, 411, 323, 361, 421, 509, 519, 628, 721, 667, 571, 594, 651, 721, 702, 712, 770, 816, 806, 702, 758, 841};
+	private final static int y[] = {45, 55, 104, 104, 104, 12, 168, 180, 258, 310, 364, 349, 454, 493, 493, 429, 393, 310, 321, 226, 243, 167, 136, 94, 45, 55, 258, 272, 310, 226, 187, 69, 12, 12, 94, 168, 45, 156, 363, 401, 488, 454};
+	private final static int w[] = {73, 158, 108, 62, 73, 120, 96, 96, 96, 106, 80, 96, 73, 108, 62, 80, 62, 86, 86, 86, 86, 86, 86, 62, 86, 86, 119, 96, 73, 127, 96, 73, 73, 73, 73, 108, 120, 73, 73, 108, 86, 73};
+	private final static int h[] = {99, 50, 64, 90, 90, 112, 78, 90, 78, 50, 78, 132, 151, 112, 83, 71, 107, 120, 50, 99, 64, 64, 95, 50, 123, 210, 132, 132, 99, 78, 83, 125, 151, 99, 90, 71, 123, 99, 99, 99, 99, 133};
+	private final static String territori[] = {"Alaska", "Territori del Nord Ovest", "Alberta", "Ontario", "Quebec", "Groenlandia", "Stati Uniti Occidentali", "Stati Uniti Orientali", "America Centrale", "Venezuela", "Perù", "Brasile", "Argentina", " Africa del Sud", "Madagascar", "Congo", "Africa Orientale", "Africa del Nord", "Egitto", "Europa Occidentale", "Europa Meridionale", "Europa Settentrionale", "Gran Bretagna", "Islanda", "Scandinavia", "Ucraina", "Medio Oriente", "India", "Siam", "Cina", "Afghanistan", "Urali", "Siberia", "Jacuzia", " Cita", "Mongolia", "Kamchatka", "Giappone", "Nuova Guinea", "Indonesia", "Australia Occidentale", "Australia Orientale"};
+	
+	private final static int xG[] = {12, 216, 12, 216, 12, 216};
+	private final static int yG[] = {12, 12, 68, 68, 124, 124};
+	
+	private Mappa miaMappa;
+	
+	private final static String testo1 = "Seleziona Territorio1";
+	private final static String testo2 = "Seleziona Territorio2";
+	private final static String testoSpostare = "Numero Armate Da Spostare";
+	private final static String turnoDi = "È il turno di: ";
+	
+	private ControllerPartita controller;
+	final JPanel p = this;
+	/**
+	 * Lo stato del pannello: false -> invisibile; true -> visibile
+	 */
+	private boolean stato = false;
+	private StatoPartita statoPartita = StatoPartita.TURNOALTRUI;
+	
+	private final ArrayList<String> mieiTerritori = new ArrayList<String>(0);
+	private ArrayList<JButton> bottoniStati = new ArrayList<JButton>(territori.length);
+	private ArrayList<JButton> bottoniUtenti = new ArrayList<JButton>();
+	private ArrayList<JLabel> labelPossessore = new ArrayList<JLabel>(territori.length);
+	private ArrayList<BeanGiocatore> giocatoriInOrdine = new ArrayList<BeanGiocatore>();
+	private ArrayList<Colori> coloriInOrdine = new ArrayList<Colori>();
+	private ArrayList<JLabel> lblPosizionamento = new ArrayList<JLabel>();
+	private ArrayList<JTextField> txtPosizionamento = new ArrayList<JTextField>();
+	
+	private int tempoTotale = 0;
+	private int tempoTrascorso = 0;
+	private JTextField txtNumeroArmateDa;
+	private JLabel txtTerr1 = new JLabel();
+	private JLabel txtTerr2 = new JLabel();
+	private JLabel lblTurnoDi = new JLabel();
+	private JLabel lblCronaca = new JLabel("Cronaca");;
+	private JButton btnAttaccaattacca = new JButton();
+	private JButton btnSpostaPassa = new JButton();
+	private JButton btnPassa = new JButton();
+	private JButton btnDifenditi = new JButton();
+	private JPanel panel = new JPanel();
+	private JSlider slider = new JSlider();
+	private CopyOfPannelloMappa2 pannelloPosizionamento;
+	private JPanel panel_4;
+	
+	
+	public PanelPartita(ControllerPartita partita) {
+		this.controller = partita;
+		setBackground(new Color(255, 255, 255));
+		setLayout(null);
+		
+		JPanel pnlBottoni = new JPanel();
+		pnlBottoni.setBounds(0, 0, 926, 686);
+		pnlBottoni.setOpaque(false);
+		add(pnlBottoni);
+		pnlBottoni.setLayout(null);
+		
+		disegnaBottoni(pnlBottoni);
+		
+		JPanel panel_3 = new JPanel();
+		panel_3.setBackground(new Color(204, 153, 102));
+		panel_3.setBounds(0, 618, 926, 68);
+		pnlBottoni.add(panel_3);
+		panel_3.setLayout(null);
+		
+		JButton btnClassifica = new JButton("Abbandona Partita");
+		btnClassifica.setBounds(12, 9, 168, 18);
+		panel_3.add(btnClassifica);
+		
+		JButton button_8 = new JButton("Classifica");
+		button_8.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+			}
+		});
+		button_8.setBounds(12, 38, 168, 18);
+		panel_3.add(button_8);
+		
+		lblCronaca = new JLabel("Cronaca");
+		lblCronaca.setHorizontalAlignment(SwingConstants.CENTER);
+		lblCronaca.setBounds(378, 14, 536, 42);
+		panel_3.add(lblCronaca);
+		
+		JButton button_9 = new JButton("Classifica");
+		button_9.setBounds(192, 9, 168, 18);
+		panel_3.add(button_9);
+		
+		JButton button_10 = new JButton("Classifica");
+		button_10.setBounds(192, 38, 168, 18);
+		panel_3.add(button_10);
+		
+		JLabel lblLabelmappa = new JLabel(IconLoader.imageIcon("RiskMap3.png"));
+		lblLabelmappa.setBackground(new Color(255, 255, 255));
+		lblLabelmappa.setBounds(0, 0, 926, 628);
+		add(lblLabelmappa);
+		
+		JPanel panel_4 = new JPanel();
+		panel_4.setBounds(926, 0, 414, 686);
+		add(panel_4);
+		panel_4.setLayout(null);
+		
+		panel = new JPanel();
+		panel.setBounds(0, 0, 414, 686);
+		panel_4.add(panel);
+		panel.setBackground(new Color(204, 153, 102));
+		panel.setLayout(null);
+		
+		btnAttaccaattacca = new JButton("Attacca");
+		btnAttaccaattacca.addActionListener(new AttaccaListener());
+		btnAttaccaattacca.setBounds(12, 636, 87, 25);
+		panel.add(btnAttaccaattacca);
+		
+		btnSpostaPassa = new JButton("Sposta - Passa");
+		btnSpostaPassa.addActionListener(new SpostaEPassaListener());
+		btnSpostaPassa.setBounds(111, 636, 192, 25);
+		panel.add(btnSpostaPassa);
+		
+		btnPassa = new JButton("Passa");
+		btnPassa.addActionListener(new PassaTurno());
+		btnPassa.setBounds(315, 636, 87, 25);
+		panel.add(btnPassa);
+		
+		JButton btnCancellaT1 = new JButton("Cancella T1");
+		btnCancellaT1.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				txtTerr1.setText(testo1);
+			}
+		});
+		btnCancellaT1.setBounds(285, 345, 117, 50);
+		panel.add(btnCancellaT1);
+		
+		JButton btnCancellaT2 = new JButton("Cancella T2");
+		btnCancellaT2.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				txtTerr2.setText(testo2);
+			}
+		});
+		btnCancellaT2.setBounds(285, 407, 117, 51);
+		panel.add(btnCancellaT2);
+		
+		JPanel panel_1 = new JPanel();
+		panel_1.setBackground(new Color(255, 51, 0));
+		panel_1.setBounds(12, 345, 265, 50);
+		panel.add(panel_1);
+		panel_1.setLayout(null);
+		
+		txtTerr1 = new JLabel(testo1);
+		txtTerr1.setBounds(0, 0, 265, 50);
+		panel_1.add(txtTerr1);
+		txtTerr1.setBackground(new Color(204, 51, 51));
+		txtTerr1.setHorizontalAlignment(SwingConstants.CENTER);
+		
+		JPanel panel_2 = new JPanel();
+		panel_2.setBackground(new Color(102, 204, 255));
+		panel_2.setBounds(12, 407, 265, 50);
+		panel.add(panel_2);
+		panel_2.setLayout(null);
+		
+		txtTerr2 = new JLabel(testo2);
+		txtTerr2.setBounds(0, 0, 265, 50);
+		panel_2.add(txtTerr2);
+		txtTerr2.setHorizontalAlignment(SwingConstants.CENTER);
+		
+		JLabel lblArmateattaccanti = new JLabel("ArmateAttaccanti");
+		lblArmateattaccanti.setHorizontalAlignment(SwingConstants.CENTER);
+		lblArmateattaccanti.setBounds(12, 470, 390, 25);
+		panel.add(lblArmateattaccanti);
+		
+		slider = new JSlider();
+		slider.setBounds(12, 496, 390, 16);
+		slider.setMinimum(0);
+		slider.setMaximum(3);
+		slider.setValue(0);
+		panel.add(slider);
+		
+		JLabel label = new JLabel("Armate da spostare");
+		label.setHorizontalAlignment(SwingConstants.CENTER);
+		label.setBounds(12, 543, 390, 33);
+		panel.add(label);
+		
+		txtNumeroArmateDa = new JTextField();
+		txtNumeroArmateDa.setBackground(new Color(255, 255, 255));
+		txtNumeroArmateDa.setHorizontalAlignment(SwingConstants.CENTER);
+		txtNumeroArmateDa.setText(testoSpostare);
+		txtNumeroArmateDa.addFocusListener(new FocusListener(){
+	        @Override
+	        public void focusGained(FocusEvent e){
+	            if(txtNumeroArmateDa.getText().equals(testoSpostare)){
+	            	txtNumeroArmateDa.setText("");
+	            }
+	        }
+			@Override
+			public void focusLost(FocusEvent arg0) {
+				if(txtNumeroArmateDa.getText().isEmpty()){
+	            	txtNumeroArmateDa.setText(testoSpostare);
+	            }
+			}
+	    });
+		txtNumeroArmateDa.setBounds(12, 588, 390, 19);
+		panel.add(txtNumeroArmateDa);
+		txtNumeroArmateDa.setColumns(10);
+		
+		JLabel num0 = new JLabel("0");
+		num0.setHorizontalAlignment(SwingConstants.CENTER);
+		num0.setBounds(12, 516, 24, 15);
+		panel.add(num0);
+		JLabel num1 = new JLabel("1");
+		num1.setHorizontalAlignment(SwingConstants.CENTER);
+		num1.setBounds(131, 516, 24, 15);
+		panel.add(num1);
+		JLabel num2 = new JLabel("2");
+		num2.setHorizontalAlignment(SwingConstants.CENTER);
+		num2.setBounds(255, 516, 24, 15);
+		panel.add(num2);
+		JLabel num3 = new JLabel("3");
+		num3.setHorizontalAlignment(SwingConstants.CENTER);
+		num3.setBounds(390, 516, 12, 15);
+		panel.add(num3);
+		
+		JLabel lblDadiAttacco = new JLabel("Dadi Attacco");
+		lblDadiAttacco.setHorizontalAlignment(SwingConstants.CENTER);
+		lblDadiAttacco.setBounds(12, 262, 143, 15);
+		panel.add(lblDadiAttacco);
+		
+		JLabel label_1 = new JLabel("Dadi Difesa");
+		label_1.setHorizontalAlignment(SwingConstants.CENTER);
+		label_1.setBounds(12, 295, 143, 15);
+		panel.add(label_1);
+		
+		JLabel lblValoreAttacco = new JLabel("- - -");
+		lblValoreAttacco.setHorizontalAlignment(SwingConstants.CENTER);
+		lblValoreAttacco.setBounds(220, 262, 123, 15);
+		panel.add(lblValoreAttacco);
+		
+		JLabel lblValoreDifesa = new JLabel("- -");
+		lblValoreDifesa.setHorizontalAlignment(SwingConstants.CENTER);
+		lblValoreDifesa.setBounds(220, 295, 123, 15);
+		panel.add(lblValoreDifesa);
+		
+		btnDifenditi = new JButton("Difenditi");
+		btnDifenditi.setBounds(12, 216, 390, 33);
+		panel.add(btnDifenditi);
+		
+		
+		
+		lblTurnoDi = new JLabel(turnoDi);
+		lblTurnoDi.setHorizontalAlignment(SwingConstants.CENTER);
+		lblTurnoDi.setBounds(12, 180, 390, 15);
+		panel.add(lblTurnoDi);
+		
+		//Inizialmente la nascondiamo
+		LoginSwing.getInstance().setVisible(false);
+		LoginSwing.getInstance().setMinimumSize(new Dimension(1345, 686));
+		LoginSwing.getInstance().setTitle("Partita del giocatore: "+controller.visualizzaMieInfo().getNomeUtente());
+	}
+	
+	private void disegnaBottoni(JPanel pnlBottoni){
+		for(int i = 0; i < territori.length; i++){
+			JButton pulsanteTerritorio = new JButton();
+			pulsanteTerritorio.addActionListener(new ClickSuTerritorio());
+			pulsanteTerritorio.setForeground(new Color(0, 51, 0));
+			pulsanteTerritorio.setFont(new Font("Dialog", Font.BOLD, 15));
+			pulsanteTerritorio.setOpaque(false);
+			pulsanteTerritorio.setContentAreaFilled(false);
+			pulsanteTerritorio.setBorderPainted(false);
+			pulsanteTerritorio.setActionCommand(territori[i]);
+			pulsanteTerritorio.setBounds(x[i], y[i], w[i], h[i]);
+			pnlBottoni.add(pulsanteTerritorio);
+			JLabel lblTerritorio = new JLabel(territori[i]);
+			lblTerritorio.setBounds(x[i], y[i], 88, 20);
+			bottoniStati.add(pulsanteTerritorio);
+			pnlBottoni.add(lblTerritorio);
+			JLabel lblArmateTerritorio = new JLabel("0");
+			lblArmateTerritorio.setBackground(new Color(0,0,0));
+			lblArmateTerritorio.setForeground(new Color(255,255,255));
+			lblArmateTerritorio.setHorizontalAlignment(SwingConstants.CENTER);
+			lblArmateTerritorio.setOpaque(true);
+			lblArmateTerritorio.setBounds(x[i], y[i]+20, 20, 20);
+			labelPossessore.add(lblArmateTerritorio);
+			pnlBottoni.add(lblArmateTerritorio);
+		}	
+	}
+	
+	public class ClickSuTerritorio implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent nomeTerritorioPremuto) {
+			String testoTerritorio1 = txtTerr1.getText();
+			if(testoTerritorio1.equals(testo1)){
+				txtTerr1.setText(nomeTerritorioPremuto.getActionCommand());
+			}
+			else txtTerr2.setText(nomeTerritorioPremuto.getActionCommand());
+		}
+	}	
+	
+	/**
+	 * Si occupa di comunicare tramite controller il passaggio del turno.
+	 * @author timmy
+	 *
+	 */
+	public class PassaTurno implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent arg0) {
+			controller.passaTurno();
+			disabilitaPulsantiAttacco();
+		}
+	}
+	
+	/**
+	 * Si occupa di comunicare tramite controller lo spostamento delle armate.
+	 * @author timmy
+	 *
+	 */
+	public class SpostaEPassaListener implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent arg0) {
+			String tPartenza = txtTerr1.getText();
+			String tArrivo = txtTerr2.getText();
+			Territorio territorioPartenza;
+			Territorio territorioArrivo;
+			try{
+				territorioPartenza = miaMappa.trovaTerritorio(tPartenza);
+				territorioArrivo = miaMappa.trovaTerritorio(tArrivo);
+			} catch (TerritorioNonTrovatoException e) {
+				System.err.println("Impossibile trovare il territorio");
+				return;
+			}
+			Integer numeroArmateDaSpostare = Integer.getInteger(txtNumeroArmateDa.getText());
+			//Inizio controlli
+			if(numeroArmateDaSpostare == null){
+				System.out.println("Digita un numero di armate da spostare");
+				return;
+			}
+			if(territorioPartenza.isEnemy(controller.getMioColore())){
+				System.out.println("Territorio di partenza nemico");
+				return;
+			}
+			if(territorioArrivo.isEnemy(controller.getMioColore())){
+				System.out.println("Territorio di arrivo nemico");
+				return;
+			}
+			if(numeroArmateDaSpostare <= 0){
+				System.out.println("Digita il numero di armate da spostare");
+				return;
+			}
+			if(numeroArmateDaSpostare > territorioPartenza.getUnitaPresenti()-1){
+				System.out.println("Almeno un'armata deve restare sul territorio di partenza");
+				return;
+			}
+			if(! territorioPartenza.possoSpostare(territorioArrivo)){
+				System.out.println("Non puoi raggiungere il territorio selezionato");
+				return;
+			}
+			//Fine controlli
+			controller.comandoSpostaArmate(numeroArmateDaSpostare, tPartenza, tArrivo);
+			disabilitaPulsantiAttacco();
+		}
+	}
+	
+	/**
+	 * Si occupa di comunicare tramite controller l'attacco tra due territori.
+	 * @author timmy
+	 *
+	 */
+	public class AttaccaListener implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent arg0) {
+			Integer numeroUnitaAttaccanti = slider.getValue();
+			String tAttaccante = txtTerr1.getText();
+			String tAttaccato = txtTerr2.getText();
+			Territorio territorioAttaccante;
+			Territorio territorioAttaccato;
+			try{
+				territorioAttaccato = miaMappa.trovaTerritorio(tAttaccato);
+				territorioAttaccante = miaMappa.trovaTerritorio(tAttaccante);
+				System.out.println(miaMappa);
+			} catch (TerritorioNonTrovatoException e) {
+				System.err.println("Impossibile trovare il territorio");
+				return;
+			}
+			//Inizio i controlli
+			if(txtTerr1.equals(testo1) || txtTerr1.equals("")){
+				System.out.println("Devi scegliere uno stato da cui far partire l'attacco");
+				return;
+			}
+			if(txtTerr2.equals(testo2) || txtTerr2.equals("")){
+				System.out.println("Devi scegliere uno stato da attaccare");
+				return;
+			}
+			if(numeroUnitaAttaccanti.equals(0)){
+				System.out.println("Devi scegliere il numero di armate");
+				return;
+			}
+			if(numeroUnitaAttaccanti > territorioAttaccante.getUnitaPresenti()-1){
+				System.out.println("Non puoi attaccare con tutte queste armate");
+				return;
+			}
+			if(! territorioAttaccato.confina(territorioAttaccante)){
+				System.out.println("Territori non confinanti");
+				return;
+			}
+			if(territorioAttaccante.isEnemy(controller.getMioColore())){
+				System.out.println("Devi lanciare l'attacco con un tuo territorio");
+				return;
+			}
+			if(! territorioAttaccato.isEnemy(territorioAttaccante)){
+				System.out.println("Devi attaccare un territorio nemico");
+				return;
+			}
+						
+			controller.comandoAttacco(numeroUnitaAttaccanti, tAttaccato, tAttaccante);
+		}
+	}
+	
+	public class InfoUtenteListener implements ActionListener {
+		@Override
+		public void actionPerformed(ActionEvent arg0) {
+			BeanGiocatore giocatore = null;
+			giocatore = controller.visualizzaInfoGiocatore(arg0.getActionCommand());
+			if(giocatore != null){
+				JFrame infoFrame = new FrameInfoUtente(giocatore);
+				infoFrame.setTitle("Informazioni di: "+arg0.getActionCommand());
+				infoFrame.setSize(800, 800);
+				infoFrame.setLocationRelativeTo(null);
+				infoFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+				infoFrame.pack();
+				infoFrame.setVisible(true);
+			}
+			else{
+				new CreaPopup("Impossibile trovare informazioni sul giocatore richiesto");
+			}
+		}
+	}
+
+	@Override
+	public void scegliColore(Integer timer,
+			ArrayList<Colori> coloriDisponibili) {
+		JFrame frameClassifica = new FrameColori(timer, coloriDisponibili, controller);
+		frameClassifica.setTitle("Scegli colore - utente: "+controller.visualizzaMieInfo().getNomeUtente());
+        frameClassifica.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frameClassifica.pack();
+        frameClassifica.setVisible(true);
+	}
+	
+	@Override
+	public void riceviOrdinePartita(ArrayList<BeanGiocatore> listaInfoGiocatori, ArrayList<Colori> ordineColori) {
+		this.giocatoriInOrdine = listaInfoGiocatori;
+		this.coloriInOrdine = ordineColori;
+		for(int i = 0; i< giocatoriInOrdine.size(); i++){
+			Colori coloreEstratto = coloriInOrdine.get(i);
+			BeanGiocatore giocatore = giocatoriInOrdine.get(i);
+			JButton btnNewButton = new JButton(giocatore.getNomeUtente()+" - "+coloreEstratto.getNome());
+			btnNewButton.setBackground(new Color(coloreEstratto.getR(), coloreEstratto.getG(), coloreEstratto.getB()));
+			if(coloreEstratto.getForeground()){
+				btnNewButton.setForeground(new Color(255,255,255));
+			}
+			btnNewButton.setOpaque(true);
+			btnNewButton.setBorderPainted(false);
+			btnNewButton.setActionCommand(giocatore.getNomeUtente());
+			btnNewButton.addActionListener(new InfoUtenteListener());
+			btnNewButton.setBounds(xG[i], yG[i], 186, 44);
+			panel.add(btnNewButton);
+			this.bottoniUtenti.add(btnNewButton);
+		}
+		//Ricevuti i giocatori e i colori stampo il pannello
+		LoginSwing.getInstance().setVisible(true);
+	}
+
+	@Override
+	public void riceviTerritoriPosizionaArmate(
+			Integer numeroArmateDaPosizionare, Integer tempoPosizionaArmate,
+			Mappa mappaPartita) {
+		// TODO Faccio apparire il pannello di posizionamento armate
+		Container c = panel.getParent();
+		c.remove(panel);
+		pannelloPosizionamento = new CopyOfPannelloMappa2(controller, numeroArmateDaPosizionare, tempoPosizionaArmate, mappaPartita);
+		c.add(pannelloPosizionamento);
+		c.invalidate();
+		c.revalidate();
+		c.setVisible(false);
+		c.setVisible(true);
+		this.stato = true;
+	}
+
+	@Override
+	public void riceviMappa(Mappa mappa) {
+		//System.out.println("Ricevo la mappa: "+mappa.toString());
+		this.miaMappa = mappa;
+		if(stato){
+			abilitaVisioneComandiPartita();
+			this.stato = false;
+			Container c = panel_4;
+//			c = c.getParent();
+			if(c != null){
+				SwingUtilities.updateComponentTreeUI(c);
+				LoginSwing.getInstance().invalidate();
+				LoginSwing.getInstance().validate();
+			}
+		}
+		System.out.println("Assegno la mappa");
+		ArrayList<Territorio> listaTerritori;
+		Iterator<Territorio> itTerritori;
+		Territorio territorioEstratto;
+		String nomeTerritorio = "";
+		try{
+			if(mappa != null){
+				listaTerritori = mappa.getListaTerritori();
+				itTerritori = listaTerritori.iterator();
+				while(itTerritori.hasNext()){
+					territorioEstratto = itTerritori.next();
+					nomeTerritorio = territorioEstratto.getNome();
+					//Applichiamo le modifiche comunicate
+					applicaModificaPossessore(nomeTerritorio, territorioEstratto.getColorePossessore());
+					applicaModificaArmate(nomeTerritorio, territorioEstratto.getUnitaPresenti());
+				}
+				Container c = panel_4;
+				if(c != null){
+					SwingUtilities.updateComponentTreeUI(c);
+					LoginSwing.getInstance().invalidate();
+					LoginSwing.getInstance().validate();
+				}
+			}
+		}catch(TerritorioNonTrovatoException e){
+			System.err.println("Impossibile trovare il territorio: "+nomeTerritorio);
+		}
+		System.out.println("Mappa ricevuta");
+	}
+	
+	private int indiceTerritorio(String territorio) throws TerritorioNonTrovatoException{
+		for(int i = 0; i < territori.length; i++){
+			if(territori[i].trim().toUpperCase().equals(territorio.trim().toUpperCase()))
+				return i;
+		}
+		throw new TerritorioNonTrovatoException();
+	}
+	
+	private void applicaModificaPossessore(String territorio, Colori colorePossessore) throws TerritorioNonTrovatoException{
+		System.out.println("Inizio ad applicare modifiche possessore");
+		int indice = indiceTerritorio(territorio);
+		//Estraiamo il territorio
+		JLabel labelDaModificare = labelPossessore.get(indice);
+		labelDaModificare.setBackground(new Color(colorePossessore.getR(), colorePossessore.getG(), colorePossessore.getB()));
+		if(colorePossessore.getForeground()){
+			labelDaModificare.setForeground(new Color(255, 255, 255));
+		}
+		else{
+			labelDaModificare.setForeground(new Color(0, 0, 0));
+		}
+	}
+	
+	private void applicaModificaArmate(String territorio, int armatePresenti) throws TerritorioNonTrovatoException{
+		int indice = indiceTerritorio(territorio);
+		JLabel labelDaModificare = labelPossessore.get(indice);
+		labelDaModificare.setText(""+armatePresenti);
+	}
+
+	@Override
+	public void riceviComunicazioneNuovoTurno(Colori colore, String username) {
+		disabilitaPulsantiAttacco();
+		lblTurnoDi.setText(turnoDi+username);
+		lblCronaca.setText(turnoDi+username);
+	}
+
+	private void disabilitaPulsantiAttacco() {
+		btnAttaccaattacca.setEnabled(false);
+		btnPassa.setEnabled(false);
+		btnSpostaPassa.setEnabled(false);
+	}
+	
+	private void abilitaPulsantiAttacco() {
+		btnAttaccaattacca.setEnabled(true);
+		btnPassa.setEnabled(true);
+		btnSpostaPassa.setEnabled(true);
+	}
+	private void disabilitaPulsantiDifesa() {
+		btnAttaccaattacca.setEnabled(false);
+		btnPassa.setEnabled(false);
+		btnSpostaPassa.setEnabled(false);
+	}
+	
+	private void abilitaPulsantiDifesa() {
+		btnAttaccaattacca.setEnabled(true);
+		btnPassa.setEnabled(true);
+		btnSpostaPassa.setEnabled(true);
+	}
+
+	@Override
+	public void riceviArmateInizioTurno(Integer numeroArmate, Integer tempo) {
+		lblTurnoDi.setText(controller.visualizzaMieInfo().getNomeUtente());
+		lblCronaca.setText("È il tuo turno posiziona "+numeroArmate+" in "+tempo+" secondi");
+		disabilitaPulsantiDifesa();
+		abilitaPulsantiAttacco();
+		
+		//TODO gestire la richiesta di posizionamento delle armate
+	}
+
+	@Override
+	public void comunicazioneInAttesaMossa(Integer tempo) {
+		abilitaPulsantiAttacco();
+	}
+
+	@Override
+	public void riceviComunicazioneSconfitta(String giocatoreSconfitto) {
+		// TODO Un giocatore sconfitto, non io
+		
+	}
+	private void abilitaVisioneComandiPartita(){
+		Container c = pannelloPosizionamento.getParent();
+		c.remove(pannelloPosizionamento);
+		c.add(panel);
+		c.invalidate();
+		c.revalidate();
+		
+		SwingUtilities.updateComponentTreeUI(c);
+		LoginSwing.getInstance().invalidate();
+		LoginSwing.getInstance().validate();
+		
+		this.stato = true;
+	}
+
+	@Override
+	public void riceviConfermaMioAttacco(Territorio territorioAttaccante,
+			Territorio territorioAttaccato,
+			ArrayList<Integer> risultatoDadiAttacco) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void riceviDifesaMioAttacco(ArrayList<Integer> risultatoDadiDifesa) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void riceviRisultatiMioAttacco(Integer unitàSconfitte,
+			Integer unitàPerse, boolean territorioConquistato) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void riceviAttaccoSubito(Territorio territorioAttaccante,
+			Territorio territorioAttaccato,
+			ArrayList<Integer> risultatoDadiAttacco) {
+		// TODO Auto-generated method stub
+		abilitaPulsantiDifesa();
+		
+	}
+
+	@Override
+	public void riceviConfermaDifesa(ArrayList<Integer> risultatoDadiDifesa) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void riceviRisultatiAttaccoSubito(Integer unitàSconfitte,
+			Integer unitàPerse, boolean territorioConquistato) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void riceviComunicazioneAttacco(Territorio territorioAttaccante,
+			Territorio territorioAttaccato,
+			ArrayList<Integer> risultatoDadiAttacco) {
+		lblCronaca.setText(territorioAttaccante.getColorePossessore().getNome()+"attacca da "+territorioAttaccante.getNome()+" a "+territorioAttaccato.getNome());
+		
+	}
+
+	@Override
+	public void riceviComunicazioneDifesa(ArrayList<Integer> risultatoDadiDifesa) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void riceviComunicazioneRisultatiAttacco(Integer unitàSconfitte,
+			Integer unitàPerse, boolean territorioConquistato) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void riceviComunicazioneSconfitta(ControllerLimbo limboSconfitta) {
+		ControllerLimbo controllerLimbo = limboSconfitta;
+		if(controllerLimbo != null){	//Login effettuato con successo
+//			new CreaPopup("Login Effettuato con successo");
+			ArrayList<BeanTavolo> tavoli = controllerLimbo.aggiornaTavoli();
+			//Disegno il Limbo
+			Container c = p.getParent();
+			PanelLimbo mioPanel = null;
+			if (c != null) {
+				c.remove(p);
+				mioPanel = new PanelLimbo(controllerLimbo, tavoli);
+				controllerLimbo.setVistaLimbo(mioPanel);
+	            c.add(mioPanel);
+	            c.revalidate();
+			}
+		}
+		else{
+			System.out.println("Controller null");
+		}
+		
+	}
+
+	@Override
+	public void riceviComunicazioneRitirata(String giocatoreRitirato) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void riceviClassificaFinale(ArrayList<String> classificaFinale) {
+		// TODO Auto-generated method stub
+		
+	}
+}

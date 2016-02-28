@@ -1,0 +1,144 @@
+package testTerritorio;
+
+import static org.junit.Assert.*;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.ArrayList;
+
+import mappa.*;
+
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
+import classiCondivise.Colori;
+import dbManager.DbManager;
+import exceptionCondivise.UnitaInsufficientiException;
+
+public class TerritorioTest {
+	
+	private static final String nome1 = "Congo";
+	private static final String nome2 = "Madagascar";
+	private static final String nome3 = "Africa del Sud";
+	DbManager db = null;
+	Connection connessioneDb = null;
+	Mappa mappa = null;
+	Territorio territorio1 = null;
+	Territorio territorio2 = null;
+	Territorio territorio3 = null;
+	
+	@Before
+	public void setUp() throws Exception {
+		db = new DbManager();
+		connessioneDb = db.connessioneDb();
+		mappa = db.estraiMappa(connessioneDb);
+		territorio1 = mappa.trovaTerritorio(nome1);
+		territorio2 = mappa.trovaTerritorio(nome2);
+		territorio3 = mappa.trovaTerritorio(nome3);
+	}
+	
+	@After
+	public void tearDown() throws Exception {
+		db = null;
+	}
+
+	@Test
+	public void testAggiungiUnita() {
+		territorio1.setUnitaPresenti(5);
+		territorio1.aggiungiUnita(2);
+		Integer num = 7;
+		assertEquals(num, territorio1.getUnitaPresenti());
+		territorio1.setUnitaPresenti(5);
+		Integer prima = territorio1.getUnitaPresenti();
+		territorio1.aggiungiUnita(0);
+		assertEquals(territorio1.getUnitaPresenti(), prima);
+	}
+	
+
+	@Test
+	public void testRimuoviUnita() {
+		territorio1.setUnitaPresenti(5);
+		try {
+			territorio1.rimuoviUnita(2);
+		} catch (UnitaInsufficientiException e) {
+			
+		}
+		Integer num = 3;
+		assertEquals(num, territorio1.getUnitaPresenti());
+		try {
+			territorio1.rimuoviUnita(3);
+		} catch (UnitaInsufficientiException e) {
+			Integer num2 = 0;
+			assertNotEquals(num2, territorio1.getUnitaPresenti());
+		}
+	}
+	
+
+	@Test
+	public void testPossoSpostare() {
+		territorio1.setColorePossessore(Colori.BLU);
+		territorio2.setColorePossessore(Colori.BLU);
+		territorio3.setColorePossessore(Colori.BLU);
+		assertTrue(territorio1.possoSpostare(territorio2));
+		territorio3.setColorePossessore(Colori.GIALLO);
+		assertFalse(territorio1.possoSpostare(territorio2));
+	}
+
+	
+	@Test
+	public void testTerritorioRaggiungibile() {
+		territorio1.setColorePossessore(Colori.BLU);
+		territorio2.setColorePossessore(Colori.BLU);
+		territorio3.setColorePossessore(Colori.BLU);
+		ArrayList<Territorio> territoriVisitati = new ArrayList<Territorio>();
+		assertTrue(territorio1.territorioRaggiungibile(territorio2, territoriVisitati));
+		territorio3.setColorePossessore(Colori.ROSSO);
+		assertFalse(territorio1.territorioRaggiungibile(territorio2, territoriVisitati));
+	}
+
+	
+	@Test
+	public void testPossoAttaccareDaQui() {
+		territorio1.setColorePossessore(Colori.BLU);
+		territorio2.setColorePossessore(Colori.GIALLO);
+		territorio3.setColorePossessore(Colori.BLU);
+		territorio1.setUnitaPresenti(5);
+		assertFalse(territorio1.possoAttaccareDaQui(territorio2, 2));
+		assertFalse(territorio1.possoAttaccareDaQui(territorio2, 1));
+		assertFalse(territorio1.possoAttaccareDaQui(territorio3, 2));
+		territorio3.setColorePossessore(Colori.GIALLO);
+		territorio1.setUnitaPresenti(2);
+		assertFalse(territorio1.possoAttaccareDaQui(territorio3, 2));
+		assertTrue(territorio1.possoAttaccareDaQui(territorio3, 1));
+	}
+
+	
+	@Test
+	public void testIsEnemyTerritorio() {
+		territorio1.setColorePossessore(Colori.BLU);
+		territorio2.setColorePossessore(Colori.GIALLO);
+		assertTrue(territorio1.isEnemy(territorio2));
+		territorio2.setColorePossessore(Colori.BLU);
+		assertFalse(territorio1.isEnemy(territorio2));
+	}
+
+	
+	@Test
+	public void testIsEnemyColori() {
+		territorio1.setColorePossessore(Colori.BLU);
+		assertTrue(territorio1.isEnemy(Colori.GIALLO));
+		assertFalse(territorio1.isEnemy(Colori.BLU));
+	}
+
+	@Test
+	public void testConfina() {
+		assertFalse(territorio1.confina(territorio2));
+		assertTrue(territorio1.confina(territorio3));
+	}
+	
+	
+
+}

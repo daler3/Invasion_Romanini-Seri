@@ -1,0 +1,35 @@
+package interfacciaComunicazione;
+
+import java.util.ArrayList;
+
+public interface ClientReceives {
+	
+	boolean RimuoviTavolo (String IdTavolo);
+	
+	boolean StartPartita (Integer numeroPartita);
+	
+	//boolean FinePartita (Integer numeroPartita);
+	
+	//non so se mettere il numero partita come parametro, tanto lui lo sa qual è, 
+	//però magari è meglio mettercelo
+	boolean FinePartita (Integer numeroPartita, ArrayList<Integer> listaPunteggi);
+	
+	/**
+	 * Farei tornare la lista dei punteggi dei giocatori in ordine di turno. 
+	 * Il primo elemento della lista sarà cio il punteggio finale del primo giocatore. 
+	 * Questo metodo sarà invocato da Fine Partita. Alternativa è quella non commentata
+	 * @param listaPunteggi
+	 * @return
+	 */
+	//boolean RiceviPunteggiFinali (ArrayList<Integer> listaPunteggi); 
+	
+	boolean AggiungiGiocatoreATavolo (String nomeGiocatore, String IdTavolo);
+	
+	boolean HaiVintoUnTerritorio (String nomeTerritorio);
+	
+	// :) :-P :-D   
+	boolean HaiVintoUnContinente (String nomeContinente);
+	
+	
+	
+}

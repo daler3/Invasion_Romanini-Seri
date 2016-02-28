@@ -1,0 +1,1244 @@
+package server_daler;
+
+
+import java.sql.SQLException;
+import java.util.*;
+
+import mappa.*;
+import classiCondivise.*;
+import eccezioni.GiocatoreNonTrovatoException;
+import eccezioni.InserimentoMancanteException;
+
+/**
+ * Classe che rappresenta una partita in corso
+ * 
+ */
+public class Partita implements Runnable{
+	
+	
+	public final static int puntiPrimoSe6 = 40;
+	public final static int puntiSecondoSe6 = 10;
+	public final static int puntiPrimoSe5 = 32; 
+	public final static int puntiSecondoSe5 = 8;
+	public final static int puntiPrimoSe4 = 24; 
+	public final static int puntiSecondoSe4 = 6;
+	public final static int puntiPrimoSe3 = 16;
+	public final static int puntiSecondoSe3 = 4; 
+	
+	private final static int tempoDifesa = 5;
+	private final static int tempoSceltaColore = 10;
+	private final static int tempoPosizionaArmateIniziale = 60;
+	private final static int tempoPosizionaArmateInizioTurno = 30;
+	private final static int tempoMossa = 30;
+	
+	
+	/**
+	 * Id della partita
+	 */
+	private Integer idPartita; 
+	
+	/**
+	 * Riferimento alla classe Server
+	 */
+	private Server mioServer = null; 
+	
+	/**
+	 * Riferimento alla mappa della partita
+	 */
+	private Mappa mappa = null;
+	
+	/**
+	 * Collection con i riferimenti ai giocatori iniziali della partita
+	 */
+	private ArrayList<GiocatoreConnesso> giocatoriIniziali;
+	
+	private ArrayList<GiocatoreConnesso> giocatoriPartita;
+	
+	private ArrayList<GiocatoreConnesso> classificaGiocatori;
+	
+	private ArrayList<GiocatoreConnesso> giocatoriRitirati;
+	
+	private ArrayList<Colori> coloriInOrdine; 
+	
+	/**
+	 * Oggetto di supporto per il posizionamento delle armate a inizio turno
+	 */
+	private PosizionamentoArmate posizioneIniziale;
+	
+	private GiocatoreConnesso giocatoreTurno = null;
+	
+	private boolean mossaEseguita;
+	
+	private Colori coloreScelto = Colori.NEUTRO; 
+	
+	/**
+	 * Costruttore della classe Partita. 
+	 * @param giocatoriPartitaa - Collection con riferimenti ai thread corrispondendi ai giocatori della partita 
+	 * @param mioServer - Riferimento alla classe Server
+	 * @throws SQLException Impossibile accedere al DB.
+	 */
+	public Partita(ArrayList<GiocatoreConnesso> giocatoriPartita, Integer idPartita) throws SQLException { 
+		//prendo il riferimento al Server
+		this.mioServer = Server.getInstance();
+		
+		//istanzio una nuova Mappa
+		this.mappa = mioServer.ottieniMappa(); 
+		this.giocatoriPartita = giocatoriPartita;
+		this.giocatoriIniziali = giocatoriPartita;
+		this.classificaGiocatori = new ArrayList<GiocatoreConnesso>(giocatoriPartita.size());
+		
+		this.idPartita = idPartita;
+	}
+	
+	/**
+	 * Override del metodo run. 
+	 * Inizializza la partita e gestisce la successione dei turni.
+	 * Si occupa anche di terminare la partita.
+	 *
+	 */
+	//\\TODO: compattare questo metodo con sottometodi, ma solo dopo aver fatto tutto il resto
+	@Override
+	public void run(){
+		try {
+			Thread.sleep(1500);
+		} catch (InterruptedException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} //mi metto in pausa
+		//comunico agli utenti la chiusura del tavolo e quindi l'inizializzazione della partita
+		
+		//comunicaInizioPartita(); //lo faccio prima (in server)
+		
+		Boolean continuaPartita = true;
+		//Inizializzazione della partita
+		try {
+			inizializzaPartita();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		while(continuaPartita){
+			//Ricavo il prossimo giocatore che deve giocare il turno. 
+			//Se è la prima iterazione, mi tornerà il primo giocatore della lista.
+			System.out.println("appena prima INIZIALIZZAZIONE turno");
+			inizializzazioneTurno(); 
+			while(giocatoreTurno.isTuoTurno()){
+				System.out.println("TURNO DI: "+giocatoreTurno.getUsername());
+				attendiMossa();
+				System.out.println("TURNO DI: "+giocatoreTurno.getUsername()+"Appena dopo l'attendi MOSSA in RUN");
+			}
+			//Non c'è bisogno di passare, lo fa l'attendi mossa se non facciamo nulla.
+			if(controlloFinePartita()){
+				continuaPartita = false; 
+				try {
+					finePartita();
+				} catch (SQLException e) {
+					// Impossibile salvare la partita nel DB
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	/**
+	 * Setta lo stato dei Giocatori (nel server) a partita e gli da il riferimento alla partita in corso.
+	 * 
+	 */
+	private void settaStatoGiocatori(){
+		Iterator<GiocatoreConnesso> itGiocatori = giocatoriPartita.iterator();
+		//ArrayList<BeanGiocatore> infoGiocatoriPartita = ottieniListaBean(giocatoriPartita);
+		while(itGiocatori.hasNext()){
+			itGiocatori.next().setStatoPartita(this); //comunico le info degli utenti di partita a tutti i partecipanti
+		}
+	}
+	
+	
+	/**
+	 * Crea una lista di BeanGiocatore partendo da una lista di GiocatoreConnesso.
+	 * @param giocatori - la lista di GiocatoriConnesi
+	 * @return la lista di BeanGiocatore che 
+	 */
+	private ArrayList<BeanGiocatore> ottieniListaBean(ArrayList<GiocatoreConnesso> giocatori){
+		Iterator<GiocatoreConnesso> itGiocatori = giocatori.iterator();
+		ArrayList<BeanGiocatore> infoGiocatori = new ArrayList<BeanGiocatore>(giocatori.size());
+		while(itGiocatori.hasNext()){
+			infoGiocatori.add(itGiocatori.next().getMieInfo().clone()); //gli passo un clone
+		}
+		return infoGiocatori;
+	}
+	
+	
+	private void inizializzazioneTurno(){		
+		setGiocatoreTurno(prossimoGiocatoreTurno());
+		inizioTurno(this.giocatoreTurno); //imposta solo tuoturno a true
+		comunicaTurno(this.giocatoreTurno.getColoreGiocatore(), this.giocatoreTurno.getUsername());
+		//rivedi sta cosa
+		ritiraArmateInizioTurno(this.giocatoreTurno); //do al giocatore le armate bonus e aspetto che le posizioni
+		//nel frattempo si sono posizionate le armate sui territori
+		
+		//comunico la mappa definitiva dopo i cambiamenti che il giocatore ha fatto
+		comunicaMappa();
+	}
+	
+	private GiocatoreConnesso prossimoGiocatoreTurno(){
+		//Classe di supporto, per procedere all'iterazione dei turni dei giocatori.
+		GenericSupport<GiocatoreConnesso> supportoIterazioneListaGiocatori = new GenericSupport<GiocatoreConnesso>(); 
+		try {
+			return supportoIterazioneListaGiocatori.prossimo(giocatoreTurno, this.giocatoriPartita);
+		} catch (Exception e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
+	
+	/**
+	 * Metodo che inizializza la partita
+	 * Inizia stabilendo l'ordine iniziale di gioco, finendo con il comunicare ai giocatori la mappa definitiva, dopo la scelta dei colori, l'assegnazione dei territori, e il posizionamento di tutte le armate
+	 * @throws Exception 
+	 */
+	private void inizializzaPartita() throws Exception{
+		//TODO Mettere eccezioni personalizzate
+		settaStatoGiocatori(); //setto lo stato dei giocatori a in partita
+		stabilisciOrdineIniziale(); //stabilisco l'ordine iniziale
+		sceltaColore(); //
+		comunicaOrdineColori();
+		comunicaMappa(); //comunico come è fatta la mappa al client
+		assegnaTerritoriIniziali(); //localmente
+		assegnaArmateIniziali(); //localmente
+		faseInizialePosizionamentoArmate(); //comunico al client i suoi territori e le sue armate, e gli chiedo di posizionarle
+		try {
+			controllaPosizionamento();
+		} catch (Exception e) {
+			// TODO l'eccezione era da prossimo in generic support
+			// il giocatore aveva un territorio che in realta non possedeva??? guardac
+		}
+		comunicaMappa();
+	}
+	
+	
+	/**
+	 * Setta il flag turno nel giocatore a true, per indicare che il suo turno comincia.
+	 * @param giocatore - giocatore che deve iniziare il turno
+	 */
+	private void inizioTurno(GiocatoreConnesso giocatore){
+		giocatore.setTuoTurno(true); //setto il turno (ma non glielo comunico)
+	}
+	
+	
+	/**
+	 * Comunica a tutti i giocatori (tranne colui di cui è il turno) che il turno di un altro giocatore sta per cominciare
+	 * @param colore - colore del giocatore il cui turno sta per cominciare
+	 * @param username - username del giocatore il cui turno sta per cominciare
+	 */
+	private void comunicaTurno(Colori colore, String username){
+		Iterator<GiocatoreConnesso> iteratoreGiocatori = this.giocatoriPartita.iterator();
+		GiocatoreConnesso giocatoreTemp;
+		while(iteratoreGiocatori.hasNext()){
+			giocatoreTemp=iteratoreGiocatori.next();
+			//se non è il turno di quel giocatore, gli si comunica di chi è il turno che sta per cominciare
+			if(!giocatoreTemp.isTuoTurno()){
+				giocatoreTemp.comunicaTurno(colore, username);
+			}
+		}
+	}
+	
+	
+	//\\TODO
+	//probabilmente inutile perché è già in threadPlayer. Ma ha senso metterlo in threadplayer?
+	private void fineTurno(){
+		//String vecchioGiocatore = this.giocatoreTurno.getUsername();
+		this.giocatoreTurno.setTuoTurno(false);	//Forse inutile questa info
+		//this.giocatoreTurno = prossimoGiocatore(); 
+		//String nuovoGiocatore = this.giocatoreTurno.getUsername();
+		//comunicaPassaggioTurno(vecchioGiocatore, nuovoGiocatore);
+		//TODO Comunicare all'utente che non è più il suo turno - nel caso in cui sia scaduto il timer per effettuare la mossa
+		
+	}
+	
+
+	
+	
+	/**
+	 * Ci mettiamo in attesa della mossa del giocatore per un numero predeterminato di secondi prima di passare.
+	 */
+	private synchronized void attendiMossa(){
+		this.mossaEseguita = false;
+		comunicaGiocatoreEffettuareMossa();
+		try {
+			System.out.println("Mi appisolo ATTENDI MOSSA");
+			wait(tempoMossa*1000 + 1000);
+			System.out.println("Mi risveglio ATTENDI MOSSA dopo il wait");
+			if(this.mossaEseguita){ //se la mossa non è stata eseguita, passa il turno successivo
+				//Ogni mossa deve avere un doppio notifyAll(), all'inizio e alla fine della mossa! Anche il PASSA!
+				wait();
+				System.out.println("Mi risveglio ATTENDI MOSSA dopo il SECONO wait - mossaEseguita");
+				//TODO Attenzione il fine turno deve chiamare questo fineTurno
+			}
+			else{
+				System.out.println("appena prima di fine turno in attendi");
+				fineTurno();
+				System.out.println("appena dopo di fine turno in attendi");
+			}
+			
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	
+	public synchronized void notificaFineMossa(){
+		//Viene chiamato per risvegliare la partita e far ripartire il countdown
+		this.mossaEseguita = false; 
+		notifyAll();	//risveglia dal secondo wait
+		System.out.println("Mi risveglio ATTENDI MOSSA dopo il notify");
+	}
+	
+	
+	
+//	private void comunicaGiocatoreEffettuareMossa(){
+//		Iterator<GiocatoreConnesso> itGiocatori = this.giocatoriPartita.iterator();
+//		while(itGiocatori.hasNext()){
+//			itGiocatori.next().effettuaMossa(); //TODO
+//		}
+//	}
+	
+	private void comunicaGiocatoreEffettuareMossa(){
+		this.giocatoreTurno.comunicaAttendiMossa(tempoMossa);
+	}
+	
+	
+	
+	
+	public synchronized void comunicaMossaEseguita(){
+		this.mossaEseguita = true;
+		notifyAll();	//Risveglia il primo wait()
+	}
+	
+	/**
+	 * Metodo per stabilire l'ordine dei turni della partita
+	 * Mescola random la lista dei giocatori della partita. 
+	 * Chiama poi un metodo che comunica a tutti i giocatori l'ordine stabilito, comunicando i nomi dei partecipanti alla partita. 
+	 */
+	private void stabilisciOrdineIniziale(){
+		//mescolo la lista dei giocatori
+		Collections.shuffle(this.giocatoriPartita); //mescolo la lista per stabilire ordine
+		//ArrayList<String> nomiGiocatoriPartita = creaListaUsername();
+		//comunicaOrdineIniziale(nomiGiocatoriPartita);
+	}
+	
+	
+	/** 
+	 * Metodo che crea la lista dei nomi dei giocatori della partita
+	 * @return - la lista (ordinata in base all'ordine della lista dei giocatori nella classe) dei nomi dei giocatori della partita
+	 */
+	private ArrayList<String> creaListaUsername(ArrayList<GiocatoreConnesso> listaGiocatori){
+		ArrayList<String> nomiGiocatori = new ArrayList<String>(listaGiocatori.size());
+		Iterator<GiocatoreConnesso> iteratoreGiocatori = listaGiocatori.iterator();
+		while(iteratoreGiocatori.hasNext()){
+			nomiGiocatori.add(iteratoreGiocatori.next().getUsername());
+		}
+		return nomiGiocatori;
+	}
+	
+	
+//	/**
+//	 * Metodo che comunica a tutti i giocatori della partita l'ordine di gioco 
+//	 * @param listaUsername - la lista dei nomi dei giocatori della partita 
+//	 */
+//	private void comunicaOrdineIniziale(ArrayList<String> listaUsername){
+//		Iterator<GiocatoreConnesso> iteratoreGiocatori = this.giocatoriPartita.iterator();
+//		while(iteratoreGiocatori.hasNext()){
+//			//chiamo il metodo della comunicazione dell'ordine nella classe Player, corrispondente 
+//			iteratoreGiocatori.next().comunicaOrdine(listaUsername);
+//		}
+//	}
+	
+	
+	/**
+	 * Metodo che si occupa di far scegliere il colore ai vari giocatori. 
+	 * Nell'ordine di gioco, comunica a ogni giocatore di scegliere il colore di gioco (con un certo tempo).
+	 * Se la scelta non viene fatta entro il tempo, si assegna un colore di default al giocatore
+	 * Una volta terminata la scelta, si comunica a tutti i giocatore l'ordine dei colori. 
+	 */
+	private void sceltaColore(){
+		this.coloriInOrdine = new ArrayList<Colori>(this.giocatoriPartita.size());
+		Colori coloreTemp = null; 
+		GiocatoreConnesso giocatoreTemp; 
+		Iterator<GiocatoreConnesso> iteratoreGiocatori = this.giocatoriPartita.iterator();
+		//int numeroGiocatori = this.giocatoriPartita.size();
+		//ArrayList<Colori> ordineColori = new ArrayList<Colori>(numeroGiocatori);
+		//creo una lista con tutti i colori disponibili
+		ArrayList<Colori> coloriDisponibili = riempiListaColori(); 
+		while(iteratoreGiocatori.hasNext()){
+			giocatoreTemp=iteratoreGiocatori.next();
+			//chiamo il metodo per la scelta del colore nella classe Player
+			giocatoreTemp.scegliColore(tempoSceltaColore, coloriDisponibili);
+			attendiSceltaColore();
+			coloreTemp = this.coloreScelto;
+			//se mi ritorna null significa che non ha scelto nulla, quindi glielo assegno io di default
+			if(coloreTemp == null || coloreTemp == Colori.NEUTRO){
+				coloreTemp = coloriDisponibili.get(0); //scelgo il primo nella lista (l'utente non aveva scelto in tempo)
+			}
+			coloriDisponibili.remove(coloreTemp);
+			this.coloriInOrdine.add(coloreTemp);
+			giocatoreTemp.setColoreGiocatore(coloreTemp);
+			this.coloreScelto = Colori.NEUTRO;
+		}
+		System.out.println(this.coloriInOrdine.toString());
+		//comunica l'ordine dei colori definitivo in broadcast.
+		//comunicaSceltaColori(this.coloriInOrdine);
+	}
+	
+	
+	/**
+	 * Riempie una lista di colori con tutti i colori disponibili
+	 * @return - un ArrayList con tutti i colori disponibili
+	 */
+	private ArrayList<Colori> riempiListaColori(){
+		ArrayList<Colori> listaColori = new ArrayList<Colori>(Arrays.asList(Colori.values()));	//Arrays.asList(enum) -> Ritorna una lista con tutti gli enum
+		listaColori.remove(Colori.NEUTRO); //rimuovo il neutro dalla lsta dei colori
+		return listaColori;
+	}
+	
+	private synchronized void attendiSceltaColore(){
+		try {
+			wait(tempoSceltaColore*1000 + 1000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+	
+	//chiamto da GiocatoreConnesso
+	public synchronized void coloreScelto(Colori colore){
+		this.coloreScelto = colore; 
+		notifyAll(); 
+	}
+	
+//	/**
+//	 * Comunica a tutti i giocatori l'ordine definitivo dei colori di gioco
+//	 * @param ordineColori - la lista dei colori ordinata in base all'ordine di gioco
+//	 */
+//	private void comunicaSceltaColori(ArrayList<Colori> ordineColori){
+//		Iterator<GiocatoreConnesso> iteratoreGiocatori = this.giocatoriPartita.iterator();
+//		while(iteratoreGiocatori.hasNext()){
+//			iteratoreGiocatori.next().comunicaListaColori(ordineColori);
+//		}
+//	}
+	
+	private void comunicaOrdineColori(){
+		ArrayList<BeanGiocatore> listaInfoGiocatori = ottieniListaBean(this.giocatoriPartita);
+		Iterator<GiocatoreConnesso> iteratoreGiocatori = this.giocatoriPartita.iterator();
+		while(iteratoreGiocatori.hasNext()){
+			iteratoreGiocatori.next().comunicaOrdinePartita(listaInfoGiocatori, this.coloriInOrdine);
+		}
+	}
+	
+	
+	/**
+	 * Assegna i territori iniziali (senza comunicare nulla ai giocatori).
+	 * Mescola una lista di territori e ne assegna, uno per volta, ai giocatori della partita
+	 */
+	private void assegnaTerritoriIniziali(){
+		GiocatoreConnesso giocatoreTemp = null; 
+		Territorio territorioTemp;
+		ArrayList<Territorio> territori = (mappa.getListaTerritori());
+		Iterator<Territorio> iteratoreTerritori = territori.iterator();
+		//mescolo la lista di territori
+		Collections.shuffle(territori);
+		//classe generica dove è implementato il metodo "prossimo", che mi torna il prossimo elemento in un'ArrayList
+		//se si è arrivati alla fine della lista, ritorna l'indice del primo elemento.
+		//se invece ciò che è preso in ingresso è null, torna il primo elemento della lista.
+		GenericSupport<GiocatoreConnesso> giocatoriSupport = new GenericSupport<GiocatoreConnesso>();
+		while(iteratoreTerritori.hasNext()){
+			try {
+				giocatoreTemp=giocatoriSupport.prossimo(giocatoreTemp, this.giocatoriPartita);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			territorioTemp=iteratoreTerritori.next();
+			territorioTemp.setColorePossessore(giocatoreTemp.getColoreGiocatore());
+			//aggiungo il territorio ai territori posseduti di quel giocatore
+			giocatoreTemp.aggiungiTerritoriPosseduti(territorioTemp);
+		}
+	}
+	
+
+	/**
+	 * Metodo che assegna il numero di armate iniziali, in base al numero di giocatori:
+	 * - 40 armate se si gioca in 3
+	 * - 35 armate se si gioca in 4
+	 * - 30 armate se si gioca in 5
+	 * - 25 armate se si gioca in 6
+	 * @throws Exception 
+	 */
+	private void assegnaArmateIniziali() throws Exception{
+		//TODO creare eccezioni personalizzate
+		Iterator<GiocatoreConnesso> iteratoreGiocatori = this.giocatoriPartita.iterator();
+		GiocatoreConnesso giocatoreTemp;
+		int numeroGiocatori = this.giocatoriPartita.size();
+		for(int i=0; i<numeroGiocatori; i++){
+			giocatoreTemp = iteratoreGiocatori.next();
+			switch(numeroGiocatori){
+				case 3: giocatoreTemp.setNumeroArmateDaPosizionare(40);
+						continue;
+				case 4: giocatoreTemp.setNumeroArmateDaPosizionare(35);
+						continue;
+				case 5: giocatoreTemp.setNumeroArmateDaPosizionare(30);
+						continue;
+				case 6: giocatoreTemp.setNumeroArmateDaPosizionare(25);
+						continue;
+				default: throw new Exception("Numero giocatori errato");
+			}
+		}
+	}
+	
+//	private void attendiPosizionamentoCompleto(int tempo){
+//		while(!this.posizioneIniziale.comandiCompleti() && tempo > 0){
+//			try {
+//				Thread.sleep(1000);
+//			} catch (InterruptedException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+//			tempo--;
+//		}
+//	}
+	
+	
+	private void faseInizialePosizionamentoArmate() throws InterruptedException{		
+		this.posizioneIniziale = new PosizionamentoArmate(this.giocatoriPartita.size()); 
+		this.posizioneIniziale.abilitaAggiunta(); 
+		comunicaTerritoriEPosizionaArmate(); //mando un messaggio ai giocatori comunicando loro i territori e le armate possedute
+		this.posizioneIniziale.attendi(tempoPosizionaArmateIniziale+1); //mo sto in attesa
+		System.out.println("E' finito il tempo POSIZ..sono partita");
+		//ora ho comunicato, mi devo mettere in attesa
+		//attendiPosizionamentoCompleto(tempo);
+		this.posizioneIniziale.disabilitaAggiunta();
+		estraiSceltaGiocatori();
+	}
+	
+	
+	private void estraiSceltaGiocatori(){
+		Iterator<GiocatoreConnesso> itGiocatori = this.giocatoriPartita.iterator();
+		GiocatoreConnesso giocatoreTemp; 		
+		while(itGiocatori.hasNext()){	
+			giocatoreTemp = itGiocatori.next();	
+			try{
+				estraiSceltaGiocatoreSingolo(giocatoreTemp);
+			} catch (InserimentoMancanteException e){
+				continue; 
+			}
+		}
+	}
+	
+	
+	public void estraiSceltaGiocatoreSingolo(GiocatoreConnesso giocatoreTemp) throws InserimentoMancanteException{
+//		if (this.posizioneIniziale.numeroArmatePosizionate(giocatoreTemp.getUsername()) > giocatoreTemp.getNumeroArmateDaPosizionare()){
+//			
+//			System.out.println("Spero di no ");
+//			return;  //se il numero armate da posizionare è maggiore
+//		}	
+		String [][] tabellaGiocatore = this.posizioneIniziale.tabellaPosizionamenti(giocatoreTemp.getUsername());
+		for(int i = 0; i < tabellaGiocatore.length; i++){
+			String nomeTerritorio = tabellaGiocatore[i][0];
+			Integer numeroArmate = Integer.parseInt(tabellaGiocatore[i][1]);
+			if(numeroArmate > giocatoreTemp.getNumeroArmateDaPosizionare()){
+				numeroArmate = giocatoreTemp.getNumeroArmateDaPosizionare();
+			}
+			//System.out.println("Giocatore: "+giocatoreTemp.getUsername()+" - "+nomeTerritorio+": "+numeroArmate.toString());
+			Territorio territorioTemp = nomeToTerritorio(nomeTerritorio);
+			territorioTemp.aggiungiUnita(numeroArmate);
+			giocatoreTemp.setNumeroArmateDaPosizionare(giocatoreTemp.getNumeroArmateDaPosizionare()-numeroArmate);
+			if(giocatoreTemp.getNumeroArmateDaPosizionare() <= 0){
+				break;
+			}
+			//le ho aggiunte tutte sulla mappa, poi la controllo. 
+		}
+	}	
+		
+	
+	//chiamata da giocatore, anche x dopo
+	//in wait è la partita, non il giocatore
+	//non so se deve essere sync ma penso di no dato che aggiungiposizionamento è gia sync
+	public void aggiungiPosizionamento(String comandoPosizionamento){
+		this.posizioneIniziale.aggiungiComando (comandoPosizionamento); 
+	}
+	
+	
+	
+	/**
+	 * QUESTO METODO MANDA SOLO IL MESSAGGIO AI CLIENT DI POSIZIONARE LE ARMATE, UNA VOLTA CHE L'HA FATTO CON TUTTI
+	 */
+	//\\TODO    
+	public void comunicaTerritoriEPosizionaArmate(){
+		Iterator<GiocatoreConnesso> iteratoreGiocatori = this.giocatoriPartita.iterator();
+		GiocatoreConnesso giocatoreTemp;
+		while(iteratoreGiocatori.hasNext()){
+			//Estraiamo il giocatore
+			giocatoreTemp = iteratoreGiocatori.next();
+			//questo metodo cominicherà le armate da posizionare, i territori posseduti, e il tempo che si ha per farlo. 
+			//i territori posseduti e il numero di armate sono attributi della classe Giocatore
+			
+			giocatoreTemp.comunicaTerritoriPosizionaArmate(this.mappa, tempoPosizionaArmateIniziale);
+			
+			
+		}
+		//Attendiamo che 
+	}
+	
+	
+	public void setArmateSuTerritorio(GiocatoreConnesso giocatore, Territorio territorioPos, Integer numeroArmate) throws Exception{
+		if(territorioPos.isEnemy(giocatore.getColoreGiocatore())){
+			throw new Exception("Non puoi aggiungere armate a territorio non tuo"); //\\TODO
+		}
+		territorioPos.aggiungiUnita(numeroArmate);
+		giocatore.setNumeroArmateDaPosizionare((giocatore.getNumeroArmateDaPosizionare())-numeroArmate);
+	}
+	
+	
+	/**
+	 * Estrae i territori vuoti (creandone una lista) da una lista di territori
+	 * @param listaTerritori - lista di territori 
+	 * @return - i territori vuoti, cioè su cui non sono state posizionate armate, contenuti nella listaTerritori, passata come parametro
+	 */
+	private ArrayList<Territorio> creaListaTerritoriVuoti(ArrayList<Territorio> listaTerritori){
+		Iterator<Territorio> itTerritori = listaTerritori.iterator();
+		ArrayList<Territorio> territoriVuoti = new ArrayList<Territorio>();
+		Territorio territorioTemp;
+		while (itTerritori.hasNext()){
+			territorioTemp=itTerritori.next();
+			if(territorioTemp.getUnitaPresenti().equals(0)){
+				territoriVuoti.add(territorioTemp);
+			}
+		}
+		return territoriVuoti;
+	}
+	
+	
+	/**
+	 * Metodo che regolarizza il posizionamento delle armate sui territori di un giocatore, nel caso in cui non abbia posizionato tutte le armate assegnatogli e abbia lasciato dei territori vuoti
+	 * @param giocatore - il giocatore di cui si vuole regolarizzare il posizionamento delle armate
+	 * @param territoriVuoti - la lista dei territori vuoti di quel giocatore
+	 */
+	private void piuArmatePiuTerritoriVuoti(GiocatoreConnesso giocatore, ArrayList<Territorio> territoriVuoti){
+		int x = 1; //numero unita da aggiungere a ogni iterazione
+		while(!territoriVuoti.isEmpty() && giocatore.getNumeroArmateDaPosizionare()>0){
+			territoriVuoti.get(0).aggiungiUnita(x);
+			territoriVuoti.remove(0);
+			giocatore.setNumeroArmateDaPosizionare(giocatore.getNumeroArmateDaPosizionare()-x);
+		}
+	}
+	
+	
+	/**
+	 * Metodo che regolarizza il posizionamento delle armate sui territori di un giocatore, nel caso in cui non abbia posizionato tutte le armate assegnatogli, ma non abbia lasciato territori vuoti (cioè abbia posizionato almeno un'armata su ogni territorio)
+	 * @param giocatore - il giocatore di cui si vuole regolarizzare il posizionamento delle armate
+	 */
+	private void piuArmateNoTerritoriVuoti(GiocatoreConnesso giocatore){
+		int x = 1;
+		while(giocatore.getNumeroArmateDaPosizionare()>0){
+			int i = (new Random()).nextInt(giocatore.getTerritoriPosseduti().size());
+			giocatore.getUnTerritorio(i).aggiungiUnita(x);
+			giocatore.setNumeroArmateDaPosizionare(giocatore.getNumeroArmateDaPosizionare()-x); 
+		}
+	}
+	
+	/**
+	 * Metodo che regolarizza il posizionamento delle armate sui territori di un giocatore, nel caso in cui abbia posizionato tutte le armate assegnatogli, ma non abbia lasciato territori vuoti, cioè non abbia posizionato almeno un'armata su ogni territorio
+	 * @param giocatore - il giocatore di cui si vuol regolarizzare il posizionamento delle armate
+	 * @param territoriVuoti - la lista dei territori vuoti di quel giocatore
+	 * @throws Exception 
+	 */
+	private void noArmatePiuTerritoriVuoti(GiocatoreConnesso giocatore, ArrayList<Territorio> territoriVuoti) throws Exception {
+		int x = 1; 
+		Territorio territorioTemp = null;
+		GenericSupport<Territorio> itTerritoriSupport = new GenericSupport<Territorio>();
+		while(!territoriVuoti.isEmpty()){
+			territorioTemp = itTerritoriSupport.prossimo (territorioTemp, giocatore.getTerritoriPosseduti()); //tira un'eccezione la generic. \\TODO GUARDACI!!
+			if(territorioTemp.getUnitaPresenti().equals(1) || territorioTemp.getUnitaPresenti().equals(0)) //o è 1 o è vuoto
+				continue; //passo alla prossima iterazione
+			try {
+				territorioTemp.rimuoviUnita(x);
+				territoriVuoti.get(0).aggiungiUnita(x);
+				territoriVuoti.remove(0);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				continue; 
+			} //tira un'eccezione da territorio. \\TODO GUARDACI!!
+//			territoriVuoti.get(0).aggiungiUnita(x);
+//			territoriVuoti.remove(0);
+		}
+	}
+	
+	
+	/**
+	 * Controlla che il posizionamento delle armate di un singolo giocatore a inizio partita sia corretto e, nel caso non lo sia, lo regolarizza.
+	 * @param giocatoreTemp - il giocatore di cui si vuole controllare il posizionamento delle armate
+	 * @param territoriVuoti - lista dei territori vuoti, cioè su cui il giocatore non ha posizionato alcuna armata
+	 * @throws Exception \\TODO
+	 */
+	private void controlloPosizionamentoSingoloGiocatore(GiocatoreConnesso giocatoreTemp, ArrayList<Territorio> territoriVuoti) throws Exception{
+		if(giocatoreTemp.getNumeroArmateDaPosizionare()>0 && territoriVuoti.size()>0){
+			//comincio col posizionare le pedine rimanenti sui territori vuoti
+			piuArmatePiuTerritoriVuoti(giocatoreTemp, territoriVuoti);
+			
+		}
+		
+		if(giocatoreTemp.getNumeroArmateDaPosizionare()>0 && territoriVuoti.size()==0){
+			//posiziono le pedine rimanenti a random sui suoi territori
+			piuArmateNoTerritoriVuoti(giocatoreTemp);
+		}
+		
+		if(giocatoreTemp.getNumeroArmateDaPosizionare().equals(0) && territoriVuoti.size()>0){
+			//se ci sono territori vuoti ma non pu' armate da posizionare, 
+			//prendo un'armata da territorio con più di un'armata, la tolgo da quel territorio e la posiziono su un territorio vuoto
+			//rimuovo quindi il territorio su cui ho posizionato l'armata dalla lista dei territori vuoti
+			noArmatePiuTerritoriVuoti(giocatoreTemp, territoriVuoti); //tira un'eccezione \\TODO
+		}
+	}
+	
+	
+	/**
+	 * Controlla che il posizionamento delle armate di tutti i giocatori a inizio partita sia corretto.
+	 * 
+	 * @throws Exception \\TODO
+	 */
+	private void controllaPosizionamento() throws Exception{
+		Iterator<GiocatoreConnesso> itGiocatori = this.giocatoriPartita.iterator();
+		GiocatoreConnesso giocatoreTemp;
+		while(itGiocatori.hasNext()){
+			giocatoreTemp = itGiocatori.next();
+			ArrayList<Territorio> territoriVuoti = creaListaTerritoriVuoti(giocatoreTemp.getTerritoriPosseduti());
+			System.out.println("Giocatore: "+giocatoreTemp.getUsername()+" -Territori vuoti: "+territoriVuoti.toString());
+			//a questo punto ho una lista con i territori vuoti
+			controlloPosizionamentoSingoloGiocatore(giocatoreTemp, territoriVuoti);
+		}
+	}
+	
+	
+	/**
+	 * Si occupa di comunicare la mappa a tutti i giocatori. 
+	 * Chiama, per ogni giocatore, il metodo di comunicazione della mappa.
+	 */
+	public void comunicaMappa(){
+		Iterator<GiocatoreConnesso> iteratoreGiocatori = this.giocatoriPartita.iterator();
+		while(iteratoreGiocatori.hasNext()){
+			iteratoreGiocatori.next().comunicaMappa(this.mappa);
+		}
+	}
+	
+	/**
+	 * Metodo per controllare se il concorrente corrente deve ritirare il bonus di possesso di tutti i territori dello stesso continente, passato come parametro
+	 * @param giocatorePartita - giocatore della partita che inizia il turno
+	 * @param continente - il continente da controllare
+	 * @return -il valore del bonus corrispondente al continente, se il giocatore possiede tutti i territori del continente; -0 se il giocatore non possiede tutti i territori di quel continente
+	 */
+	private Integer ritiraBonusContinenteSingolo (GiocatoreConnesso giocatorePartita, Continente continente){
+		//controllo se il giocatore passato come parametro possiede tutto il continente
+		if(continente.hoBonusContinente(giocatorePartita.getColoreGiocatore())){
+			//allora il bonus va ritirato
+			return continente.getBonus(); 
+		}
+		return 0; 
+	}
+	
+	
+	/**
+	 * Metodo per controllare se il concorrente corrente deve ritirare il bonus di possesso di tutti i territori dello stesso continente
+	 * @param giocatorePartita - giocatore della partita che inizia il turno
+	 * @return la somma dei bonus derivanti dal possesso di uno o più continenti per intero. Ritorna 0 se il giocatore non possiede tutti i territori di alcun continente 
+	 */
+	private int ritiraBonusContinenti (GiocatoreConnesso giocatorePartita){
+		//lista dei continenti
+		ArrayList<Continente> listaContinentiTemp = mappa.getListaContinenti();
+		//variabile intera che andrà a contenere l'intero valore del bonus
+		int bonus=0; 
+		Iterator <Continente> iteratoreContinenti = listaContinentiTemp.iterator();
+		while(iteratoreContinenti.hasNext()){
+			//sommo l'eventuale bonus derivante dal possesso del continente singolo
+			bonus=bonus+ritiraBonusContinenteSingolo(giocatorePartita, iteratoreContinenti.next());
+		}
+		return bonus; 
+	}
+	
+	/**
+	 * Metodo per assegnare il numero di armate a un giocatore a inizio turno, derivante dal numero dei territori posseduti
+	 * @param giocatorePartita - giocatore della partita che inizia il turno
+	 * @return il numero di armate assegnate a un giocatore derivanti dai territori posseduti:
+	 */
+	private Integer ritiraArmateTerritoriPosseduti(GiocatoreConnesso giocatorePartita){
+		Double numeroTerritori = (double) giocatorePartita.getTerritoriPosseduti().size();
+		Double divisore = 3.0;
+		//faccio il ceiling
+		return (int) Math.ceil(numeroTerritori/divisore);
+	}
+	
+	/**
+	 *\\TODO RIVEDI QUESTO, TIMER, ECC...
+	 * Metodo per assegnare il numero di armate a un giocatore a inizio turno
+	 * @param giocatorePartita - il giocatore della partita che inizia il turno
+	 * @return il numero totale di armate assegnate a un giocatore a inizio turno
+	 */
+	private void ritiraArmateInizioTurno(GiocatoreConnesso giocatorePartita){
+		Integer armateTotali = ritiraArmateTerritoriPosseduti(giocatorePartita) + ritiraBonusContinenti(giocatorePartita);
+		giocatorePartita.setNumeroArmateDaPosizionare(armateTotali);
+		
+		this.posizioneIniziale = new PosizionamentoArmate(1); //solo per un giocatore 
+		this.posizioneIniziale.abilitaAggiunta(); 
+		giocatorePartita.comunicaArmateInizioTurno(armateTotali, tempoPosizionaArmateInizioTurno); //mando un messaggio al giocatore di posizionare le armate
+		try {
+			this.posizioneIniziale.attendi(tempoPosizionaArmateInizioTurno+1); //mo sto in attesa
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+		} 
+		this.posizioneIniziale.disabilitaAggiunta();
+		try {
+			estraiSceltaGiocatoreSingolo(giocatorePartita);
+		} catch (InserimentoMancanteException e) {
+			//HA PERSO LE ARMATE, amen
+		}	
+		giocatorePartita.setNumeroArmateDaPosizionare(0);
+	}
+	
+	
+	/**
+	 * Metodo per ricavare il riferimento a un oggetto Giocatore, partendo dal suo colore corrente all'interno della partita
+	 * @param coloreGiocatore - il colore del giocatore di interesse
+	 * @return -Il riferimento al giocatore corrispondente al colore passato come parametro. -null se non viene trovato il giocatore con quel colore
+	 * @throws GiocatoreNonTrovatoException Il giocatore non è stato trovato
+	 */
+	public GiocatoreConnesso giocatoreAssociatoAlcolore (Colori coloreGiocatore) throws GiocatoreNonTrovatoException{
+		Iterator<GiocatoreConnesso> iteratoreGiocatori = this.giocatoriIniziali.iterator();
+		GiocatoreConnesso giocatoreTemp;
+		while(iteratoreGiocatori.hasNext()){
+			giocatoreTemp = iteratoreGiocatori.next();
+			if(giocatoreTemp.getColoreGiocatore() == coloreGiocatore)
+				return giocatoreTemp;  
+		}
+		throw new GiocatoreNonTrovatoException(); 
+	}
+	
+//	/**
+//	 * Metodo per ricavare il riferimento a un oggetto Giocatore, partendo dal suo Username 
+//	 * @param nomeGiocatore - lo username del giocatore di interesse
+//	 * @return -Il riferimento al giocatore corrispondente allo username passato come parametro. .-null se non viene trovato il giocatore con quel username
+//	 */
+//	public GiocatoreConnesso usernameToPlayer (String nomeGiocatore) throws GiocatoreNonTrovatoException{
+//		Iterator<GiocatoreConnesso> iteratoreGiocatori = this.giocatoriIniziali.iterator();
+//		GiocatoreConnesso giocatoreTemp;
+//		while(iteratoreGiocatori.hasNext()){
+//			giocatoreTemp = iteratoreGiocatori.next();
+//			if(giocatoreTemp.getUsername() == nomeGiocatore)
+//				return giocatoreTemp;  
+//		}
+//		throw new GiocatoreNonTrovatoException();   
+//	}
+	
+	/**
+	 * Metodo per ricavare il riferimento a un oggetto Territorio, partendo dal suo nome
+	 * @param nomeTerritorio - il nome del di interesse
+	 * @return -Il riferimento al territorio corrispondente al nome passato come parametro. -null se non viene trovato il territorio con quel nome
+	 */
+	public Territorio nomeToTerritorio (String nomeTerritorio){
+		Iterator<Territorio> iteratoreTerritori = this.mappa.getListaTerritori().iterator();
+		Territorio territorioTemp;
+		while(iteratoreTerritori.hasNext()){
+			territorioTemp = iteratoreTerritori.next();
+			if(territorioTemp.getNome().equals(nomeTerritorio))
+				return territorioTemp;  
+		}
+		return null;  //se non lo trova \\TODO manderei un'eccezione
+	}
+	
+	
+	
+	
+	
+	
+	
+	/**
+	 * @param numeroUnitaAttaccanti
+	 * @param territorioAttaccato
+	 * @param territorioAttaccante
+	 * @throws Exception
+	 */
+	//\\TODO modificare le stringhe
+	public void attacco(Integer numeroUnitaAttaccanti, String tAttaccato, String tAttaccante, GiocatoreConnesso giocatoreAttaccante) throws Exception{
+		if(!giocatoreAttaccante.isTuoTurno()){
+			return; //Non era il suo turno //TODO: manda eccezioni 
+		}
+		Territorio territorioAttaccante = nomeToTerritorio(tAttaccante);
+		Territorio territorioAttaccato = nomeToTerritorio(tAttaccante);
+		
+		
+		//TODO: c'è da vedere giocatore associato al colore
+//		if(!giocatoreAssociatoAlcolore(territorioAttaccante.getColorePossessore()).isTuoTurno()){
+//			throw new Exception("Non era il tuo turno");
+//		}
+		if(!territorioAttaccante.possoAttaccare(territorioAttaccato, numeroUnitaAttaccanti)){
+			throw new Exception("territorio non attaccabbbbile");
+		} 
+		if(numeroUnitaAttaccanti > territorioAttaccante.maxUnitaAttacco()){
+			numeroUnitaAttaccanti = territorioAttaccante.maxUnitaAttacco();
+			//throw new Exception("hai attaccato con piu unita di quello che potevi");
+		} //se propaga eccezioni la mossa è come se non fosse stata eseguita
+		//inizio attacco
+		if(numeroUnitaAttaccanti > 3){
+			numeroUnitaAttaccanti = 3; 
+		}
+		comunicaMossaEseguita();
+		Integer [] risultati = new Integer[2];
+		boolean conquistato; 
+		Colori coloreGiocatoreAttaccato = territorioAttaccato.getColorePossessore();
+		GiocatoreConnesso giocatoreAttacato = giocatoreAssociatoAlcolore(coloreGiocatoreAttaccato);
+		ArrayList<Integer> risultatoDadiAttacco = lanciaDadi(numeroUnitaAttaccanti);
+		Integer numeroUnitaDifesa = territorioAttaccato.maxUnitaDifesa();
+		ArrayList<Integer> risultatoDadiDifesa = lanciaDadi(numeroUnitaDifesa);
+		risultati = confrontaRisultati(risultatoDadiAttacco, risultatoDadiDifesa);
+		modificaTerritori(risultati, territorioAttaccato, territorioAttaccante, numeroUnitaAttaccanti);
+		if(!territorioAttaccante.isEnemy(coloreGiocatoreAttaccato)){
+			conquistato=true;
+			//spostaArmate(numeroUnitaAttaccanti, tAttaccante, tAttaccato, giocatoreAttaccante);
+		}else conquistato=false;
+		//comunica i rusltati a tutti
+		comunicaRisultatiAttacco(tempoDifesa, territorioAttaccante, territorioAttaccato, risultatoDadiAttacco, risultatoDadiDifesa, risultati, conquistato); 
+		//comunico la mappa aggiornata
+		comunicaMappa();
+		if(haPerso(giocatoreAttacato)){	//Se era l'ultimo territorio comunica al giocatore la sconfitta
+			//comunicaSconfitta(giocatoreAttacato.getUsername());
+			if(!giocatoriRitirati.contains(giocatoreAttacato)){
+				//Quando un giocatore perde lo mettiamo in cima alla classifica
+				this.classificaGiocatori.add(0, giocatoreAttacato);
+				//Comunichiamo a tutti la sconfitta del giocatore
+				comunicaSconfitta(giocatoreAttacato.getUsername());
+				//Rimuoviamo il giocatore dai giocatori della partita
+				this.giocatoriPartita.remove(giocatoreAttacato);
+			}
+		}
+		notificaFineMossa();
+	} 
+	
+	
+	public synchronized void spostaArmate(Integer numeroArmateDaSpostare, String origine, String destinazione, GiocatoreConnesso giocatore){
+		if(!giocatore.isTuoTurno()){
+			return;
+		}
+		Territorio territorioOrigine = nomeToTerritorio(origine);
+		Territorio territorioDestinazione = nomeToTerritorio(destinazione);
+		//TODO eventuali eccezioni date dal controllo delle info passate
+		comunicaMossaEseguita();
+		try {
+			territorioOrigine.spostaUnita(numeroArmateDaSpostare, territorioDestinazione);
+			//fineTurno();
+		} catch (Exception e) {
+			//comunicaMappa();	//Comunichiamo la nuova mappa
+			//TODO Comunicare l'impossibilità di spostare
+			try {
+				Thread.sleep(200);
+			} catch (InterruptedException e1) {
+				e1.printStackTrace();
+			}
+		} finally{
+			comunicaMappa();
+		}
+		this.posizioneIniziale.notifica(); 
+		fineTurno();
+		notificaFineMossa();	//Una volta che abbiamo spostato le armate passiamo il turno.
+	}
+	
+	public synchronized void passaTurno(GiocatoreConnesso giocatore){
+		//TODO eventuali eccezioni date dal controllo delle info passate
+		if(!giocatore.isTuoTurno()){
+			System.out.println("PASSA TURNO - Non è ancora il tuo turno");
+			return;
+		}
+		comunicaMossaEseguita();
+		System.out.println("PASSA TURNO - Ho comunicato la mossa eseguita");
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		this.posizioneIniziale.notifica();
+		System.out.println("PASSA TURNO - Ho notificato a posizione iniziale");
+		//Per evitare di fare troppo presto il secondo notify
+		fineTurno();
+		System.out.println("PASSA TURNO - Ho settato a fine turno");
+		notificaFineMossa();
+		System.out.println("PASSA TURNO - Ho notificato fine mossa e ho finito il mio compito");
+	}
+	
+	
+	public void comunicaRisultatiAttacco(Integer tempoDifesa, Territorio territorioAttaccante, Territorio territorioAttaccato, ArrayList<Integer> risultatoDadiAttacco, ArrayList<Integer> risultatoDadiDifesa, Integer [] risultati, boolean conquistato){
+		Iterator<GiocatoreConnesso> itGiocatoriPartita = this.giocatoriPartita.iterator();
+		while(itGiocatoriPartita.hasNext()){
+			itGiocatoriPartita.next().comunicaAttacco(tempoDifesa, territorioAttaccante, territorioAttaccato, risultatoDadiAttacco, risultatoDadiDifesa, risultati, conquistato);
+		}
+	}
+	
+	
+
+	
+	public void modificaTerritori(Integer [] risultati, Territorio territorioAttaccato, Territorio territorioAttaccante, Integer numeroUnitaAttaccanti){
+		try {
+			territorioAttaccato.rimuoviUnita(risultati[0]);
+			territorioAttaccante.rimuoviUnita(risultati[1]);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		if(territorioAttaccato.getUnitaPresenti().equals(0)){
+			territorioAttaccato.setColorePossessore(territorioAttaccante.getColorePossessore());
+			territorioAttaccato.setUnitaPresenti(numeroUnitaAttaccanti-risultati[1]);//numero unita attaccanti - le unità perse
+		}
+	}
+	
+	private Integer[] confrontaRisultati(ArrayList<Integer> attacco, ArrayList<Integer> difesa) throws Exception{
+		Integer numeroDadiAttacco = attacco.size();
+		Integer numeroDadiDifesa = difesa.size();
+//		if(numeroDadiAttacco < numeroDadiDifesa){
+//			throw new Exception("Ma che cazz...");
+//		}
+		Integer attaccoTemp;
+		Integer difesaTemp;
+		Collections.sort(attacco);
+		Collections.sort(difesa);
+		
+		//array destinato a contenere i risultati dell'attacco
+		//in prima posizione unità sconfitte, in seconda unità perse
+		Integer [] risultati = {0, 0}; 
+		
+		for(int i=numeroDadiDifesa; i>0; i--){
+			attaccoTemp=Collections.max(difesa);
+			//rimuovo l'elemento massimo
+			difesa.remove(i-1);
+			difesaTemp = Collections.max(attacco);
+			//rimuovo l'elemento massimo
+			attacco.remove(i-1);
+			if(attaccoTemp > difesaTemp){
+				distruggiArmataAttaccante(risultati);
+			} else distruggiArmataDifensore(risultati);
+		}
+		return risultati; 
+	}
+	
+	private void distruggiArmataAttaccante(Integer[] risultato){
+		risultato[0]++;
+	}
+	private void distruggiArmataDifensore(Integer[] risultato){
+		risultato[1]++;
+	}
+	
+
+	/**
+	 * \\TODO
+	 * @param numeroDadi
+	 * @return
+	 */
+	public ArrayList<Integer> lanciaDadi(Integer numeroDadi){
+		ArrayList<Integer> risultatoDadi = new ArrayList<Integer>(numeroDadi);
+		for(int i=0; i<numeroDadi; i++){
+			Dado dado = new Dado();
+			risultatoDadi.add(dado.lanciaDado());
+		}
+		return risultatoDadi;
+	}
+	
+	
+	/**
+	 * Metodo per controllare se una partita è finita, ovvero se un giocatore ha conquistato tutti i territori della mappa.
+	 * @return -true: se la partita è terminata; -false: altrimenti 
+	 */
+	public boolean controlloFinePartita(){
+		//Controlliamo se siamo gli ultimi rimasti in partita
+		if(this.giocatoriPartita.size() == 1)
+			return true;	//Siamo gli ultimi
+		//Controlliamo se possediamo tutti i territori
+		Iterator<Continente> itContinenti = this.mappa.getListaContinenti().iterator();
+		Colori coloreTemp1, coloreTemp2; 
+		//il metodo coloreBonusContinente() torna il colore 
+		coloreTemp1 = itContinenti.next().coloreBonusContinente();
+		//se già un solo continente non è posseduto da un solo giocatore, la partita non è sicuramente terminata
+		if(coloreTemp1 == null) 
+			return false; 
+		while(itContinenti.hasNext()){
+			coloreTemp2 = itContinenti.next().coloreBonusContinente();
+			//Se i colori di due continenti sono diversi, o se, come prima, un continente non è posseduto da qualcuno, la partita non è sicuramente terminate
+			//poichè, per terminare, tutti i continenti devono essere posseduti da un unico giocatore
+			if(coloreTemp1 != coloreTemp2 || coloreTemp2 == null){
+				return false;
+			}
+		}
+		//tutti i continenti sono dello stesso colore
+		return true; 
+	}
+	
+	
+	//\\TODO
+	public void finePartita() throws SQLException{
+		Server mioServer = Server.getInstance();
+		GiocatoreConnesso vincitore;
+		if(giocatoriPartita.size() == 1){
+			vincitore = giocatoriPartita.get(0);
+			//String nomeVincitore = vincitore.getUsername(); 
+			this.classificaGiocatori.add(0, vincitore); //ora ho la classifica dei giocatori completa
+			//comunico la fine della partita ai giocatore
+			comunicaFinePartita();
+			mioServer.chiudiPartita(this.classificaGiocatori, this.idPartita);
+		}
+	}
+	
+	public boolean haPerso(GiocatoreConnesso giocatore){
+		return giocatore.getTerritoriPosseduti().isEmpty();
+	}
+	
+	
+	/**
+	 * Metodo per comunicare la fine della partita (con i risultati) ai giocatori della partita.
+	 * @param nomeVincitore - il nome del vincitore della partita
+	 * @param punteggi - lista con i punteggi dei vari giocatori, ordinati secondo l'ordine di gioco
+	 */
+	private void comunicaFinePartita(){
+		Iterator<GiocatoreConnesso> itGiocatori = this.giocatoriPartita.iterator();
+		while(itGiocatori.hasNext()){
+			itGiocatori.next().fineDellaPartita(creaListaUsername(this.classificaGiocatori)); 
+		}
+	}
+
+	public GiocatoreConnesso getGiocatoreTurno() {
+		return giocatoreTurno;
+	}
+
+	public void setGiocatoreTurno(GiocatoreConnesso giocatoreTurno) {
+		this.giocatoreTurno = giocatoreTurno;
+	}
+	
+//	private void comunicaPassaggioTurno(String vecchioGiocatore, String nuovoGiocatore){
+//		Iterator<GiocatoreConnesso> itGiocatore = this.giocatoriPartita.iterator();
+//		while(itGiocatore.hasNext()){
+//			itGiocatore.next().nuovoTurno(vecchioGiocatore, nuovoGiocatore);
+//		}
+//	}
+	
+	private void comunicaSconfitta(String giocatorePerdente){
+		Iterator<GiocatoreConnesso> itGiocatori = giocatoriPartita.iterator();
+		while(itGiocatori.hasNext()){
+			itGiocatori.next().comunicaSconfitta(giocatorePerdente);
+		}
+	}
+	
+	/**
+	 * Comunichiamo che un giocatore ha abbandonato la partita.
+	 * La comunicazione non interessa il giocatore ritirato (che comunque non è piu tra i giocatoriPartita ma tra quelli ritirati
+	 * @param giocatorePerdente	Il giocatore ritirato.
+	 */
+//	private void comunicaRitirata(String giocatorePerdente){
+//		Iterator<GiocatoreConnesso> itGiocatori = this.giocatoriPartita.iterator();
+//		while(itGiocatori.hasNext()){
+//			GiocatoreConnesso giocatore = itGiocatori.next();
+//			if(! giocatore.getUsername().equals(giocatorePerdente)){
+//				//Comunichiamo a tutti tranne al giocatore che ha abbandonato.
+//				giocatore.comunicaSconfitta(giocatorePerdente);
+//			}
+//		}
+//	}
+	
+	private void comunicaRitirata(String giocatoreRitirato){
+		Iterator<GiocatoreConnesso> itGiocatori = this.giocatoriPartita.iterator();
+		while(itGiocatori.hasNext()){
+			itGiocatori.next().comunicaRitirata(giocatoreRitirato);
+			
+		}
+	}
+	
+	
+//	public void utenteDisconnesso(GiocatoreConnesso giocatore){
+//		//Se l'utente è disconnesso, lo disconnettiamo anche dalla partita.
+//		giocatore.comunicaDisconnessione();	//TODO
+//		//lo dico alla fine della partita al db cosa ha fatto questo che si è disconnesso/ritrato
+//		disconnettiUtente(giocatore);		
+//	}
+	
+	/**
+	 * Rimuove il giocatore su richiesta del client dalla partita
+	 * @param giocatore	Giocatore da rimuovere.
+	 * @throws SQLException Problema al DB
+	 */
+	public void disconnettiUtente(GiocatoreConnesso giocatore) throws SQLException{
+		//Lo rimuoviamo dalla partita e lo mettiamo nei ritirati
+		this.giocatoriPartita.remove(giocatore);
+		this.giocatoriRitirati.add(giocatore);
+		comunicaRitirata(giocatore.getUsername());
+		//Se non ci sono più utenti connessi chiudiamo la partita.
+		if(this.giocatoriPartita.size() == 0){
+			Server mioServer = Server.getInstance();
+			mioServer.chiudiPartita(this.classificaGiocatori, this.idPartita);
+		}
+	}
+
+	public ArrayList<GiocatoreConnesso> getGiocatoriPartita() {
+		return giocatoriPartita;
+	}
+
+	public Integer getIdPartita() {
+		return idPartita;
+	}
+	
+//	//review
+//	public ArrayList<BeanGiocatore> getInfoPartecipanti(){
+//		ArrayList<BeanGiocatore> infoGiocatori = new ArrayList<BeanGiocatore>(this.giocatoriIniziali.size());
+//		Iterator<GiocatoreConnesso> itGiocIniz = this.giocatoriIniziali.iterator();
+//		while(itGiocIniz.hasNext()){
+//			infoGiocatori.add(itGiocIniz.next().getMieInfo().clone()); //gli passo un clone
+//		}
+//		return infoGiocatori;
+//	}
+	
+	/**
+	 * Metodo statico per ottenere il punteggio del primo classificato
+	 * @param numeroGiocatoriFinale - il numero di giocatori della partita (che non si sono ritirati)
+	 * @return il punteggio del primo classificato
+	 */
+	public static int punteggioPrimo(int numeroGiocatoriFinale){
+		if(numeroGiocatoriFinale == 3)
+			return puntiPrimoSe3;
+		if(numeroGiocatoriFinale == 4)
+			return puntiPrimoSe4;
+		if(numeroGiocatoriFinale == 5)
+			return puntiPrimoSe5;
+		if(numeroGiocatoriFinale == 6)
+			return puntiPrimoSe6;
+		return 0; //non puo' essere per le regole del gioco
+	}
+	
+	/**
+	 * Metodo statico per ottenere il punteggio del secondo classificato
+	 * @param numeroGiocatoriFinale - il numero di giocatori della partita (che non si sono ritirati)
+	 * @return il punteggio del secondo classificato
+	 */
+	public static int punteggioSecondo(int numeroGiocatoriFinale){
+		if(numeroGiocatoriFinale == 3)
+			return puntiSecondoSe3;
+		if(numeroGiocatoriFinale == 4)
+			return puntiSecondoSe4;
+		if(numeroGiocatoriFinale == 5)
+			return puntiSecondoSe5;
+		if(numeroGiocatoriFinale == 6)
+			return puntiSecondoSe6;
+		return 0; //non puo' essere per le regole del gioco
+	}
+	
+	
+	
+	//\\TODO: se un client abbandona la partita in modo brusco o premendo "esci"
+	//\\TODO: come assegniamo il punteggio se un client ha abbandonato (o si è disconnesso)
+	//\\TODO: quando finisce una partita, che ci facciamo con sto thread-partita?
+	//\\TODO: cosa fare se tutti i giocatori si disconnettono prima della fine della partita
+	//\\TODO: rivedere public, private, protected
+	
+	//\\TODO: comunica mappa dopo posizione armate inizio turno== ???
+}
+	

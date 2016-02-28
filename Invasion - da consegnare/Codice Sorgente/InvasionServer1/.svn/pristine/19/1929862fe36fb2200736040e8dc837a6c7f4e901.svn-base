@@ -1,0 +1,95 @@
+package mappa;
+
+import java.util.ArrayList;
+import java.util.Iterator;
+
+import classiCondivise.Colori;
+
+public class Continente {
+	private String nome;
+	private Integer bonus; 
+	private ArrayList<Territorio> territori = null;
+	
+	public Continente(String nome, Integer bonus){
+		territori = new ArrayList<Territorio>();
+		this.nome = nome;
+		this.bonus = bonus; 
+	}
+	
+	protected void aggiungiTerritorio(Territorio mioTerritorio){
+		territori.add(mioTerritorio);
+	}
+	
+	/**
+	 * Ricerca il territorio desiderato e lo ritorna se lo trova
+	 * @param nome
+	 * @return Il territorio se viene trovato, null in caso contrario.
+	 */
+	public Territorio trovaTerritorio(String nome){
+		Iterator<Territorio> itTerritori = this.territori.iterator();
+		while(itTerritori.hasNext()){
+			Territorio territorioTemp = itTerritori.next();
+			if(territorioTemp.siChiama(nome)){
+				return territorioTemp;
+			}
+		}
+		return null;
+	}
+	
+	/**
+	 * Metodo che controlla se i territori del continente sono interamente posseduti da un giocatore, quindi sono dello stesso colore
+	 * @return -true se i territori del continente sono dello stesso colore, cioè appartengono allo stesso giocatore, e quindi il bonus va ritirato 
+	 * 		   -false se i territori del continente non sono tutti dello stesso colore
+	 */
+	@Deprecated
+	public Colori controllaBonus(){
+		Iterator <Territorio> itTerritori = this.territori.iterator();
+		boolean continua = true; 
+		Colori coloreTemp1, coloreTemp2; 
+		coloreTemp1=itTerritori.next().getColorePossessore();
+		
+		while(itTerritori.hasNext() && continua){
+			coloreTemp2=itTerritori.next().getColorePossessore();
+			if(coloreTemp1!=coloreTemp2)
+				return null;
+			coloreTemp1=coloreTemp2; 
+		}
+		return coloreTemp1;
+	}
+	//TODO: Usare questo metodo
+	public boolean hoBonusContintente(Colori colore){
+		Iterator <Territorio> itTerritori = this.territori.iterator();
+		while(itTerritori.hasNext()){
+			Territorio territorioTemp = itTerritori.next();
+			if(territorioTemp.isEnemy(colore))
+				return false;
+		}
+		return true;
+	}
+
+	
+	public String getNome() {
+		return nome;
+	}
+
+	public void setNome(String nome) {
+		this.nome = nome;
+	}
+
+	public Integer getBonus() {
+		return bonus;
+	}
+
+	public void setBonus(Integer bonus) {
+		this.bonus = bonus;
+	}
+
+	public ArrayList<Territorio> getTerritori() {
+		return territori;
+	}
+
+	public void setTerritori(ArrayList<Territorio> territori) {
+		this.territori = territori;
+	}
+	
+}

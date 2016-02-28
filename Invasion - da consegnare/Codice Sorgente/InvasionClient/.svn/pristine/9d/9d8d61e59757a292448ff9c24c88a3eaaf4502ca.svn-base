@@ -1,0 +1,90 @@
+package comunicazione;
+
+import classiCondivise.BeanGiocatore;
+import classiCondivise.Classifica;
+
+public interface Client2Server {
+	/**
+	 * Il server tenta il login con le informazioni passate.
+	 * Il client attende il responso.
+	 * @param Username
+	 * @param Password
+	 * @return Responso dell'operazione
+	 */
+	public BeanGiocatore effettuaLogin(String Username, String Password);
+	
+	/**
+	 * Il server ci registra ed effettua il login
+	 * @param Username	Username da registrare.
+	 * @param Password	Password da registrare.
+	 * @return	Responso della registrazione
+	 */
+	public BeanGiocatore effettuaRegistrazione(String Username, String Password);
+	
+	public BeanGiocatore chiediStatistiche(String UsernameUtente);
+	
+	public Classifica chiediClassifica();
+	
+	public boolean effettuaLogout(String Username);
+	
+	public boolean esciPartita();
+	
+	public boolean cambiaPassword(String vecchiaPassword, String nuovaPassword);
+	//Metodi di visualizzazione statistiche
+	
+	/**
+	 * Il server crea il tavolo e ci aggiunge (modifica il nostro stato).
+	 * Il client aggiunge un tavolo all'interfaccia grafica e cambia il nostro stato
+	 * @return l'ID del tavolo.
+	 */
+	public String CreaTavolo();
+	
+	/**
+	 * Il server abbandona il tavolo corrente, sa dove mi trovo in ogni momento.
+	 * Il client ci rimuove dal tavolo e se sono l'unico connesso lo cancella
+	 * @return esito operazione
+	 */
+	public boolean abbandonaTavolo();
+	
+	/**
+	 * Il server farà il join del tavolo e aggiorna il nostro stato
+	 * Il client si aggiunge a quel tavolo e modifica il prorio stato
+	 * @param idTavolo
+	 * @return l'esito dell'operazione
+	 */
+	public boolean joinTavolo(Integer idTavolo);
+	
+	/**
+	 * 
+	 * @return
+	 */
+	public boolean abbandonaPartita();
+	
+	//manda al server il colore scelto. Torna true se disponibile, false se non lo è
+	//se torna false siamo dei coglioni e avremo sbagliato a coordinare tutto
+	public boolean scegliColore(String colore);
+	
+	/**
+	 * 
+	 * @param statoAttaccante
+	 * @param statoDifensore
+	 * @param armateAttaccanti
+	 * @return
+	 */
+	public String attaccaStato(String statoAttaccante, String statoDifensore, Integer armateAttaccanti);
+	
+	//Da gestire meglio la difesa, e considerare che esisterà lo stesso metodo anche server2client
+	public Integer[] lanciaDadi(Integer numeroDadi);
+	
+	public boolean passaTurno();
+	
+	/**
+	 * 
+	 * @param stato
+	 * @param numero
+	 * @return il numero di pedine ancora da posizionare
+	 */
+	public Integer posizionaArmate(String territorio, Integer numero);
+	
+	
+}

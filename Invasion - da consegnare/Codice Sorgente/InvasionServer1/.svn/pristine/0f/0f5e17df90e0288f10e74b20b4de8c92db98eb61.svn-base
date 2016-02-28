@@ -1,0 +1,20 @@
+package socketTest;
+
+import java.net.Socket;
+
+
+public class Giocatore implements Runnable {
+	private InterfacciaComunicazione comunicazione;
+	
+	public Giocatore(InterfacciaComunicazione miaInterfaccia){
+		this.comunicazione = miaInterfaccia;
+	}
+	
+	@Override
+	public void run() {
+		// TODO Viene avviato il giocatore, deve avere riferimento ad una interfaccia per permettere la comunicazione via socket
+
+		
+	}
+
+}

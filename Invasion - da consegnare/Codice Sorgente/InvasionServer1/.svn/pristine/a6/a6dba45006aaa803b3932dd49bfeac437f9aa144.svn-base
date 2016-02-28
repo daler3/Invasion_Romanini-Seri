@@ -1,0 +1,350 @@
+package socket;
+
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Iterator;
+
+import mappa.Territorio;
+import server_daler.GiocatoreConnesso;
+import server_daler.TavoloAperto;
+import socketTest.InterfacciaComunicazione;
+import classiCondivise.BeanGiocatore;
+import classiCondivise.BeanTavolo;
+import classiCondivise.Classifica;
+import classiCondivise.Colori;
+import classiCondivise.CreareMessaggio;
+import interfacciaComunicazione.Server2Client;
+
+//TODO Implementerà l'interfaccia di comunicazione client2server
+public class InterpreteServer implements Server2Client {
+
+	public static final String customString = "default";
+	private String stringaLetta;
+	private Lettore lettoreSocket;
+	private Thread threadLettore;
+	private GiocatoreConnesso giocatore;
+	
+	private static final String at = "@";
+	private static final String dotcomma =";";
+	
+	public final static String stringaVoid = "VOID";
+	
+	private static final String esitoPositivo = "OK";
+	private static final String esitoNegativo = "KO";
+	
+	public final static String login = "LOGIN";
+	public final static String logout = "LOGOUT";
+	public final static String registra = "REGISTRA";
+	
+	public final static String classifica = "STATISTICHEGENERALI";
+	public final static String ottieniInfoUtente = "OTTIENIINFOUTENTE";
+	
+	public final static String aggiornaTavoli = "AGGIORNATAVOLI";
+	public final static String creaTavolo = "CREATAVOLO";
+	public final static String joinTavolo = "UNISCITITAVOLO";
+	public final static String abbandonaTavolo = "ABBANDONATAVOLO";
+	public final static String startTavolo = "AVVIATAVOLO";
+	
+	//Da Server a Client
+	public final static String infoUtenteAggiornate = "MIEINFOUTENTE";
+	public final static String listaTavoliAggiornati = "TAVOLIAGGIORNATI";
+	public final static String cambiamentiTavolo = "CAMBIAMENTITAVOLO";
+	
+	public final static String abbandonaPartita = "ABBANDONAPARTITA";
+	/**
+	 * Avvia il lettore assandogli il socket da cui leggere
+	 * @param mioSocket
+	 */
+	public InterpreteServer(Socket mioSocket, GiocatoreConnesso mioGiocatore){
+		super();
+		this.giocatore = mioGiocatore;
+		this.lettoreSocket = new Lettore(this, mioSocket);
+		this.threadLettore = new Thread(lettoreSocket);
+		threadLettore.start();
+	}
+	
+	/**
+	 * Controlla se il lettore è vivo.
+	 * @return	Lo stato del lettore.
+	 */
+	public boolean isAlive() {
+		//Controlla che il lettore sia ancora vivo
+		if(threadLettore == null){	//Lettore inesistente
+			return false;
+		}
+		else return threadLettore.isAlive();
+	}
+	
+	/**
+	 * Manda un interrupt al  lettore per terminarlo.
+	 */
+	public void killLettore() {
+		this.threadLettore.interrupt();
+	}
+	
+	/**
+	 * Interpreta la stringa letta e ritorna la stringa di risposta.
+	 * @param stringaLetta	La stringa letta dal socket.
+	 * @return	La stringa di risposta.
+	 */
+	public String interpreta(String stringaLetta){
+		String comando = CreareMessaggio.estraiComando(stringaLetta).toUpperCase();
+		String stringaPura = CreareMessaggio.rimuoviComando(stringaLetta); //senza comando nè @
+		
+		if(comando.toUpperCase().equals(login)){
+			System.out.println("Controllo login");
+			String username = CreareMessaggio.estraiStringa(stringaPura);
+			stringaPura = CreareMessaggio.estraiSecondaParte(stringaPura);
+			String password = CreareMessaggio.estraiStringa(stringaPura);
+			BeanGiocatore bean = this.giocatore.loginUtente(username, password);
+			if(bean != null){
+				//ok@[bean separato da ;]
+				return CreareMessaggio.responsoPositivo(bean.toString());
+			}
+			else{
+				//ko@[accesso fallito]
+				return CreareMessaggio.responsoNegativo("Impossibile effettuare il login");
+			}
+		} 
+		else if(comando.toUpperCase().equals(logout)){
+			this.giocatore.disconnetti();
+			return CreareMessaggio.responsoPositivo("Logout eseguito con successo");
+		} 
+		else if(comando.toUpperCase().equals(registra)){
+			String username = CreareMessaggio.estraiStringa(stringaPura);
+			stringaPura = CreareMessaggio.estraiSecondaParte(stringaPura);
+			String password = CreareMessaggio.estraiStringa(stringaPura);
+			BeanGiocatore bean = this.giocatore.registrazioneUtente(username, password);
+			if(bean != null){
+				return CreareMessaggio.responsoPositivo(bean.toString());
+			}
+			else{
+				return CreareMessaggio.responsoNegativo("Username già in uso");
+			}
+		}
+		else if(comando.toUpperCase().equals(classifica)){
+			Classifica classifica = this.giocatore.ottieniClassifica();
+			return CreareMessaggio.responsoPositivo(classifica.toString());
+		}
+		else if(comando.toUpperCase().equals(ottieniInfoUtente)){
+			String nomeUtente = CreareMessaggio.estraiStringa(stringaPura);
+			stringaPura = CreareMessaggio.estraiSecondaParte(stringaPura);
+			BeanGiocatore mioBean = this.giocatore.ottieniInfoUtente(stringaPura);
+			String risposta = mioBean.toString();
+			return CreareMessaggio.responsoPositivo(risposta);
+		}
+		else if(comando.toUpperCase().equals(aggiornaTavoli)){
+			ArrayList<BeanTavolo> tavoli = giocatore.richiediListaTavoliAperti();
+			Iterator<BeanTavolo> itTavoli = tavoli.iterator();
+			BeanTavolo tavoloEstratto;
+			String risposta = "";
+			if(itTavoli.hasNext()){
+				tavoloEstratto = itTavoli.next();
+				risposta = tavoloEstratto.toString();
+				while(itTavoli.hasNext()){
+					tavoloEstratto = itTavoli.next();
+					risposta = risposta+";"+tavoloEstratto.toString();
+				}				
+			}
+			return CreareMessaggio.responsoPositivo(risposta);
+		}
+		else if(comando.toUpperCase().equals(creaTavolo)){
+			String risposta = "";
+			Integer idTavolo = this.giocatore.creaTavolo();
+			risposta = idTavolo.toString();
+			return CreareMessaggio.responsoPositivo(risposta); //TODO se è uguale a null resposo negativo
+		}
+		else if(comando.toUpperCase().equals(joinTavolo)){
+			String risposta = "";
+			Integer idTavolo = CreareMessaggio.estraiInteger(stringaPura);
+			ArrayList<String> nomiGiocatori = this.giocatore.joinTavolo(idTavolo);
+			risposta = CreareMessaggio.impacchettaArrayListStringhe(nomiGiocatori);
+			System.out.println("La risposta è: " +risposta);
+			return CreareMessaggio.responsoPositivo(risposta);
+		}
+		else if(comando.toUpperCase().equals(startTavolo)){
+			String risposta = "";
+			Integer idTavolo = CreareMessaggio.estraiInteger(stringaPura);
+			Boolean esito = this.giocatore.avviaTavolo(idTavolo);
+			risposta = esito.toString();
+			return CreareMessaggio.responsoPositivo(risposta);
+		}
+		else if(comando.toUpperCase().equals(abbandonaTavolo)){
+			String risposta = "";
+			this.giocatore.abbandonaTavolo();
+			return CreareMessaggio.responsoPositivo(risposta);
+		}
+		
+		//TODO Levare questo return e ritornare il valore di ogni interpreta.
+		return null;
+	}
+	
+	public synchronized String inviaComando(Integer secondiAttesa) throws InterruptedException{
+		//TODO gestire l'invio del comando
+		
+		//Attendiamo la risposta dell'utente
+		if(stringaLetta.equals(customString)){
+			wait(secondiAttesa*1000);
+		}
+		//Ci salviamo la risposta, ripristiniamo la stringa di default e ritorniamo quello che abbiamo letto
+		String risposta = stringaLetta;
+		this.stringaLetta = customString;
+		return risposta;
+	}
+	
+	public String getStringaLetta() {
+		return stringaLetta;
+	}
+
+	public void setStringaLetta(String stringaLetta) {
+		this.stringaLetta = stringaLetta;
+	}
+
+	
+
+	
+	@Override
+	public void inviaMieInfo(BeanGiocatore mieInfo) {
+		String stringaDaInviare = "";
+		stringaDaInviare = infoUtenteAggiornate+at+mieInfo.toString();
+		String risposta = this.lettoreSocket.inviaComando(stringaDaInviare); //attendo la risposta del client
+		//ora devo interpretare la risposta, ma è void, quindi faccio return
+		return; 
+	}
+	
+	
+	@Override
+	public void comunicaCambiamentiTavolo(ArrayList<String> nomiGiocatoriSeduti) {
+		String stringaDaInviare = ""; //inizializzo la stringa
+		Iterator<String> itNomi = nomiGiocatoriSeduti.iterator();
+		while(itNomi.hasNext()){
+			stringaDaInviare = stringaDaInviare+(itNomi.next());
+			if(itNomi.hasNext()){
+				stringaDaInviare = stringaDaInviare+dotcomma;  //così evito di mettere il ; alla fine.
+			}
+		}
+		stringaDaInviare = cambiamentiTavolo+at+stringaDaInviare;
+		String risposta = this.lettoreSocket.inviaComando(stringaDaInviare); //attendo la risposta del client
+		return; 
+	}
+	
+	@Override
+	public void comunicaInfoTavoli(ArrayList<BeanTavolo> infoTavoliAperti) {
+		String stringaDaInviare = ""; //inizializzo la stringa
+		BeanTavolo tavoloTemp; 
+		String stringaTemp;
+		Iterator<BeanTavolo> itInfoTavoli = infoTavoliAperti.iterator();
+		while(itInfoTavoli.hasNext()){
+			tavoloTemp = itInfoTavoli.next();
+			stringaTemp = tavoloTemp.toString();
+			stringaDaInviare = stringaDaInviare+stringaTemp;
+			if(itInfoTavoli.hasNext())
+				stringaDaInviare = stringaDaInviare+dotcomma; //così evito di mettere il ; alla fine.
+		}
+		stringaDaInviare = listaTavoliAggiornati+at+stringaDaInviare;
+		String risposta = this.lettoreSocket.inviaComando(stringaDaInviare); //attendo la risposta del client
+		return;  //è void
+	}
+	
+	
+	/**
+	 * DA QUI IN POI BORDELLO
+	 */
+	@Override
+	public void iniziaPartita(Integer idPartita,
+			ArrayList<BeanGiocatore> infoGiocatoriPartita) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void cambiaTurno(String nomeGiocatore) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void ordinePartita(ArrayList<String> nomiGiocatori) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void inviaColoreGiocatorePartita(String coloreGiocatore) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void inviaBonusTurno(String colore, Integer bonus) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void inviaBonusContinente(String colore, String nomeContinente,
+			Integer bonus) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void aggiuntaUnita(String colore, String nomeTerritorio,
+			Integer numeroUnitaAggiunte) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void rimossaUnita(String colore, String nomeTerritorio,
+			Integer numeroUnitaRimosse) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void assegnaArmateInizioPartita(Integer numeroArmate) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void assegnaArmateTurno(Integer numeroArmate) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public ArrayList<Integer> difenditi(String nomeTerritorioAttaccante,
+			ArrayList<Integer> dadiAttaccanti) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	@Override
+	public void risultatoCombattimento(Integer numeroArmatePerse,
+			Integer numeroArmateDistrutte) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void risultatoPartita(ArrayList<Integer> punteggiFinali) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public Colori scegliColore(ArrayList<Colori> coloriDisponibili) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+	@Override
+	public void comunicaTerritoriPosizioneArmate(
+			ArrayList<Territorio> territoriPosseduti, Integer numeroArmate,
+			Integer timer) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public boolean attendiMossa(Integer timer) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+	@Override
+	public boolean settaggioArmateInizioTurno(Integer numeroArmate,
+			Integer tempo) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+
+
+}

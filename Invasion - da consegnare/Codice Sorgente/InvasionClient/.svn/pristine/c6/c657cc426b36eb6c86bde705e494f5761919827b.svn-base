@@ -1,0 +1,46 @@
+package client;
+
+import java.util.ArrayList;
+
+import interfacciaGUI.ControllerLimbo;
+import interfacciaGUI.ControllerTavolo;
+import classiCondivise.BeanTavolo;
+import classiCondivise.Colori;
+import classiCondivise.StatiUtente;
+/**
+ * Contiene le informazioni del giocatore
+ * @author timmy
+ *
+ */
+public class GiocatoreLimbo extends AccountEStatistiche implements ControllerLimbo {
+	
+	
+	private Ambasciatore ambasciatore; 
+	
+	public GiocatoreLimbo(){
+		super();
+		this.ambasciatore = Ambasciatore.getInstance();
+	}
+
+	
+	
+	@Override
+	public ControllerTavolo entraNelTavolo(Integer idTavolo) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public ControllerTavolo creaNuovoTavolo() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public ArrayList<BeanTavolo> aggiornaTavoli() {
+		ArrayList<BeanTavolo> infoTavoli = this.ambasciatore.richiediListaTavoliAperti();
+		return infoTavoli;
+	}
+
+	
+}

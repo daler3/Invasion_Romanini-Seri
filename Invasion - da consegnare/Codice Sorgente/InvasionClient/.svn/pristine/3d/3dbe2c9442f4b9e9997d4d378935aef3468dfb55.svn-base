@@ -1,0 +1,180 @@
+package client;
+
+import interfacciaGUI.ControllerLimbo;
+import interfacciaGUI.ControllerPartita;
+import interfacciaGUI.ControllerTavolo;
+import interfacciaGUI.ViewTavolo;
+
+import java.util.ArrayList;
+
+import classiCondivise.BeanGiocatore;
+import classiCondivise.Classifica;
+
+public class Tavolo extends AccountEStatistiche implements ControllerTavolo {
+	final static int giocatoriMassimi = 6;
+	final static int giocatoriMinimi = 3; 
+	
+	private ArrayList<String> elencoGiocatori;
+	private Integer idTavolo;
+	private boolean ioCreatore = false; 
+	
+	private Ambasciatore ambasciatore; 
+	
+	private ViewTavolo vistaTavolo; 
+	
+	
+//	/**
+//	 * Creiamo localmente il tavolo e ci aggiungiamo alla lista
+//	 * @param creatoreTavolo Il nome del creatore del tavolo
+//	 * @param idTavolo ID numerico che viene incrementato dinamicamente
+//	 */
+//	public Tavolo(String creatoreTavolo , Integer idTavolo){
+//		elencoGiocatori = new ArrayList<String>(giocatoriMassimi);
+//		elencoGiocatori.add(creatoreTavolo);
+//		this.idTavolo = idTavolo;
+//	}
+	
+	
+	/**
+	 * Creiamo localmente il tavolo e ci aggiungiamo alla lista
+	 * @param creatoreTavolo Il nome del creatore del tavolo
+	 * @param idTavolo ID numerico che viene incrementato dinamicamente
+	 */
+	public Tavolo(Integer idTavolo){
+		elencoGiocatori = new ArrayList<String>(giocatoriMassimi);
+		this.idTavolo = idTavolo;
+		this.ambasciatore = Ambasciatore.getInstance();
+		this.ambasciatore.setTavolo(this);
+	}
+	
+	
+	public void setVistaTavolo(ViewTavolo vistaTavolo){
+		this.vistaTavolo = vistaTavolo;
+	}
+	
+	public void setIoCreatore(boolean ioCreatore){
+		this.ioCreatore = ioCreatore;
+	}
+
+	
+	/**
+	 * Ci aggiunge all'elenco dei giocatori
+	 * @param giocatore
+	 * @return true se veniamo aggiunti, altrimenti false
+	 * @throws Exception 
+	 */
+	public void joinTavolo(String giocatore) throws Exception{
+		//TODO Aggiungere eccezioni personalizzate
+		if(isFull()){
+			throw new Exception("Tavolo pieno - Impossibile aggiungere nuovo giocatore");
+		}
+		else if(isInTavolo(giocatore)){
+			throw new Exception("Sono già dentro - NON devo aggiornare");	//Lo stato me lo aggiorna chi mi ci ha messo
+		}
+		else{
+			elencoGiocatori.add(giocatore);
+		}
+	}
+	
+	
+	/**
+	 * Aggiorna la lista dei giocatori
+	 * @param listaGiocatori - la nuova lista dei giocatori
+	 */
+	public void aggiornaListaGiocatoriEView(ArrayList<String> listaGiocatori){
+		this.elencoGiocatori = listaGiocatori;
+		this.vistaTavolo.aggiornaUtenti(listaGiocatori);
+		//comunico alla grafica
+	}
+	
+	/**
+	 * Aggiorna la lista dei giocatori
+	 * @param listaGiocatori - la nuova lista dei giocatori
+	 */
+	public void aggiornaListaGiocatori(ArrayList<String> listaGiocatori){
+		this.elencoGiocatori = listaGiocatori;
+		//this.vistaTavolo.aggiornaUtenti(listaGiocatori);
+		//comunico alla grafica
+	}
+	
+
+	public boolean isIoCreatore() {
+		return ioCreatore;
+	}
+
+	/**
+	 * Numero di giocatori connessi
+	 * @return il numero dei giocatori connessi
+	 */
+	public Integer numeroGiocatori(){
+		return this.elencoGiocatori.size();
+	}
+	
+//	/**
+//	 * Ci rimuove dal tavolo
+//	 * @param giocatore
+//	 */
+//	public void abbandonaTavolo(Limbo giocatore){
+//		
+//		elencoGiocatori.remove(giocatore);
+//	}
+	
+	public Integer getIdTavolo() {
+		return idTavolo;
+	}
+	public ArrayList<String> getElencoGiocatori() {
+		return elencoGiocatori;
+	}
+	
+	/**
+	 * Ci dice se il tavolo è pieno e non si possono aggiungere nuovi giocatori
+	 * @return true: il tavolo è pieno - false: si può ancora accedere al tavolo
+	 */
+	public boolean isFull(){
+		if(elencoGiocatori.size() >= giocatoriMassimi)
+			return true;
+		return false;
+	}
+	
+	private boolean isInTavolo(String giocatore){
+		return elencoGiocatori.contains(giocatore);
+	}
+
+
+	/**
+	 * Chiamato dall'utente per abbandonare il tavolo
+	 */
+	@Override
+	public ControllerLimbo abbandonaTavolo() {
+		this.ambasciatore.abbandonaTavolo();
+		ControllerLimbo controllerLimbo = new Limbo();
+		return controllerLimbo;
+	}
+
+	
+	/**
+	 * Comando dato da creatore
+	 */
+	@Override
+	public ControllerPartita avviaTavolo(Integer idTavolo) {
+		if(this.ambasciatore.avviaTavolo(idTavolo)){
+			ControllerPartita nuovaPartita = new Partita ();
+			return nuovaPartita; 
+		}
+		else{
+			return null;
+		}
+	}
+	
+	/**
+	 * COmando da server di avviare la partita (se qualcun altro l'ha avviata)
+	 */
+	public void startPartita(){
+		ControllerPartita nuovaPartita = new Partita ();
+		this.vistaTavolo.avviaPartita(nuovaPartita);
+	}
+	
+	
+	
+	
+}

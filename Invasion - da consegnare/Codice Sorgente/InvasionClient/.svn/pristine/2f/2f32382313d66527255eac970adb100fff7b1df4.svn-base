@@ -1,0 +1,19 @@
+package interfacciaGUI;
+
+import java.util.ArrayList;
+
+public interface ControllerTavolo extends ControllerAccountStatistiche {
+	
+	//lo da il client
+	public ControllerLimbo abbandonaTavolo();
+
+	
+	public ControllerPartita avviaTavolo(Integer idTavolo);
+	
+	
+	public void setVistaTavolo(ViewTavolo vistaTavolo);
+	
+	public ArrayList<String> getElencoGiocatori();
+	
+	
+}

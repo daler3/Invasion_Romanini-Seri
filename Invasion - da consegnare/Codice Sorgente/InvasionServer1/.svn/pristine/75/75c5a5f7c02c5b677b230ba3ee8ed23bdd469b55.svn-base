@@ -1,0 +1,166 @@
+package provaRmi;
+
+import interfacceRemote.AcceptInterface;
+import interfacceRemote.ClientComunicazioneInterfaccia;
+import interfacceRemote.ServerComunicazioneInterfaccia;
+import java.rmi.*;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject; 
+import java.util.*;
+import java.io.*;
+
+
+
+
+
+
+
+//sarà da cambiare
+import server_daler.GiocatoreConnesso;
+
+//TODO da finire
+/**
+ * Gestore delle Accept.
+ * Si occupa di gestire 
+ *
+ */
+public class AcceptClass extends UnicastRemoteObject implements AcceptInterface, Runnable{
+	
+	
+	
+	/**
+	 * Costruttore del gestore delle Accept.
+	 * @throws RemoteException
+	 */
+	public AcceptClass() throws RemoteException {
+		super();
+		this.clientInterface = new ArrayList<ClientComunicazioneInterfaccia>();
+		this.classiPerClient = new ArrayList<ServerComunicazione>();
+		this.threadServer = new ArrayList<Thread>();
+	}
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	
+	private ArrayList<ClientComunicazioneInterfaccia> clientInterface; 
+	private ArrayList<ServerComunicazione> classiPerClient; 
+	private ArrayList<Thread> threadServer;
+	
+//	private static final String host = "127.0.0.1";
+//	private static final String url = "rmi://"+host+"/Hello";
+//	private ArrayList<ServerComunicazione> clients = null;
+//	private ArrayList<String> clientNames = null;
+//	private Object lock = null;
+//	private Thread serverThread; 
+	
+	/**
+	 * Metodo chiamato da parte client per iniziare la connessione con il server. 
+	 * @param client - l'interfaccia di comunicazione remota, il cui oggetto che la implementa ha chiamato questo metodo, con lo scopo di stabilire una connessione con il server.
+	 * @return l'interfaccia di comunicazione remota che servirà al client per comunicare con il server e viceversa. 
+	 * @see AcceptInterface
+	 */
+	@Override
+	public ServerComunicazioneInterfaccia inizioConnessione(ClientComunicazioneInterfaccia client) throws RemoteException {
+		ServerComunicazione classePerClient = new ServerComunicazione(client);
+		//classePerClient.creaGiocatore();
+		Thread threadPerClient = new Thread(classePerClient);
+		//classePerClient.setThread(threadPerClient);
+		this.classiPerClient.add(classePerClient);
+		this.clientInterface.add(client);
+		this.threadServer.add(threadPerClient);
+		threadPerClient.start();
+		classePerClient.setNuovoGiocatore();
+//		GiocatoreConnesso nuovoGiocatore = new GiocatoreConnesso(classePerClient);
+//		classePerClient.setGiocatore(nuovoGiocatore);
+		return classePerClient; 
+	}
+	
+	
+	
+	
+	
+	
+	@Override
+	public void run() {
+		
+		boolean continua = true;
+		 
+		while(continua){
+			Iterator<Thread> iteratorThreads = this.threadServer.iterator();
+			while(iteratorThreads.hasNext()){
+				Thread threadTemp = iteratorThreads.next();
+				if(!threadTemp.isAlive()){
+					this.threadServer.remove(threadTemp);
+				}
+			}
+			
+		}
+		
+	}
+	
+
+
+
+
+
+
+
+
+	
+//	//costruttore di default 
+//	public AcceptClass() throws RemoteException {
+////		clients = new ArrayList<ClassForPlayer>(); 
+////		clientNames = new ArrayList<String>(); 
+//		lock = new Object();
+//	}
+//	
+//	/**
+//	 * Questo è chiamato da MyPlayerClass. Ritorna infatti un'interfaccia con i metodi che il giocatore 
+//	 * può utilizzare per giocare la partita (e gli altri per la comunicazione col server)
+//	 * 
+//	 */
+//	@Override
+//	public ServerComunicazioneInterfaccia login(ClientComunicazioneInterfaccia client, String nameClient, String password) throws RemoteException{
+//		//Istanzio una classe per il giocatore. Questa classe implementa InterfaceForPlayer
+//		//nel costruttore di classForPlayer creerò il ThreadPlayer. Solo ClassForPlayer avrà il riferimento al Thread.
+//		ServerComunicazione classePerClient = new ServerComunicazione(client, nameClient, password, this);
+//		//add e remove devono essere synchronized per motivi di consistenza
+////		synchronized (lock) {
+////		      clients.add(classePerClient);
+////		      clientNames.add(nameClient);
+////		}
+//		Thread threadPerClient = new Thread(classePerClient); 
+//		//System.out.println("Nuovo client connesso");
+//		//Faccio partire il Thread
+//		threadPerClient.start(); //adesso può iniziare a comunicare
+//		return classePerClient; 	
+//	}
+	
+	
+	/**
+	 * registrazione 
+	 */
+	
+
+	/**
+	@Override
+	public InterfaceForPlayer login(MyInterface client2, String name, String password) throws RemoteException{
+		ClassForPlayer classePerClient = new ClassForPlayer();
+		serverThread = new Thread(classePerClient);
+		classePerClient.setThread(serverThread);
+		synchronized (lock) {
+		      clients.add(classePerClient);
+		      clientNames.add(name);
+		}
+		System.out.println("Nuovo client connesso");
+		serverThread.start(); 
+		return classePerClient;
+	}
+	*/
+	
+	
+
+}

@@ -1,0 +1,13 @@
+package exceptionCondivise;
+
+public class InserimentoMancanteException extends Exception {
+
+	public InserimentoMancanteException() {
+		super();
+	}
+
+	@Override
+	public String toString() {
+		return "InserimentoMancanteException";
+	}
+}

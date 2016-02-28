@@ -1,0 +1,389 @@
+//package guiClient;
+//
+//import java.awt.event.ActionEvent;
+//import java.awt.event.ActionListener;
+//import java.util.ArrayList;
+//import java.util.Hashtable;
+//
+//import guiClient.immagini.IconLoader;
+//
+//import javax.swing.ImageIcon;
+//import javax.swing.JPanel;
+//import javax.swing.JLabel;
+//import javax.swing.JButton;
+//
+//public class BackupPannelloMappa extends JPanel {
+//
+//	Hashtable <Integer, String> confini;
+//	ArrayList<JButton> btnStato;
+//	final static int NUMEROSTATI = 42;
+//	
+//	public BackupPannelloMappa() {
+//		setLayout(null);
+//		//Ciclo per popolare l'hashtable con i nomi
+//		
+//		for(int i = 0; i<NUMEROSTATI; i++){
+//			JButton mioBottone = new JButton();
+//			mioBottone.setOpaque(false);
+//			mioBottone.setContentAreaFilled(false);
+//			mioBottone.setBorderPainted(false);
+//			btnStato.add(new JButton())
+//		}
+//		
+//		JPanel panelBottoni = new JPanel();
+//		panelBottoni.setBounds(0, 0, 759, 435);
+//		panelBottoni.setOpaque(false);
+//		add(panelBottoni);
+//		panelBottoni.setLayout(null);
+//		
+//		JButton button_25 = new JButton();
+//		button_25.setOpaque(false);
+//		button_25.setContentAreaFilled(false);
+//		button_25.setBorderPainted(false);
+//		button_25.setBounds(139, 79, 117, 25);
+//		panelBottoni.add(button_25);
+//		
+//		JButton button_1 = new JButton();
+//		button_1.setOpaque(false);
+//		button_1.setContentAreaFilled(false);
+//		button_1.setBorderPainted(false);
+//		button_1.setBounds(95, 79, 43, 56);
+//		panelBottoni.add(button_1);
+//		
+//		JButton button_2 = new JButton();
+//		button_2.setOpaque(false);
+//		button_2.setContentAreaFilled(false);
+//		button_2.setBorderPainted(false);
+//		button_2.setBounds(150, 105, 51, 25);
+//		panelBottoni.add(button_2);
+//		
+//		JButton button_3 = new JButton();
+//		button_3.setOpaque(false);
+//		button_3.setContentAreaFilled(false);
+//		button_3.setBorderPainted(false);
+//		button_3.setBounds(257, 28, 84, 76);
+//		panelBottoni.add(button_3);
+//		
+//		JButton button_4 = new JButton();
+//		button_4.setOpaque(false);
+//		button_4.setContentAreaFilled(false);
+//		button_4.setBorderPainted(false);
+//		button_4.setBounds(201, 105, 43, 30);
+//		panelBottoni.add(button_4);
+//		
+//		JButton button_6 = new JButton();
+//		button_6.setOpaque(false);
+//		button_6.setContentAreaFilled(false);
+//		button_6.setBorderPainted(false);
+//		button_6.setBounds(242, 116, 43, 25);
+//		panelBottoni.add(button_6);
+//		
+//		JButton button_7 = new JButton();
+//		button_7.setOpaque(false);
+//		button_7.setContentAreaFilled(false);
+//		button_7.setBorderPainted(false);
+//		button_7.setBounds(225, 147, 43, 25);
+//		panelBottoni.add(button_7);
+//		
+//		JButton button_8 = new JButton();
+//		button_8.setOpaque(false);
+//		button_8.setContentAreaFilled(false);
+//		button_8.setBorderPainted(false);
+//		button_8.setBounds(182, 170, 62, 38);
+//		panelBottoni.add(button_8);
+//		
+//		JButton button_9 = new JButton();
+//		button_9.setOpaque(false);
+//		button_9.setContentAreaFilled(false);
+//		button_9.setBorderPainted(false);
+//		button_9.setBounds(247, 274, 43, 56);
+//		panelBottoni.add(button_9);
+//		
+//		JButton button_10 = new JButton();
+//		button_10.setOpaque(false);
+//		button_10.setContentAreaFilled(false);
+//		button_10.setBorderPainted(false);
+//		button_10.setBounds(242, 234, 35, 38);
+//		panelBottoni.add(button_10);
+//		
+//		JButton button_11 = new JButton();
+//		button_11.setOpaque(false);
+//		button_11.setContentAreaFilled(false);
+//		button_11.setBorderPainted(false);
+//		button_11.setBounds(275, 214, 51, 58);
+//		panelBottoni.add(button_11);
+//		
+//		JButton button_12 = new JButton();
+//		button_12.setOpaque(false);
+//		button_12.setContentAreaFilled(false);
+//		button_12.setBorderPainted(false);
+//		button_12.setBounds(242, 197, 43, 25);
+//		panelBottoni.add(button_12);
+//		
+//		JButton button_5 = new JButton();
+//		button_5.setOpaque(false);
+//		button_5.setContentAreaFilled(false);
+//		button_5.setBorderPainted(false);
+//		button_5.setBounds(172, 137, 43, 30);
+//		panelBottoni.add(button_5);
+//		
+//		JButton button_13 = new JButton();
+//		button_13.setOpaque(false);
+//		button_13.setContentAreaFilled(false);
+//		button_13.setBorderPainted(false);
+//		button_13.setBounds(431, 234, 43, 32);
+//		panelBottoni.add(button_13);
+//		
+//		JButton button_14 = new JButton();
+//		button_14.setOpaque(false);
+//		button_14.setContentAreaFilled(false);
+//		button_14.setBorderPainted(false);
+//		button_14.setBounds(417, 183, 35, 39);
+//		panelBottoni.add(button_14);
+//		
+//		JButton button_15 = new JButton();
+//		button_15.setOpaque(false);
+//		button_15.setContentAreaFilled(false);
+//		button_15.setBorderPainted(false);
+//		button_15.setBounds(382, 243, 43, 38);
+//		panelBottoni.add(button_15);
+//		
+//		JButton button_16 = new JButton();
+//		button_16.setOpaque(false);
+//		button_16.setContentAreaFilled(false);
+//		button_16.setBorderPainted(false);
+//		button_16.setBounds(376, 214, 43, 25);
+//		panelBottoni.add(button_16);
+//		
+//		JButton button_17 = new JButton();
+//		button_17.setOpaque(false);
+//		button_17.setContentAreaFilled(false);
+//		button_17.setBorderPainted(false);
+//		button_17.setBounds(338, 166, 51, 56);
+//		panelBottoni.add(button_17);
+//		
+//		JButton button_18 = new JButton();
+//		button_18.setOpaque(false);
+//		button_18.setContentAreaFilled(false);
+//		button_18.setBorderPainted(false);
+//		button_18.setBounds(382, 164, 35, 20);
+//		panelBottoni.add(button_18);
+//		
+//		JButton button_19 = new JButton();
+//		button_19.setOpaque(false);
+//		button_19.setContentAreaFilled(false);
+//		button_19.setBorderPainted(false);
+//		button_19.setBounds(330, 110, 43, 25);
+//		panelBottoni.add(button_19);
+//		
+//		JButton button_20 = new JButton();
+//		button_20.setOpaque(false);
+//		button_20.setContentAreaFilled(false);
+//		button_20.setBorderPainted(false);
+//		button_20.setBounds(338, 79, 43, 25);
+//		panelBottoni.add(button_20);
+//		
+//		JButton button_21 = new JButton();
+//		button_21.setOpaque(false);
+//		button_21.setContentAreaFilled(false);
+//		button_21.setBorderPainted(false);
+//		button_21.setBounds(338, 137, 43, 25);
+//		panelBottoni.add(button_21);
+//		
+//		JButton button_22 = new JButton();
+//		button_22.setOpaque(false);
+//		button_22.setContentAreaFilled(false);
+//		button_22.setBorderPainted(false);
+//		button_22.setBounds(376, 140, 43, 25);
+//		panelBottoni.add(button_22);
+//		
+//		JButton button_23 = new JButton();
+//		button_23.setOpaque(false);
+//		button_23.setContentAreaFilled(false);
+//		button_23.setBorderPainted(false);
+//		button_23.setBounds(376, 116, 43, 25);
+//		panelBottoni.add(button_23);
+//		
+//		JButton button_24 = new JButton();
+//		button_24.setOpaque(false);
+//		button_24.setContentAreaFilled(false);
+//		button_24.setBorderPainted(false);
+//		button_24.setBounds(374, 79, 43, 41);
+//		panelBottoni.add(button_24);
+//		
+//		JButton button_26 = new JButton();
+//		button_26.setOpaque(false);
+//		button_26.setContentAreaFilled(false);
+//		button_26.setBorderPainted(false);
+//		button_26.setBounds(417, 79, 57, 51);
+//		panelBottoni.add(button_26);
+//		
+//		JButton button_27 = new JButton();
+//		button_27.setOpaque(false);
+//		button_27.setContentAreaFilled(false);
+//		button_27.setBorderPainted(false);
+//		button_27.setBounds(441, 126, 43, 25);
+//		panelBottoni.add(button_27);
+//		
+//		JButton button_28 = new JButton();
+//		button_28.setOpaque(false);
+//		button_28.setContentAreaFilled(false);
+//		button_28.setBorderPainted(false);
+//		button_28.setBounds(417, 147, 43, 37);
+//		panelBottoni.add(button_28);
+//		
+//		JButton button_29 = new JButton();
+//		button_29.setOpaque(false);
+//		button_29.setContentAreaFilled(false);
+//		button_29.setBorderPainted(false);
+//		button_29.setBounds(465, 166, 43, 42);
+//		panelBottoni.add(button_29);
+//		
+//		JButton button_30 = new JButton();
+//		button_30.setOpaque(false);
+//		button_30.setContentAreaFilled(false);
+//		button_30.setBorderPainted(false);
+//		button_30.setBounds(507, 177, 43, 31);
+//		panelBottoni.add(button_30);
+//		
+//		JButton button_31 = new JButton();
+//		button_31.setOpaque(false);
+//		button_31.setContentAreaFilled(false);
+//		button_31.setBorderPainted(false);
+//		button_31.setBounds(517, 214, 43, 51);
+//		panelBottoni.add(button_31);
+//		
+//		JButton button_32 = new JButton();
+//		button_32.setOpaque(false);
+//		button_32.setContentAreaFilled(false);
+//		button_32.setBorderPainted(false);
+//		button_32.setBounds(577, 214, 51, 25);
+//		panelBottoni.add(button_32);
+//		
+//		JButton button_33 = new JButton();
+//		button_33.setOpaque(false);
+//		button_33.setContentAreaFilled(false);
+//		button_33.setBorderPainted(false);
+//		button_33.setBounds(545, 263, 43, 38);
+//		panelBottoni.add(button_33);
+//		
+//		JButton button_34 = new JButton();
+//		button_34.setOpaque(false);
+//		button_34.setContentAreaFilled(false);
+//		button_34.setBorderPainted(false);
+//		button_34.setBounds(585, 243, 43, 52);
+//		panelBottoni.add(button_34);
+//		
+//		JButton button_35 = new JButton();
+//		button_35.setOpaque(false);
+//		button_35.setContentAreaFilled(false);
+//		button_35.setBorderPainted(false);
+//		button_35.setBounds(496, 147, 54, 25);
+//		panelBottoni.add(button_35);
+//		
+//		JButton button_36 = new JButton();
+//		button_36.setOpaque(false);
+//		button_36.setContentAreaFilled(false);
+//		button_36.setBorderPainted(false);
+//		button_36.setBounds(465, 105, 43, 30);
+//		panelBottoni.add(button_36);
+//		
+//		JButton button_37 = new JButton();
+//		button_37.setOpaque(false);
+//		button_37.setContentAreaFilled(false);
+//		button_37.setBorderPainted(false);
+//		button_37.setBounds(496, 54, 43, 56);
+//		panelBottoni.add(button_37);
+//		
+//		JButton button_38 = new JButton();
+//		button_38.setOpaque(false);
+//		button_38.setContentAreaFilled(false);
+//		button_38.setBorderPainted(false);
+//		button_38.setBounds(557, 79, 43, 25);
+//		panelBottoni.add(button_38);
+//		
+//		JButton button_39 = new JButton();
+//		button_39.setOpaque(false);
+//		button_39.setContentAreaFilled(false);
+//		button_39.setBorderPainted(false);
+//		button_39.setBounds(520, 110, 43, 25);
+//		panelBottoni.add(button_39);
+//		
+//		JButton button_40 = new JButton();
+//		button_40.setOpaque(false);
+//		button_40.setContentAreaFilled(false);
+//		button_40.setBorderPainted(false);
+//		button_40.setBounds(601, 79, 43, 56);
+//		panelBottoni.add(button_40);
+//		
+//		JButton button_41 = new JButton();
+//		button_41.setOpaque(false);
+//		button_41.setContentAreaFilled(false);
+//		button_41.setBorderPainted(false);
+//		button_41.setBounds(574, 147, 43, 25);
+//		panelBottoni.add(button_41);
+//		
+//		JButton button_42 = new JButton();
+//		button_42.setOpaque(false);
+//		button_42.setContentAreaFilled(false);
+//		button_42.setBorderPainted(false);
+//		button_42.setBounds(530, 137, 43, 25);
+//		panelBottoni.add(button_42);
+//		
+//		button_1.setActionCommand("UNO");
+//		
+//		button_1.addActionListener(new SelezioneTerritorio());
+//		button_2.addActionListener(new SelezioneTerritorio());
+//		button_3.addActionListener(new SelezioneTerritorio());
+//		button_4.addActionListener(new SelezioneTerritorio());
+//		button_5.addActionListener(new SelezioneTerritorio());
+//		button_6.addActionListener(new SelezioneTerritorio());
+//		button_7.addActionListener(new SelezioneTerritorio());
+//		button_8.addActionListener(new SelezioneTerritorio());
+//		button_9.addActionListener(new SelezioneTerritorio());
+//		button_10.addActionListener(new SelezioneTerritorio());
+//		button_11.addActionListener(new SelezioneTerritorio());
+//		button_12.addActionListener(new SelezioneTerritorio());
+//		button_13.addActionListener(new SelezioneTerritorio());
+//		button_14.addActionListener(new SelezioneTerritorio());
+//		button_15.addActionListener(new SelezioneTerritorio());
+//		button_16.addActionListener(new SelezioneTerritorio());
+//		button_17.addActionListener(new SelezioneTerritorio());
+//		button_18.addActionListener(new SelezioneTerritorio());
+//		button_19.addActionListener(new SelezioneTerritorio());
+//		button_20.addActionListener(new SelezioneTerritorio());
+//		button_21.addActionListener(new SelezioneTerritorio());
+//		button_22.addActionListener(new SelezioneTerritorio());
+//		button_23.addActionListener(new SelezioneTerritorio());
+//		button_24.addActionListener(new SelezioneTerritorio());
+//		button_26.addActionListener(new SelezioneTerritorio());
+//		button_27.addActionListener(new SelezioneTerritorio());
+//		button_28.addActionListener(new SelezioneTerritorio());
+//		button_29.addActionListener(new SelezioneTerritorio());
+//		button_30.addActionListener(new SelezioneTerritorio());
+//		button_31.addActionListener(new SelezioneTerritorio());
+//		button_32.addActionListener(new SelezioneTerritorio());
+//		button_33.addActionListener(new SelezioneTerritorio());
+//		button_34.addActionListener(new SelezioneTerritorio());
+//		button_35.addActionListener(new SelezioneTerritorio());
+//		button_36.addActionListener(new SelezioneTerritorio());
+//		button_37.addActionListener(new SelezioneTerritorio());
+//		button_38.addActionListener(new SelezioneTerritorio());
+//		button_39.addActionListener(new SelezioneTerritorio());
+//		button_40.addActionListener(new SelezioneTerritorio());
+//		button_41.addActionListener(new SelezioneTerritorio());
+//		button_42.addActionListener(new SelezioneTerritorio());
+//
+//		
+//		JLabel lblCartina = new JLabel(IconLoader.imageIcon("risk-noboardx600.png"));
+//		lblCartina.setBounds(0, 0, 759, 435);
+//		add(lblCartina);
+//
+//	}
+//	
+//	private class SelezioneTerritorio implements ActionListener{
+//		public void actionPerformed(ActionEvent e) {
+//			new CreaPopup(e.getActionCommand());
+//		}
+//    }
+//}

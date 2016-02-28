@@ -1,0 +1,8 @@
+package exceptionCondivise;
+
+public class InserimentoMancanteException extends Exception {
+
+	public InserimentoMancanteException() {
+		super();
+	}
+}

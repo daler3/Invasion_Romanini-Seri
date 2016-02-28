@@ -1,0 +1,541 @@
+package rmi;
+
+import interfacceRemote.AcceptInterface;
+import interfacceRemote.ClientComunicazioneInterfaccia;
+import interfacceRemote.ServerComunicazioneInterfaccia;
+
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.rmi.server.UnicastRemoteObject;
+import java.rmi.*;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Properties;
+
+import comunicazione.Client2Server;
+
+import mappa.Mappa;
+import mappa.Territorio;
+import classiCondivise.BeanGiocatore;
+import classiCondivise.BeanTavolo;
+import classiCondivise.Classifica;
+import classiCondivise.Colori;
+import client.Ambasciatore;
+import exceptionCondivise.GiocatoreNonTrovatoException;
+import exceptionCondivise.ProblemaAvvioTavoloException;
+import exceptionCondivise.TavoloInesistenteException;
+import exceptionCondivise.TerritorioNonTrovatoException;
+import exceptionCondivise.UnitaInsufficientiException;
+
+/**
+ * Oggetto per la comunicazione RMI lato client.
+ *
+ */
+@SuppressWarnings("unused")
+public class ClientComunicazione extends UnicastRemoteObject implements ClientComunicazioneInterfaccia, Client2Server {
+
+	/**
+	 * Default serial version UID.
+	 */
+	private static final long serialVersionUID = 1L;
+	private String host;
+	private String url;
+	
+	/**
+	 * Riferimento all'interfaccia remota del server.
+	 */
+	private ServerComunicazioneInterfaccia interfacciaServer; 
+	
+	/**
+	 * Ricevimento all'interfaccia del gestore delle Accept (lato Server).
+	 */
+	private AcceptInterface stub = null; 
+	
+	
+	/**
+	 * Riferimento all'ambasciatore, che mi permetterà di comunicare con i metodi di client.
+	 */
+	private Ambasciatore ambasciatore = Ambasciatore.getInstance();
+	
+	
+	/**
+	 * Costruttore. 
+	 * Prende l'istanza di ambasciatore (Singleton) e gli setta sè stesso come interfaccia di comunicazione. 
+	 * @throws RemoteException
+	 */
+	public ClientComunicazione() throws RemoteException {
+		super();
+		Properties fileProperties = new Properties();
+		FileInputStream input;
+		try {
+			input = new FileInputStream("connessione.properties");
+			fileProperties.load(input);
+			input.close();
+			this.host = fileProperties.getProperty("rmi.host");
+			String url1 = fileProperties.getProperty("rmi.urlParte1");
+			String url2 = fileProperties.getProperty("rmi.urlParte2");
+			this.url = url1+host+url2;
+			input.close();
+		} catch (FileNotFoundException e) {
+			System.err.println("File di properties non trovato - Non posso avviare il server");
+			System.exit(0);
+		} catch (IOException e) {
+			System.err.println("Impossibile leggere il file di properties");
+		}
+	}
+	
+
+	
+	
+	/**
+	 * Richiesta di login dell'utente.
+	 * Il client prova a effettuare il login tramite Rmi, chiamando il gestore delle Accept con visibilità di interfaccia
+	 * @throws SQLException 
+	 * @see Client2Server
+	 * 
+	 */
+	@Override
+	public BeanGiocatore effettuaLogin(String username, String password) throws SQLException{
+		if (System.getSecurityManager() == null)
+			System.setSecurityManager(new SecurityManager());
+		Registry registry;
+		try {
+			registry = LocateRegistry.getRegistry(host);
+			AcceptInterface stub = (AcceptInterface) registry.lookup(url); 		
+			//lo loggo
+			this.interfacciaServer = stub.inizioConnessione(this);
+			return this.interfacciaServer.eseguiLogin (username, password); 
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		} catch (NotBoundException e) {
+			gestisciErroreConnessioneServer();
+		}
+		return null; 
+	}
+		
+	
+	/**
+	 * Richiesta di registrazione da parte di un utente.
+	 * Il client prova a effettuare la registrazione tramite Rmi, chiamando il gestore delle Accept (lato Server).
+	 * Se la registrazione va a buon fine, l'utente, al termine dell'operazione, sarà loggato.
+	 * @see Client2Server
+	 */
+	@Override
+	public BeanGiocatore effettuaRegistrazione(String username, String password){
+		if (System.getSecurityManager() == null)
+			System.setSecurityManager(new SecurityManager());
+		Registry registry;
+		try {
+			registry = LocateRegistry.getRegistry(host);
+			AcceptInterface stub = (AcceptInterface) registry.lookup(url); 		
+			//lo loggo
+			this.interfacciaServer = stub.inizioConnessione(this);
+			return this.interfacciaServer.eseguiRegistrazione(username, password); 
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		} catch (NotBoundException e) {
+			gestisciErroreConnessioneServer();
+		}
+		return null; 
+	}
+	
+	/**
+	 * Metodo per cambiare la password. Chiede un cambiamento di password passando per l'interfaccia remota del server.
+	 * 
+	 * @see Client2Server
+	 */
+	@Override
+	public boolean cambiaPassword(String vecchiaPassword, String nuovaPassword) {
+		boolean esito = false;
+		try {
+			esito = this.interfacciaServer.cambiaPassword(vecchiaPassword, nuovaPassword);
+			return esito;
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+		return esito;
+	}
+	
+	
+	/**
+	 * Richiede la classifica generale del gioco, comunicando con l'interfaccia remota, e gestendo un eventuale errore di connessione
+	 * @see Client2Server.
+	 */
+	@Override
+	public Classifica chiediClassifica() {
+		Classifica classificaAttuale;
+		try {
+			classificaAttuale = this.interfacciaServer.ottieniClassifica();
+			return classificaAttuale;
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+		return null;
+	}
+	
+	
+	/**
+	 * Richiesta di ottenere le informazioni riguardanti un utente specifico.
+	 * Comunica con l'interfaccia remota del server, gestendo un eventuale errore di connessione
+	 * @see Client2Server
+	 */
+	@Override
+	public BeanGiocatore ottieniInfoUtente(String usernameUtente) throws GiocatoreNonTrovatoException {
+		BeanGiocatore infoUtente = null;
+		try {
+			infoUtente = this.interfacciaServer.ottieniInfoUtente(usernameUtente);
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+		return infoUtente;
+	}
+	
+	/**
+	 * Comunica con l'interfaccia remota del server, gestendo un eventuale errore di connessione
+	 * @see Client2Server
+	 */
+	@Override
+	public ArrayList<BeanTavolo> richiediListaTavoliAperti(){
+		ArrayList<BeanTavolo> infoTavoliAperti = null;
+		try {
+			infoTavoliAperti = this.interfacciaServer.richiediListaTavoliAperti();
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+		return infoTavoliAperti;
+	}
+	
+	/**
+	 * Comunica con l'interfaccia remota del server, gestendo un eventuale errore di connessione
+	 * @see Client2Server
+	 */
+	@Override
+	public Integer creaTavolo() {
+		Integer idNuovoTavolo = null;
+		try {
+			idNuovoTavolo = this.interfacciaServer.creaTavolo();
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+		return idNuovoTavolo;
+	}
+	
+	/**
+	 * Comunica con l'interfaccia remota del server, gestendo un eventuale errore di connessione
+	 * @see Client2Server
+	 */
+	@Override
+	public ArrayList<String> joinTavolo(Integer idTavolo) throws TavoloInesistenteException {
+		ArrayList<String> nomiGiocatori = null; 
+		try {
+			nomiGiocatori = this.interfacciaServer.joinTavolo(idTavolo);
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+		return nomiGiocatori;
+	}
+	
+	/**
+	 *Comunica con l'interfaccia remota del server, gestendo un eventuale errore di connessione
+	 *@see Client2Server
+	 */
+	@Override
+	public void abbandonaTavolo() {
+		try {
+			this.interfacciaServer.abbandonaTavolo();
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+	}
+
+	
+	/**
+	 * Comunica con l'interfaccia remota del server, gestendo un eventuale errore di connessione
+	 * @see Client2Server
+	 */
+	@Override
+	public boolean avviaTavolo(Integer idTavolo) throws ProblemaAvvioTavoloException{
+		boolean esitoAvvio = false;
+		try {
+			esitoAvvio = this.interfacciaServer.avviaTavolo(idTavolo);  //chiamo l'interfaccia remota lato server
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+		return esitoAvvio; 
+	}
+		
+	
+	/**
+	 * Chiamato dal Server, comunica con il client attraverso la classe Ambasciatore
+	 * @see ClientComunicazioneInterfaccia
+	 */
+	@Override
+	public void riceviMieInfo(BeanGiocatore mieInfo) throws RemoteException{
+		this.ambasciatore.riceviMieInfo(mieInfo);
+	}
+	
+	/**
+	 * Chiamato dal Server, comunica con il client attraverso la classe Ambasciatore
+	 * @see ClientComunicazioneInterfaccia
+	 */
+	@Override
+	public void cambiamentiTavolo(ArrayList<String> nomiGiocatoriSeduti) throws RemoteException{
+		this.ambasciatore.cambiamentiTavolo(nomiGiocatoriSeduti);
+	}
+	
+	/**
+	 * Chiamato dal Server, comunica con il client attraverso la classe Ambasciatore
+	 * @see ClientComunicazioneInterfaccia
+	 */
+	@Override
+	public void riceviInfoTavoli(ArrayList<BeanTavolo> infoTavoliAperti) throws RemoteException{
+		this.ambasciatore.riceviInfoTavoli(infoTavoliAperti);
+	}
+	
+	/**
+	 * Chiamato dal Server, comunica con il client attraverso la classe Ambasciatore
+	 * @see ClientComunicazioneInterfaccia
+	 */
+	@Override
+	public void riceviComunicazioneInizioPartita() {
+		this.ambasciatore.avviaPartita();
+		
+	}
+
+	/**
+	 * Chiamato dal Server, comunica con il client attraverso la classe Ambasciatore
+	 * @see ClientComunicazioneInterfaccia
+	 */
+	@Override
+	public void scegliColore(Integer timer, ArrayList<Colori> coloriDisponibili) {
+		this.ambasciatore.scegliColorePartita(timer, coloriDisponibili);
+	}
+	
+	/**
+	 * Comunica con l'interfaccia remota del server, gestendo un eventuale errore di connessione
+	 * @see Client2Server
+	 */
+	@Override
+	public void sceltaColoreEffettuata(Colori colore){
+		try {
+			this.interfacciaServer.sceltaColoreEffettuata(colore);
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+	}
+	
+	/**
+	 * Chiamato dal Server, comunica con il client attraverso la classe Ambasciatore
+	 * @see ClientComunicazioneInterfaccia
+	 */
+	@Override
+	public void riceviOrdinePartita(ArrayList<BeanGiocatore> listaInfoGiocatori,
+			ArrayList<Colori> ordineColori) {
+		this.ambasciatore.riceviOrdinePartita(listaInfoGiocatori, ordineColori);	
+	}
+	
+	/**
+	 * Chiamato dal Server, comunica con il client attraverso la classe Ambasciatore
+	 * @see ClientComunicazioneInterfaccia
+	 */
+	@Override
+	public void riceviMappa(Mappa mappa) throws RemoteException {
+		this.ambasciatore.riceviMappa(mappa);
+	}
+
+	/**
+	 * Chiamato dal Server, comunica con il client attraverso la classe Ambasciatore
+	 * @see ClientComunicazioneInterfaccia
+	 */
+	@Override
+	public void riceviTerritoriPosizionaArmate(
+			Integer numeroArmateDaPosizionare, Integer tempoPosizionaArmate,
+			Mappa mappaPartita) {
+		this.ambasciatore.riceviTerritoriPosizionaArmate(numeroArmateDaPosizionare, tempoPosizionaArmate, mappaPartita);		
+	}
+	
+	
+
+	/**
+	 * Comunica con l'interfaccia remota del server, gestendo un eventuale errore di connessione
+	 * @see Client2Server
+	 */
+	@Override
+	public void sceltaArmateInizialeEffettuata(String comandoPosizionamento){
+		try {
+			this.interfacciaServer.sceltaArmateInizialeEffettuata(comandoPosizionamento);
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+	}
+	
+	/**
+	 * Chiamato dal Server, comunica con il client attraverso la classe Ambasciatore
+	 * @see ClientComunicazioneInterfaccia
+	 */
+	@Override
+	public void riceviComunicazioneNuovoTurno(Colori colore, String username)
+			throws RemoteException {
+		this.ambasciatore.riceviComunicazioneNuovoTurno(colore, username);
+	}
+
+
+	/**
+	 * Chiamato dal Server, comunica con il client attraverso la classe Ambasciatore
+	 * @see ClientComunicazioneInterfaccia
+	 */
+	@Override
+	public void riceviArmateInizioTurno(Integer numeroArmate, Integer tempo)
+			throws RemoteException {
+		this.ambasciatore.riceviArmateInizioTurno(numeroArmate, tempo);
+	}
+
+
+	/**
+	 * Chiamato dal Server, comunica con il client attraverso la classe Ambasciatore
+	 * @see ClientComunicazioneInterfaccia
+	 */
+	@Override
+	public void riceviComunicazioneAttesaMossa(Integer tempo) throws RemoteException {
+		this.ambasciatore.comunicazioneInAttesaMossa(tempo);
+	}
+	
+	/**
+	 * Comunica con l'interfaccia remota del server, gestendo un eventuale errore di connessione
+	 * @see Client2Server
+	 */
+	@Override
+	public void passaTurno(){
+		try {
+			this.interfacciaServer.passaTurno();
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+	}
+	
+	/**
+	 * Chiamato dal Server, comunica con il client attraverso la classe Ambasciatore
+	 * @see ClientComunicazioneInterfaccia
+	 */
+	@Override
+	public void riceviComunicazioneAttacco(Integer tempoDifesa, Territorio territorioAttaccante, Territorio territorioAttaccato, 
+			ArrayList<Integer> risultatoDadiAttacco, ArrayList<Integer> risultatoDadiDifesa, Integer [] risultati, boolean conquistato)
+					throws RemoteException {
+		this.ambasciatore.riceviComunicazioneAttacco(tempoDifesa, territorioAttaccante, territorioAttaccato, risultatoDadiAttacco, risultatoDadiDifesa, risultati, conquistato);
+	}
+	
+	/**
+	 * Comunica con l'interfaccia remota lato server, gestendo un eventuale errore di connessione
+	 * @see Client2Server
+	 */
+	@Override
+	public void comandoSpostaArmate(Integer numeroArmateDaSpostare, String origine, String destinazione) throws TerritorioNonTrovatoException{
+		try {
+			this.interfacciaServer.comandoSpostaArmate(numeroArmateDaSpostare, origine, destinazione);
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+	}
+	
+	/**
+	 * Comunica con l'interfaccia remota lato server, gestendo un eventuale errore di connessione
+	 * @see Client2Server
+	 */
+	@Override
+	public void comandoAttacco(Integer numeroUnitaAttaccanti, String tAttaccato, String tAttaccante) throws UnitaInsufficientiException{
+		try {
+			this.interfacciaServer.comandoAttacco(numeroUnitaAttaccanti, tAttaccato, tAttaccante);
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+	}
+	
+	/**
+	 * Comunica con l'interfaccia remota lato server, gestendo un eventuale errore di connessione
+	 * @see Client2Server
+	 */
+	@Override
+	public void abbandonaPartita(){
+		try {
+			this.interfacciaServer.abbandonaPartita();
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+	}
+	
+	/**
+	 * Chiamato dal Server, comunica con il client attraverso la classe Ambasciatore
+	 * @see ClientComunicazioneInterfaccia
+	 */
+	@Override
+	public void riceviComunicazioneSconfitta(String giocatoreSconfitto)
+			throws RemoteException {
+		this.ambasciatore.riceviComunicazioneSconfitta(giocatoreSconfitto);
+	}
+	
+	/**
+	 * Chiamato dal Server, comunica con il client attraverso la classe Ambasciatore
+	 * @see ClientComunicazioneInterfaccia
+	 */
+	@Override
+	public void riceviComunicazioneRitirata(String giocatoreRitirato) throws RemoteException{
+		this.ambasciatore.riceviComunicazioneRitirata(giocatoreRitirato);
+	}
+	
+	/**
+	 * Chiamato dal Server, comunica con il client attraverso la classe Ambasciatore
+	 * @see ClientComunicazioneInterfaccia
+	 */
+	public void riceviClassificaFinale(ArrayList<String> classificaFinale, Integer punteggioPrimo, Integer punteggioSecondo) throws RemoteException{
+		this.ambasciatore.riceviClassificaFinale(classificaFinale, punteggioPrimo, punteggioSecondo);
+	}
+
+	
+	/**
+	 * Chiamato dal Server. Server per stabilire se il client corrispondente all'interfaccia di comunicazione è ancora connesso o meno.
+	 * @see ClientComunicazioneInterfaccia
+	 */
+	@Override
+	public void sonoVivo() throws RemoteException{
+		return;
+	}
+
+	/**
+	 * Comunica con l'interfaccia remota lato server, gestendo un eventuale errore di connessione
+	 * @see Client2Server
+	 */
+	@Override
+	public boolean effettuaLogout() {
+		boolean esitoLogout = false;
+		try {
+			esitoLogout = this.interfacciaServer.eseguiLogout();
+			return esitoLogout;
+		} catch (RemoteException e) {
+			gestisciErroreConnessioneServer();
+		}
+		return esitoLogout;
+	}
+	
+	
+	/**
+	 * Metodo per gestire un errore di connessione da Server
+	 */
+	private void gestisciErroreConnessioneServer(){
+		this.ambasciatore.chiusuraServer();
+	}
+	
+	
+	/**
+	 * @see ClientComunicazioneInterfaccia
+	 */
+	@Override
+	public void comunicaChiusuraServer() throws RemoteException{
+		this.ambasciatore.chiusuraServer();
+	}
+			
+}

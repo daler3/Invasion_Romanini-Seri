@@ -1,0 +1,103 @@
+package client;
+
+import interfacciaGUI.ControllerLimboTavolo;
+import interfacciaGUI.ControllerUtente;
+
+import java.util.ArrayList;
+
+public class Utente implements ControllerUtente {
+	private GiocatoreTavoli giocatore = null;
+	private Ambasciatore ambasciatore = null;
+	
+	public Utente(){
+		super();
+		this.ambasciatore = Ambasciatore.getInstance();
+	}
+	/**
+	 * Effettua il login
+	 * @param username Username del giocatore
+	 * @param password Password del giocatore
+	 * @return True: login riuscito; false: username in uso
+	 */
+	private boolean login(String username, String password){
+		boolean esitoComunicazione = this.ambasciatore.login(username, password);
+		return esitoComunicazione;
+	}
+	
+	/**
+	 * 
+	 * @param username Username del giocatore
+	 * @param password Password del giocatore
+	 * @return True: login riuscito; false: username in uso
+	 */
+	private boolean registazione(String username, String password){
+		boolean esitoComunicazione = this.ambasciatore.registrazione(username, password);
+		return esitoComunicazione;
+	}
+	
+	public GiocatoreTavoli getGiocatore(){
+		return this.giocatore;
+	}
+	
+	@Override
+	public ControllerLimboTavolo effettuaLogin(String username, String password) {
+		if(login(username, password)){
+			System.out.println("OK login - passo il controller");
+			ControllerLimboTavolo controllerLimbo = new GiocatoreTavoli();
+			return controllerLimbo;
+		}
+		return null;
+	}
+
+
+	@Override
+	public ControllerLimboTavolo effettuaRegistrazione(String username, String password) {
+		if(registazione(username, password)){
+			System.out.println("OK login - passo il controller");
+			ControllerLimboTavolo controllerLimbo = new GiocatoreTavoli();
+			return controllerLimbo;
+		}
+		return null;
+	}
+	
+	private boolean responsoPositivo(boolean responso){
+		return responso;
+	}
+	
+	
+	
+	
+//	
+//	/**
+//	 * Usciamo dal tavolo, creiamo una nuova partita e ci mettiamo nello stato INPARTITA
+//	 * @param idPartita
+//	 */
+//	public void iniziaAGiocare(Integer idPartita){
+//		giocatore.iniziaAGiocare(idPartita);
+//	}
+//	
+//	/**
+//	 * Abbandona il tavolo in cui siamo seduti
+//	 */
+//	public void abbandonaTavolo(){
+//		//TODO Comunicare al server l'intenzione di abbandonare il tavolo
+//		giocatore.abbandonaMioTavolo();
+//	}
+//	
+//	/**
+//	 * Abbandona la partita che stiamo giocando
+//	 */
+//	public void abbandonaPartita(){
+//		//TODO Comunicare al server l'intenzione di abbandonare la partita
+//		giocatore.abbandonaMiaPartita();
+//	}
+//	
+//	public ArrayList<Integer> lanciaDadi(Integer numeroDadi){
+//		//TODO Comunica al server di lanciare i dadi
+//		//TODO Attendiamo il risultato del lancio
+//		return null;
+//	}
+//	
+//	//TODO Mettere tutti i metodi di attacca e difendi (O in Giocatore???)
+//	
+}
