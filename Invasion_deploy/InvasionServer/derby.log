@@ -1,0 +1,13 @@
+----------------------------------------------------------------
+Sun Feb 28 15:18:29 CET 2016:
+Avvio della versione di Derby The Apache Software Foundation - Apache Derby - 10.10.1.1 - (1458268): istanza a816c00e-0153-283e-aadf-000002ebcad8
+sulla directory di database /home/timmy/Invasion/InvasionServer/database con caricatore classi sun.misc.Launcher$AppClassLoader@6365d2be 
+Caricato da file:/home/timmy/Invasion/InvasionServer/driverdb/derby.jar
+java.vendor=Oracle Corporation
+java.runtime.version=1.7.0_95-b00
+user.dir=/home/timmy/Invasion/InvasionServer
+os.name=Linux
+os.arch=amd64
+os.version=3.19.0-32-generic
+derby.system.home=null
+Programma di caricamento classe database avviato - derby.database.classpath=''
