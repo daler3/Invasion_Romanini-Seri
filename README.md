@@ -1,4 +1,4 @@
-# Invasion (revision of Risk!) - Java game
+# Invasion (variation of Risk!) - Java game
 Authors: Daniele Romanini, Federico Seri
 Bachelor's Degree Final Project
 
