@@ -1,7 +1,8 @@
-# Invasion_Romanini-Seri
+# Invasion - Java game
+Authors: Daniele Romanini, Federico Seri
 Bachelor's Degree Final Project
 
-A distributed, online multithread application in Java (a sort of Risk! Game), supporting more matches at the same time and maintaining statistics about players through a Database; use of So ware Engineering principles, applying the waterfall model; developed the application in team with another student, using the Client-Server architecture, Object-Oriented design principles and implementing the communication part through Socket and RMI.
+A distributed, online multithread application in Java (a sort of Risk! Game), supporting more matches at the same time and maintaining statistics about players through a Database; use of Software Engineering principles, applying the waterfall model; developed the application in team with another student, using the Client-Server architecture, Object-Oriented design principles and implementing the communication part through Socket and RMI.
 
 Source code: https://github.com/daler3/Invasion_Romanini-Seri/tree/master/Invasion_SourceCode%26DocS/Codice%20Sorgente%20-%20Source%20Code
 
